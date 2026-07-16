@@ -1,19 +1,23 @@
-# :earth_americas: GDP dashboard template
+# :bar_chart: Wildberries — анализ юнит-экономики
 
-A simple Streamlit app showing the GDP of different countries in the world.
+Streamlit-приложение для анализа выгрузок из личного кабинета продавца Wildberries.
+Загрузите отчёт (CSV/Excel), сопоставьте колонки, впишите себестоимость — приложение
+посчитает выручку, издержки маркетплейса (комиссия, логистика, хранение, штрафы),
+валовую прибыль, маржинальность и ROI по каждому артикулу.
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://gdp-dashboard-template.streamlit.app/)
+### Как запустить локально
 
-### How to run it on your own machine
-
-1. Install the requirements
+1. Установите зависимости
 
    ```
    $ pip install -r requirements.txt
    ```
 
-2. Run the app
+2. Запустите приложение
 
    ```
    $ streamlit run streamlit_app.py
    ```
+
+3. Загрузите файл отчёта WB (плоская таблица с заголовками в первой строке) и
+   проверьте автоматически определённые колонки.

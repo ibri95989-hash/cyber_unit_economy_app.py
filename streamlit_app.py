@@ -49,6 +49,25 @@ def column_picker(label, columns, guessed, required=False, key=None):
     return st.selectbox(label, options, index=default_index, key=key)
 
 
+def clean_numeric(val):
+    if pd.isna(val):
+        return np.nan
+    s = str(val).strip()
+    s = s.replace(' ', '').replace(',', '.')
+    try:
+        return float(s)
+    except (ValueError, TypeError):
+        return np.nan
+
+
+def find_header_row(df):
+    for i in range(min(10, len(df))):
+        cols = [str(c).strip().lower() for c in df.iloc[i]]
+        if any(kw in ' '.join(cols) for alias_list in ALIASES.values() for kw in alias_list if len(kw) > 2):
+            return i
+    return 0
+
+
 # -----------------------------------------------------------------------------
 # Header
 
@@ -76,15 +95,21 @@ if uploaded_file.name.lower().endswith(('.xlsx', '.xls')):
     sheet_name = excel_file.sheet_names[0]
     if len(excel_file.sheet_names) > 1:
         sheet_name = st.selectbox('Лист Excel', excel_file.sheet_names)
-    df = excel_file.parse(sheet_name)
+    df = excel_file.parse(sheet_name, header=None)
+    header_row = find_header_row(df)
+    df.columns = [str(c).strip() for c in df.iloc[header_row]]
+    df = df.iloc[header_row + 1:].reset_index(drop=True)
 else:
     raw_bytes = uploaded_file.getvalue()
     df = None
     for encoding in ('utf-8', 'cp1251'):
         for sep in (',', ';'):
             try:
-                candidate = pd.read_csv(io.BytesIO(raw_bytes), encoding=encoding, sep=sep)
+                candidate = pd.read_csv(io.BytesIO(raw_bytes), encoding=encoding, sep=sep, header=None)
                 if candidate.shape[1] > 1:
+                    header_row = find_header_row(candidate)
+                    candidate.columns = [str(c).strip() for c in candidate.iloc[header_row]]
+                    candidate = candidate.iloc[header_row + 1:].reset_index(drop=True)
                     df = candidate
                     break
             except Exception:
@@ -149,7 +174,7 @@ if missing_required:
 numeric_cols = [qty_col, revenue_col, commission_col, logistics_col, storage_col, fines_col, payout_col, cost_price_col]
 for c in numeric_cols:
     if c and c != '— нет —' and c in df.columns:
-        df[c] = pd.to_numeric(df[c], errors='coerce').fillna(0)
+        df[c] = df[c].apply(clean_numeric).fillna(0)
 
 agg = {qty_col: 'sum', revenue_col: 'sum'}
 if name_col != '— нет —':

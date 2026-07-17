@@ -17,13 +17,14 @@ st.set_page_config(
 ALIASES = {
     'sku': ['артикул продавца', 'артикул поставщика', 'sku', 'артикул'],
     'name': ['наименование', 'предмет', 'название товара', 'товар'],
-    'qty': ['кол-во', 'количество', 'кол во', 'шт.'],
+    'qty': ['выкупили', 'кол-во', 'количество', 'кол во', 'шт'],
     'revenue': [
         'вайлдберриз реализовал товар',
         'сумма продаж',
         'выручка',
         'сумма реализации',
         'розничная цена',
+        'сумма заказов минус комиссия',
     ],
     'commission': ['размер квв', 'комиссия', 'вознаграждение вб', 'удержано комиссии'],
     'logistics': ['логистика', 'услуги по доставке', 'доставка'],
@@ -144,9 +145,9 @@ with col1:
     name_col = column_picker('Название товара', columns, guess_column(columns, ALIASES['name']), key='name')
 with col2:
     qty_col = column_picker('Количество, шт *', columns, guess_column(columns, ALIASES['qty']), required=True, key='qty')
-    revenue_col = column_picker('Выручка / сумма продаж *', columns, guess_column(columns, ALIASES['revenue']), required=True, key='revenue')
+    revenue_col = column_picker('Выручка / сумма продаж', columns, guess_column(columns, ALIASES['revenue']), key='revenue')
 with col3:
-    payout_col = column_picker('К перечислению продавцу (если есть)', columns, guess_column(columns, ALIASES['payout']), key='payout')
+    payout_col = column_picker('К перечислению продавцу', columns, guess_column(columns, ALIASES['payout']), key='payout')
     cost_price_col = column_picker('Себестоимость за единицу (если есть)', columns, guess_column(columns, ALIASES['cost_price']), key='cost')
 
 st.markdown('**Издержки Wildberries** (используются только если не указана колонка «К перечислению»)')
@@ -161,11 +162,15 @@ with col7:
     fines_col = column_picker('Штрафы/удержания', columns, guess_column(columns, ALIASES['fines']), key='fines')
 
 missing_required = [
-    label for label, value in [('Артикул / SKU', sku_col), ('Количество', qty_col), ('Выручка', revenue_col)]
+    label for label, value in [('Артикул / SKU', sku_col), ('Количество', qty_col)]
     if value == '— нет —'
 ]
 if missing_required:
     st.warning('Укажите обязательные колонки: ' + ', '.join(missing_required))
+    st.stop()
+
+if revenue_col == '— нет —' and payout_col == '— нет —':
+    st.warning('Укажите хотя бы одну из колонок: «Выручка» или «К перечислению продавцу»')
     st.stop()
 
 # -----------------------------------------------------------------------------
@@ -176,7 +181,9 @@ for c in numeric_cols:
     if c and c != '— нет —' and c in df.columns:
         df[c] = df[c].apply(clean_numeric).fillna(0)
 
-agg = {qty_col: 'sum', revenue_col: 'sum'}
+agg = {qty_col: 'sum'}
+if revenue_col != '— нет —':
+    agg[revenue_col] = 'sum'
 if name_col != '— нет —':
     agg[name_col] = 'first'
 for c in [commission_col, logistics_col, storage_col, fines_col, payout_col]:
@@ -187,7 +194,9 @@ if cost_price_col != '— нет —':
 
 grouped = df.groupby(sku_col, as_index=False).agg(agg)
 
-rename_map = {sku_col: 'sku', qty_col: 'qty', revenue_col: 'revenue'}
+rename_map = {sku_col: 'sku', qty_col: 'qty'}
+if revenue_col != '— нет —':
+    rename_map[revenue_col] = 'revenue'
 if name_col != '— нет —':
     rename_map[name_col] = 'name'
 if commission_col != '— нет —':
@@ -206,6 +215,9 @@ grouped = grouped.rename(columns=rename_map)
 
 if 'name' not in grouped.columns:
     grouped['name'] = ''
+
+if 'revenue' not in grouped.columns and 'payout' in grouped.columns:
+    grouped['revenue'] = grouped['payout']
 
 for c in ['commission', 'logistics', 'storage', 'fines']:
     if c not in grouped.columns:

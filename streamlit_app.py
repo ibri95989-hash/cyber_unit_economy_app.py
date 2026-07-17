@@ -63,8 +63,10 @@ def clean_numeric(val):
 
 def find_header_row(df):
     for i in range(min(10, len(df))):
-        cols = [str(c).strip().lower() for c in df.iloc[i]]
-        if any(kw in ' '.join(cols) for alias_list in ALIASES.values() for kw in alias_list if len(kw) > 2):
+        cols = [str(c).strip().lower() for c in df.iloc[i] if pd.notna(c)]
+        cols_text = ' '.join(cols)
+        matching_kws = sum(1 for alias_list in ALIASES.values() for kw in alias_list if len(kw) > 2 and kw in cols_text)
+        if matching_kws >= 3:
             return i
     return 0
 

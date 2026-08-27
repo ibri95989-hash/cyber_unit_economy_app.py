@@ -1,9 +1,55 @@
 import io
+from datetime import date, timedelta
 
 import numpy as np
 import pandas as pd
 import plotly.express as px
+import requests
 import streamlit as st
+
+WB_STATS_API_URL = 'https://statistics-api.wildberries.ru/api/v1/supplier/reportDetailByPeriod'
+WB_PAGE_LIMIT = 100000
+WB_MAX_PAGES = 50
+
+# Столбцы отчёта о реализации WB (report Detail By Period) -> подписи,
+# которые понимает автоопределение колонок (ALIASES) ниже.
+WB_API_FIELD_MAP = {
+    'sa_name': 'Артикул поставщика',
+    'subject_name': 'Предмет',
+    'quantity': 'Кол-во',
+    'retail_amount': 'Сумма продаж',
+    'ppvz_sales_commission': 'Комиссия',
+    'delivery_rub': 'Логистика',
+    'storage_fee': 'Хранение',
+    'ppvz_for_pay': 'К перечислению',
+}
+
+
+def fetch_wb_report(token, date_from, date_to):
+    rows = []
+    rrdid = 0
+    headers = {'Authorization': token}
+    for _ in range(WB_MAX_PAGES):
+        params = {
+            'dateFrom': date_from.isoformat(),
+            'dateTo': date_to.isoformat(),
+            'rrdid': rrdid,
+            'limit': WB_PAGE_LIMIT,
+        }
+        response = requests.get(WB_STATS_API_URL, headers=headers, params=params, timeout=60)
+        if response.status_code == 401:
+            raise RuntimeError('Неверный или просроченный API-токен WB (ошибка 401).')
+        if response.status_code == 429:
+            raise RuntimeError('Превышен лимит запросов к API WB (429). Повторите попытку позже.')
+        response.raise_for_status()
+        page = response.json()
+        if not page:
+            break
+        rows.extend(page)
+        if len(page) < WB_PAGE_LIMIT:
+            break
+        rrdid = page[-1].get('rrd_id', 0)
+    return rows
 
 st.set_page_config(
     page_title='Wildberries — юнит-экономика',
@@ -81,46 +127,103 @@ st.caption(
     'себестоимость, прибыль и маржинальность по каждому товару.'
 )
 
-uploaded_file = st.file_uploader('Файл отчёта (CSV или Excel)', type=['csv', 'xlsx', 'xls'])
+source_mode = st.radio(
+    'Источник данных',
+    ['Загрузить файл', 'Подключить по API WB'],
+    horizontal=True,
+)
 
-if uploaded_file is None:
-    st.info(
-        'Файл должен быть плоской таблицей с заголовками в первой строке '
-        '(если в отчёте WB есть служебные шапки/объединённые ячейки — уберите их перед загрузкой).'
-    )
-    st.stop()
+df = None
 
-# -----------------------------------------------------------------------------
-# Load the file
+if source_mode == 'Загрузить файл':
+    uploaded_file = st.file_uploader('Файл отчёта (CSV или Excel)', type=['csv', 'xlsx', 'xls'])
 
-if uploaded_file.name.lower().endswith(('.xlsx', '.xls')):
-    excel_file = pd.ExcelFile(uploaded_file)
-    sheet_name = excel_file.sheet_names[0]
-    if len(excel_file.sheet_names) > 1:
-        sheet_name = st.selectbox('Лист Excel', excel_file.sheet_names)
-    df = excel_file.parse(sheet_name, header=None)
-    header_row = find_header_row(df)
-    df.columns = [str(c).strip() for c in df.iloc[header_row]]
-    df = df.iloc[header_row + 1:].reset_index(drop=True)
+    if uploaded_file is None:
+        st.info(
+            'Файл должен быть плоской таблицей с заголовками в первой строке '
+            '(если в отчёте WB есть служебные шапки/объединённые ячейки — уберите их перед загрузкой).'
+        )
+        st.stop()
+
+    # -------------------------------------------------------------------
+    # Load the file
+
+    if uploaded_file.name.lower().endswith(('.xlsx', '.xls')):
+        excel_file = pd.ExcelFile(uploaded_file)
+        sheet_name = excel_file.sheet_names[0]
+        if len(excel_file.sheet_names) > 1:
+            sheet_name = st.selectbox('Лист Excel', excel_file.sheet_names)
+        df = excel_file.parse(sheet_name, header=None)
+        header_row = find_header_row(df)
+        df.columns = [str(c).strip() for c in df.iloc[header_row]]
+        df = df.iloc[header_row + 1:].reset_index(drop=True)
+    else:
+        raw_bytes = uploaded_file.getvalue()
+        df = None
+        for encoding in ('utf-8', 'cp1251'):
+            for sep in (',', ';'):
+                try:
+                    candidate = pd.read_csv(io.BytesIO(raw_bytes), encoding=encoding, sep=sep, header=None)
+                    if candidate.shape[1] > 1:
+                        header_row = find_header_row(candidate)
+                        candidate.columns = [str(c).strip() for c in candidate.iloc[header_row]]
+                        candidate = candidate.iloc[header_row + 1:].reset_index(drop=True)
+                        df = candidate
+                        break
+                except Exception:
+                    continue
+            if df is not None:
+                break
+        if df is None:
+            st.error('Не удалось прочитать CSV-файл. Проверьте кодировку и разделитель.')
+            st.stop()
+
 else:
-    raw_bytes = uploaded_file.getvalue()
-    df = None
-    for encoding in ('utf-8', 'cp1251'):
-        for sep in (',', ';'):
-            try:
-                candidate = pd.read_csv(io.BytesIO(raw_bytes), encoding=encoding, sep=sep, header=None)
-                if candidate.shape[1] > 1:
-                    header_row = find_header_row(candidate)
-                    candidate.columns = [str(c).strip() for c in candidate.iloc[header_row]]
-                    candidate = candidate.iloc[header_row + 1:].reset_index(drop=True)
-                    df = candidate
-                    break
-            except Exception:
-                continue
-        if df is not None:
-            break
+    st.caption(
+        'Подключение к Statistics API Wildberries (отчёт о реализации). Токен создаётся в личном '
+        'кабинете продавца: Настройки → Доступ к API. Токен используется только в рамках текущей '
+        'сессии и никуда не сохраняется.'
+    )
+    token = st.text_input('API-токен WB', type='password', key='wb_token')
+    date_col1, date_col2 = st.columns(2)
+    with date_col1:
+        date_from = st.date_input('Дата с', value=date.today() - timedelta(days=30), key='wb_date_from')
+    with date_col2:
+        date_to = st.date_input('Дата по', value=date.today(), key='wb_date_to')
+
+    if st.button('Загрузить данные из WB', type='primary', disabled=not token):
+        if date_from > date_to:
+            st.error('Дата «с» не может быть позже даты «по».')
+            st.stop()
+        try:
+            with st.spinner('Загружаем отчёт из WB…'):
+                rows = fetch_wb_report(token, date_from, date_to)
+        except requests.exceptions.RequestException as exc:
+            st.error(f'Ошибка соединения с API WB: {exc}')
+            st.stop()
+        except RuntimeError as exc:
+            st.error(str(exc))
+            st.stop()
+
+        if not rows:
+            st.warning('WB вернул пустой отчёт за выбранный период.')
+            st.stop()
+
+        api_df = pd.DataFrame(rows)
+        for field in ('penalty', 'additional_payment', 'deduction'):
+            if field not in api_df.columns:
+                api_df[field] = 0
+        api_df['Штраф'] = (
+            api_df['penalty'].fillna(0) + api_df['additional_payment'].fillna(0) + api_df['deduction'].fillna(0)
+        )
+        for field, label in WB_API_FIELD_MAP.items():
+            if field not in api_df.columns:
+                api_df[field] = 0
+        df = api_df.rename(columns=WB_API_FIELD_MAP)[list(WB_API_FIELD_MAP.values()) + ['Штраф']]
+        st.session_state['wb_api_df'] = df
+
+    df = st.session_state.get('wb_api_df')
     if df is None:
-        st.error('Не удалось прочитать CSV-файл. Проверьте кодировку и разделитель.')
         st.stop()
 
 df.columns = [str(c).strip() for c in df.columns]

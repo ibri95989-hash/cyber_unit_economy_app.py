@@ -16,7 +16,7 @@ from typing import Optional
 
 import requests
 
-from .http import DEFAULT_HEADERS, SourceError
+from .http import SourceError, session as new_session
 
 EXPLORE = "https://trends.google.com/trends/api/explore"
 MULTILINE = "https://trends.google.com/trends/api/widgetdata/multiline"
@@ -51,8 +51,8 @@ class TrendsUnavailable(SourceError):
 
 
 def _session() -> requests.Session:
-    session = requests.Session()
-    session.headers.update({**DEFAULT_HEADERS, "Referer": "https://trends.google.com/"})
+    session = new_session()
+    session.headers.update({"Referer": "https://trends.google.com/"})
     try:
         session.get(HOMEPAGE, timeout=15)
     except requests.RequestException as exc:

@@ -10,10 +10,8 @@ from __future__ import annotations
 from datetime import date, timedelta
 from typing import Optional
 
-import requests
-
 from .estimate import blend, from_product_count, from_web_demand
-from .http import DEFAULT_HEADERS, SourceError, get_json, post_json
+from .http import SourceError, get_json, post_json, session as new_session
 from .models import SourceResult, Status
 from .trends import TrendsDemand
 
@@ -104,10 +102,10 @@ def _exact_from_api(query: str, client_id: str, client_secret: str) -> SourceRes
 
 def _suggestions(query: str) -> list[str]:
     try:
-        resp = requests.get(
+        resp = new_session().get(
             "https://www.ozon.ru/api/composer-api.bx/_action/searchSuggestions",
             params={"text": query},
-            headers={**DEFAULT_HEADERS, "Referer": "https://www.ozon.ru/"},
+            headers={"Referer": "https://www.ozon.ru/"},
             timeout=10,
         )
         payload = resp.json()

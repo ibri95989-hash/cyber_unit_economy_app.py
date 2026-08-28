@@ -12,6 +12,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from frequency.aggregator import Credentials, collect
+from frequency.http import check_connection, configure as configure_network
 from frequency.models import SourceResult, Status
 
 st.set_page_config(
@@ -128,6 +129,25 @@ with st.sidebar:
         ozon_client_id = st.text_input("Performance API Client Id")
         ozon_client_secret = st.text_input("Performance API Client Secret", type="password")
 
+    st.divider()
+    st.subheader("Сеть")
+    st.caption(
+        "Если площадки не открываются напрямую — укажите прокси. "
+        "Поддерживаются http://, https:// и socks5:// (в том числе с логином "
+        "и паролем: http://user:pass@host:port)."
+    )
+    proxy = st.text_input("Адрес прокси", placeholder="socks5://127.0.0.1:1080")
+    trust_env = st.checkbox(
+        "Использовать системный прокси",
+        value=True,
+        help="Берёт HTTPS_PROXY / HTTP_PROXY из окружения, если поле выше пустое.",
+    )
+    configure_network(proxy or None, trust_env)
+    if st.button("Проверить соединение", use_container_width=True):
+        ok, message = check_connection()
+        (st.success if ok else st.error)(message)
+
+    st.divider()
     region = st.selectbox(
         "Регион Вордстата",
         options=[("Россия", [225]), ("Москва и область", [1]), ("Весь мир", [])],
@@ -175,6 +195,7 @@ if go_clicked and not queries:
 
 if go_clicked and queries:
     rows: list[dict] = []
+    configure_network(proxy or None, trust_env)
     for query in queries:
         with st.spinner(f"Считаю частотность: «{query}»"):
             results = collect(query, creds)
@@ -190,9 +211,9 @@ if go_clicked and queries:
         if not any(r.is_number for r in results):
             st.error(
                 "Ни один источник не ответил — почти всегда это закрытый выход "
-                "в интернет: прокси, корпоративная сеть или VPN. Проверьте "
-                "доступ командой `curl -I https://trends.google.com/`, "
-                "подробности по каждому источнику — в карточках выше."
+                "в интернет. Укажите прокси в разделе «Сеть» слева и нажмите "
+                "«Проверить соединение»; подробности по каждому источнику — "
+                "в карточках выше."
             )
 
         total = sum(r.monthly for r in results if r.is_number)

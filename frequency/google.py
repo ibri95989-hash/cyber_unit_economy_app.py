@@ -8,10 +8,8 @@ from __future__ import annotations
 
 from typing import Optional
 
-import requests
-
 from .estimate import google_from_yandex
-from .http import DEFAULT_HEADERS
+from .http import session as new_session
 from .models import SourceResult, Status
 from .trends import TrendsDemand
 
@@ -22,10 +20,9 @@ SUGGEST_URL = "https://suggestqueries.google.com/complete/search"
 
 def _suggestions(query: str) -> list[str]:
     try:
-        resp = requests.get(
+        resp = new_session().get(
             SUGGEST_URL,
             params={"client": "firefox", "hl": "ru", "gl": "ru", "q": query},
-            headers=DEFAULT_HEADERS,
             timeout=10,
         )
         data = resp.json()

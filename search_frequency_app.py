@@ -17,7 +17,7 @@ from frequency.http import check_connection, configure as configure_network
 from frequency.models import SourceResult, Status
 
 st.set_page_config(
-    page_title="Частотность запросов — WB, Ozon, Яндекс, Google",
+    page_title="IBRX — частотность запросов",
     page_icon="🔎",
     layout="wide",
 )
@@ -48,6 +48,10 @@ st.markdown(
     """
     <style>
       .block-container {padding-top: 2.2rem; max-width: 1180px;}
+      .hero .brand {
+        font-size: .82rem; font-weight: 700; letter-spacing: .22em;
+        color: #5b5bd6; margin-bottom: .35rem;
+      }
       .hero h1 {font-size: 2.5rem; margin-bottom: .2rem; letter-spacing: -.02em;}
       .hero p {color: #7c828c; font-size: 1.02rem; margin-top: 0;}
       .card {
@@ -214,6 +218,7 @@ creds = Credentials(
 st.markdown(
     """
     <div class="hero">
+      <div class="brand">IBRX</div>
       <h1>Частотность запроса за месяц</h1>
       <p>Один запрос — сразу Яндекс, Wildberries, Ozon и Google. Без регистрации,
          ключей и токенов. Например: «ароматизатор в машину», «магнитный держатель

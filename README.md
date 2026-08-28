@@ -69,6 +69,27 @@ Wildberries с Ozon нередко не отвечают на запросы и�
 это переживёт — оценка достроится по Google Trends, — но если нужны и цифры
 маркетплейсов, пропишите в секретах `proxy` с российским адресом.
 
+### Запуск в Docker
+
+```bash
+docker build -t frequency-app .
+docker run --rm -p 8501:8501 frequency-app
+```
+
+Приложение открывается на http://localhost:8501. Полезные варианты запуска:
+
+```bash
+# свой порт (Render, Cloud Run и Heroku подставляют PORT сами)
+docker run --rm -e PORT=8080 -p 8080:8080 frequency-app
+
+# прокси и ключи без ввода в интерфейсе
+docker run --rm -p 8501:8501 \
+  -v "$PWD/.streamlit/secrets.toml:/app/.streamlit/secrets.toml:ro" frequency-app
+```
+
+Контейнер работает не из-под root и отдаёт healthcheck по `/healthz`, так что
+годится для Render, Cloud Run и Kubernetes без доработок.
+
 ### Работа через прокси
 
 Если WB, Ozon или Google Trends не открываются напрямую (корпоративная сеть,

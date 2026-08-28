@@ -23,10 +23,10 @@ st.set_page_config(
 )
 
 ACCENT = {
-    "Яндекс": "#ff3333",
-    "Wildberries": "#cb11ab",
-    "Ozon": "#005bff",
-    "Google": "#34a853",
+    "Яндекс": "#ff453a",
+    "Wildberries": "#e045c0",
+    "Ozon": "#0a84ff",
+    "Google": "#30d158",
 }
 
 # Куда пойти, чтобы перепроверить цифру руками на самой площадке.
@@ -37,43 +37,144 @@ SOURCE_LINKS = {
     "Google": "https://trends.google.com/trends/explore?geo=RU&q={q}",
 }
 
+# Цвета статусов из системной палитры iOS: читаются на чёрном фоне.
 STATUS_STYLE = {
-    Status.EXACT: ("#0f9d58", "точные данные"),
-    Status.ESTIMATE: ("#e8a33d", "оценка"),
-    Status.NO_KEY: ("#8a8f98", "нужен ключ"),
-    Status.ERROR: ("#d93025", "нет ответа"),
+    Status.EXACT: ("#30d158", "точные данные"),
+    Status.ESTIMATE: ("#ff9f0a", "оценка"),
+    Status.NO_KEY: ("#8e8e93", "нужен ключ"),
+    Status.ERROR: ("#ff453a", "нет ответа"),
 }
 
 st.markdown(
     """
     <style>
-      .block-container {padding-top: 2.2rem; max-width: 1180px;}
+      /* Системный шрифт Apple там, где он есть; на остальных — ближайший гротеск. */
+      html, body, [class*="css"], .stApp {
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+          "SF Pro Text", "Helvetica Neue", "Inter", "Segoe UI", sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .stApp {
+        background:
+          radial-gradient(1100px 620px at 50% -8%, rgba(10,132,255,.20), transparent 62%),
+          radial-gradient(760px 460px at 88% 4%, rgba(191,90,242,.13), transparent 60%),
+          #000;
+      }
+      .block-container {padding-top: 3.4rem; padding-bottom: 4rem; max-width: 1140px;}
+
+      /* Шапка: разрядка марки, крупный заголовок с мягким градиентом. */
+      .hero {text-align: center; margin-bottom: 2.6rem;}
       .hero .brand {
-        font-size: .82rem; font-weight: 700; letter-spacing: .22em;
-        color: #5b5bd6; margin-bottom: .35rem;
+        font-size: .7rem; font-weight: 600; letter-spacing: .38em;
+        color: #6e6e73; text-transform: uppercase; margin-bottom: 1rem;
       }
-      .hero h1 {font-size: 2.5rem; margin-bottom: .2rem; letter-spacing: -.02em;}
-      .hero p {color: #7c828c; font-size: 1.02rem; margin-top: 0;}
+      .hero h1 {
+        font-size: clamp(2.6rem, 5.4vw, 4.1rem); font-weight: 700;
+        letter-spacing: -.035em; line-height: 1.04; margin: 0 0 .85rem;
+        background: linear-gradient(180deg, #fff 28%, #a9a9b2 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+      }
+      .hero p {
+        color: #86868b; font-size: 1.09rem; line-height: 1.5;
+        max-width: 620px; margin: 0 auto;
+      }
+
+      /* Карточка источника: стекло на тёмном фоне, тонкая рамка, подъём при наведении. */
       .card {
-        border: 1px solid rgba(140,140,150,.22); border-radius: 18px;
-        padding: 18px 20px; height: 100%;
-        background: linear-gradient(180deg, rgba(140,140,150,.06), rgba(140,140,150,0));
+        position: relative; height: 100%;
+        border: 1px solid rgba(255,255,255,.10); border-radius: 22px;
+        padding: 22px 22px 20px;
+        background: linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.028));
+        backdrop-filter: blur(22px) saturate(150%);
+        -webkit-backdrop-filter: blur(22px) saturate(150%);
+        box-shadow: 0 1px 0 rgba(255,255,255,.07) inset, 0 18px 42px rgba(0,0,0,.5);
+        transition: transform .28s cubic-bezier(.2,.7,.3,1), border-color .28s ease;
       }
-      .card .src {font-weight: 650; font-size: .95rem; display:flex; align-items:center; gap:.5rem;}
-      .card .dot {width:10px; height:10px; border-radius:50%; display:inline-block;}
-      .card .value {font-size: 2.15rem; font-weight: 700; letter-spacing: -.03em; margin: .35rem 0 .1rem;}
-      .card .unit {font-size: .85rem; color:#7c828c; margin-bottom:.6rem;}
+      .card:hover {transform: translateY(-3px); border-color: rgba(255,255,255,.20);}
+      .card .src {
+        display:flex; align-items:center; gap:.55rem;
+        font-size: .82rem; font-weight: 600; letter-spacing: .01em; color: #d2d2d7;
+      }
+      .card .dot {
+        width: 9px; height: 9px; border-radius: 50%; display:inline-block; flex: none;
+      }
+      .card .value {
+        font-size: 2.6rem; font-weight: 700; letter-spacing: -.045em;
+        line-height: 1.05; margin: .75rem 0 .1rem; color: #fff;
+        font-variant-numeric: tabular-nums;
+      }
+      .card .unit {font-size: .8rem; color: #6e6e73; margin-bottom: .85rem;}
       .badge {
-        display:inline-block; font-size:.72rem; font-weight:600; padding:2px 9px;
-        border-radius: 999px; color:#fff;
+        display:inline-block; font-size: .68rem; font-weight: 600; letter-spacing: .02em;
+        padding: 3px 10px; border-radius: 999px;
+        border: 1px solid currentColor; background: transparent;
       }
-      .card .note {font-size:.8rem; color:#7c828c; margin-top:.6rem; line-height:1.35;}
+      .card .note {
+        font-size: .78rem; color: #86868b; margin-top: .8rem; line-height: 1.45;
+      }
       .card .check {
-        display:inline-block; margin-top:.7rem; font-size:.8rem; font-weight:600;
-        text-decoration:none; color:#5b5bd6;
+        display:inline-block; margin-top: .9rem; font-size: .78rem; font-weight: 500;
+        text-decoration: none; color: #0a84ff;
       }
       .card .check:hover {text-decoration: underline;}
-      div[data-testid="stMetricValue"] {font-size: 1.8rem;}
+
+      /* Верхняя панель Streamlit не должна разрезать фон белой полосой. */
+      [data-testid="stHeader"] {background: transparent !important;}
+      [data-testid="stToolbar"] {right: .6rem;}
+
+      /* Поля ввода: контейнер, а не сам textarea — фон рисует именно он. */
+      .stTextArea > div > div, .stTextInput > div > div,
+      div[data-baseweb="textarea"], div[data-baseweb="input"], div[data-baseweb="base-input"] {
+        background: rgba(255,255,255,.06) !important;
+        border: 1px solid rgba(255,255,255,.12) !important;
+        border-radius: 16px !important;
+      }
+      .stTextArea > div > div:focus-within, .stTextInput > div > div:focus-within,
+      div[data-baseweb="textarea"]:focus-within, div[data-baseweb="input"]:focus-within {
+        border-color: rgba(10,132,255,.85) !important;
+        box-shadow: 0 0 0 4px rgba(10,132,255,.16) !important;
+      }
+      .stTextArea textarea, .stTextInput input,
+      div[data-baseweb="textarea"] textarea, div[data-baseweb="input"] input {
+        background: transparent !important; color: #f5f5f7 !important;
+        font-size: 1.02rem !important; padding: .8rem 1rem !important;
+      }
+      .stTextArea textarea::placeholder, .stTextInput input::placeholder {color: #6e6e73 !important;}
+      div[data-baseweb="select"] > div {
+        background: rgba(255,255,255,.06) !important;
+        border: 1px solid rgba(255,255,255,.12) !important;
+        border-radius: 14px !important; color: #f5f5f7 !important;
+      }
+      .stButton button {
+        border-radius: 980px !important; border: none !important;
+        font-weight: 600 !important; letter-spacing: .01em;
+        padding: .72rem 1.5rem !important;
+        transition: transform .2s ease, filter .2s ease;
+      }
+      .stButton button:hover {transform: scale(1.02); filter: brightness(1.08);}
+      .stButton button[kind="primary"] {
+        background: linear-gradient(180deg, #0a84ff, #0060df) !important; color: #fff !important;
+        box-shadow: 0 8px 24px rgba(10,132,255,.32) !important;
+      }
+      .stButton button[kind="secondary"] {
+        background: rgba(255,255,255,.08) !important; color: #f5f5f7 !important;
+        border: 1px solid rgba(255,255,255,.14) !important;
+      }
+
+      /* Заголовок запроса, разделители и сервисные блоки. */
+      h3 {
+        font-size: 1.55rem !important; font-weight: 650 !important; color: #f5f5f7 !important;
+        letter-spacing: -.02em !important; margin: 2.4rem 0 1.1rem !important;
+      }
+      hr, [data-testid="stDivider"] {border-color: rgba(255,255,255,.08) !important;}
+      [data-testid="stExpander"] {
+        border: 1px solid rgba(255,255,255,.10) !important; border-radius: 18px !important;
+        background: rgba(255,255,255,.03) !important;
+      }
+      [data-testid="stSidebar"] {
+        background: #0a0a0b; border-right: 1px solid rgba(255,255,255,.08);
+      }
+      [data-testid="stSidebar"] h2 {font-size: 1.2rem; letter-spacing: -.01em;}
     </style>
     """,
     unsafe_allow_html=True,
@@ -96,7 +197,7 @@ def card(res: SourceResult) -> str:
       <div class="src"><span class="dot" style="background:{accent}"></span>{res.source}</div>
       <div class="value">{fmt(res.monthly)}</div>
       <div class="unit">показов в месяц</div>
-      <span class="badge" style="background:{color}">{res.label}</span>
+      <span class="badge" style="color:{color}">{res.label}</span>
       <div class="note">{note}</div>
       <a class="check" href="{link}" target="_blank" rel="noopener">Проверить на площадке →</a>
     </div>
@@ -118,14 +219,28 @@ def chart(results: list[SourceResult], query: str) -> Optional[go.Figure]:
             hovertemplate="%{y}: %{x:,} показов/мес<extra></extra>",
         )
     )
+    # cliponaxis=False + запас по оси: подпись длинного столбца не обрезается.
+    fig.update_traces(
+        marker_line_width=0, textfont_color="#f5f5f7", width=0.52, cliponaxis=False
+    )
+    top = max(r.monthly for r in points)
     fig.update_layout(
-        title=f"«{query}» — показов в месяц",
-        height=90 + 58 * len(points),
-        margin=dict(l=10, r=40, t=50, b=10),
-        xaxis=dict(showgrid=True, gridcolor="rgba(140,140,150,.18)", zeroline=False),
-        yaxis=dict(autorange="reversed"),
+        title=dict(text=f"«{query}» — показов в месяц", font=dict(size=15, color="#86868b")),
+        height=100 + 62 * len(points),
+        margin=dict(l=10, r=30, t=54, b=16),
+        font=dict(
+            family='-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
+            color="#d2d2d7",
+            size=13,
+        ),
+        xaxis=dict(
+            showgrid=True, gridcolor="rgba(255,255,255,.07)", zeroline=False,
+            showline=False, showticklabels=False, range=[0, top * 1.18],
+        ),
+        yaxis=dict(autorange="reversed", showgrid=False),
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
+        bargap=0.42,
         showlegend=False,
     )
     return fig

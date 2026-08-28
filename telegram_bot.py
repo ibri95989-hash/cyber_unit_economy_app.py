@@ -16,12 +16,17 @@ import logging
 import os
 import signal
 import sys
+import threading
 import time
 from collections import deque
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from typing import Any, Deque, Dict, Iterator, Optional
 
 import anthropic
 import requests
+
+import frequency_tool
 
 log = logging.getLogger("telegram_bot")
 
@@ -37,12 +42,22 @@ HTTP_TIMEOUT = POLL_TIMEOUT + 15
 # Telegram режет сообщения длиннее 4096 символов.
 TG_LIMIT = 4096
 
+# Индикатор «печатает» живёт около 5 секунд — обновляем чуть чаще.
+TYPING_REFRESH = 4
+
 MODEL = os.environ.get("CLAUDE_MODEL", "claude-opus-5")
 EFFORT = os.environ.get("CLAUDE_EFFORT", "low")
 MAX_TOKENS = int(os.environ.get("CLAUDE_MAX_TOKENS", "2000"))
 
 # Сколько реплик (свои + собеседника) помним в одном чате.
 HISTORY_LIMIT = int(os.environ.get("BOT_HISTORY_LIMIT", "40"))
+
+# Сколько собеседников обслуживаем одновременно: замер частотности идёт по
+# четырём площадкам и занимает секунды, остальные не должны его ждать.
+WORKERS = int(os.environ.get("BOT_WORKERS", "4"))
+
+# Предохранитель от зацикливания на инструменте внутри одной реплики.
+MAX_TOOL_ROUNDS = 4
 
 DEFAULT_SYSTEM = (
     "Ты — дружелюбный ассистент в Telegram. Отвечай по-русски, живо и по делу, "
@@ -51,13 +66,19 @@ DEFAULT_SYSTEM = (
     "вопрос, если он реально нужен. Ты помогаешь селлерам маркетплейсов "
     "(Wildberries, Ozon): юнит-экономика, себестоимость, комиссии, логистика, "
     "спрос и частотность запросов. Если не знаешь точную цифру — так и скажи, "
-    "не выдумывай данные о конкретных товарах или продажах."
+    "не выдумывай данные о конкретных товарах или продажах.\n\n"
+    "Про спрос и частотность у тебя есть инструмент search_frequency — он "
+    "измеряет запрос на WB, Ozon, в Яндексе и Google. Всегда зови его вместо "
+    "того, чтобы прикидывать цифры по памяти. В ответе называй числа по "
+    "площадкам и обязательно говори, оценка это или точные данные API; если "
+    "источник не ответил — скажи прямо, что цифры по нему нет."
 )
 
 WELCOME = (
     "Привет! Я на связи — пиши что угодно, отвечу.\n\n"
-    "Могу обсудить юнит-экономику на WB и Ozon, прикинуть спрос, "
-    "разобрать идею товара.\n\n"
+    "Могу измерить спрос на любой запрос (WB, Ozon, Яндекс, Google), "
+    "обсудить юнит-экономику и разобрать идею товара.\n\n"
+    "Например: «сколько ищут ароматизатор в машину?»\n\n"
     "/reset — забыть наш разговор и начать с чистого листа"
 )
 
@@ -106,10 +127,28 @@ class Telegram:
 
     def __init__(self, token: str, proxy: Optional[str] = None) -> None:
         self._token = token
-        self._session = requests.Session()
-        if proxy:
-            self._session.proxies.update({"http": proxy, "https": proxy})
+        self._proxy = proxy
+        # Ответы собеседникам уходят из рабочих потоков параллельно опросу
+        # Telegram, поэтому у каждого потока своя сессия.
+        self._local = threading.local()
         self._offset: Optional[int] = None
+
+    @property
+    def _session(self) -> requests.Session:
+        session = getattr(self._local, "session", None)
+        if session is None:
+            session = requests.Session()
+            if self._proxy:
+                session.proxies.update({"http": self._proxy, "https": self._proxy})
+            self._local.session = session
+        return session
+
+    def _close_session(self) -> None:
+        """Закрыть сессию текущего потока: короткоживущие потоки не копят пулы."""
+        session = getattr(self._local, "session", None)
+        if session is not None:
+            session.close()
+            self._local.session = None
 
     def _call(self, method: str, timeout: int = HTTP_TIMEOUT, **params: Any) -> Any:
         url = API_ROOT.format(token=self._token, method=method)
@@ -141,6 +180,27 @@ class Telegram:
             self._call("sendChatAction", timeout=30, chat_id=chat_id, action="typing")
         except Exception as exc:  # noqa: BLE001 - индикатор набора не критичен
             log.debug("Не удалось показать «печатает»: %s", exc)
+
+    @contextmanager
+    def typing_until_done(self, chat_id: int) -> Iterator[None]:
+        """Держать «печатает» всё время ответа: Telegram гасит его через 5 секунд."""
+        done = threading.Event()
+
+        def keep_alive() -> None:
+            try:
+                while not done.is_set():
+                    self.typing(chat_id)
+                    done.wait(TYPING_REFRESH)
+            finally:
+                self._close_session()
+
+        thread = threading.Thread(target=keep_alive, daemon=True)
+        thread.start()
+        try:
+            yield
+        finally:
+            done.set()
+            thread.join(timeout=1)
 
     def send(self, chat_id: int, text: str, reply_to: Optional[int] = None) -> None:
         for chunk in split_message(text):
@@ -179,22 +239,27 @@ class Dialogue:
     def __init__(self, limit: int = HISTORY_LIMIT) -> None:
         self._limit = limit
         self._chats: Dict[int, Deque[dict]] = {}
+        self._lock = threading.Lock()
 
     def history(self, chat_id: int) -> list[dict]:
-        return list(self._chats.get(chat_id, ()))
+        with self._lock:
+            return list(self._chats.get(chat_id, ()))
 
     def add(self, chat_id: int, role: str, content: str) -> None:
-        chat = self._chats.setdefault(chat_id, deque(maxlen=self._limit))
-        chat.append({"role": role, "content": content})
+        with self._lock:
+            chat = self._chats.setdefault(chat_id, deque(maxlen=self._limit))
+            chat.append({"role": role, "content": content})
 
     def drop_last_user_turn(self, chat_id: int) -> None:
         """Убрать реплику, на которую не удалось ответить."""
-        chat = self._chats.get(chat_id)
-        if chat and chat[-1]["role"] == "user":
-            chat.pop()
+        with self._lock:
+            chat = self._chats.get(chat_id)
+            if chat and chat[-1]["role"] == "user":
+                chat.pop()
 
     def reset(self, chat_id: int) -> None:
-        self._chats.pop(chat_id, None)
+        with self._lock:
+            self._chats.pop(chat_id, None)
 
 
 class Brain:
@@ -209,33 +274,85 @@ class Brain:
         self._system = system_prompt
 
     def reply(self, messages: list[dict]) -> str:
-        response = self._client.messages.create(
-            model=MODEL,
-            max_tokens=MAX_TOKENS,
-            system=self._system,
-            # Диалог в мессенджере: важнее скорость ответа, чем глубина разбора.
-            output_config={"effort": EFFORT},
-            messages=messages,
+        """Ответ на последнюю реплику; при необходимости идёт за частотностью.
+
+        Обмен с инструментом остаётся внутри одного вызова: в историю чата
+        уходит только готовый текст, без служебных блоков.
+        """
+        turns: list[dict] = list(messages)
+        for _ in range(MAX_TOOL_ROUNDS):
+            response = self._client.messages.create(
+                model=MODEL,
+                max_tokens=MAX_TOKENS,
+                system=self._system,
+                # Диалог в мессенджере: важнее скорость ответа, чем глубина разбора.
+                output_config={"effort": EFFORT},
+                tools=[frequency_tool.TOOL],
+                messages=turns,
+            )
+            if response.stop_reason == "refusal":
+                return "Извини, на такую тему я отвечать не стану. Спроси о чём-нибудь другом."
+            if response.stop_reason != "tool_use":
+                return self._text_of(response) or "Мне нечего добавить — переспроси, пожалуйста, иначе."
+
+            turns.append({"role": "assistant", "content": response.content})
+            turns.append({"role": "user", "content": self._run_tools(response)})
+
+        log.warning("Инструмент вызван %s раз подряд, отвечаю без него", MAX_TOOL_ROUNDS)
+        return self._text_of(response) or (
+            "Замер спроса не сошёлся с первого раза — уточни, какой именно запрос измерить."
         )
-        if response.stop_reason == "refusal":
-            return "Извини, на такую тему я отвечать не стану. Спроси о чём-нибудь другом."
-        text = "\n\n".join(
+
+    @staticmethod
+    def _text_of(response: Any) -> str:
+        return "\n\n".join(
             block.text for block in response.content if block.type == "text"
         ).strip()
-        return text or "Мне нечего добавить — переспроси, пожалуйста, иначе."
+
+    @staticmethod
+    def _run_tools(response: Any) -> list[dict]:
+        """Выполнить все запрошенные вызовы; результаты идут одним сообщением."""
+        results: list[dict] = []
+        for block in response.content:
+            if block.type != "tool_use":
+                continue
+            query = (block.input or {}).get("query", "")
+            log.info("Считаю частотность: «%s»", query)
+            results.append(
+                {
+                    "type": "tool_result",
+                    "tool_use_id": block.id,
+                    "content": frequency_tool.run(query),
+                }
+            )
+        return results
 
 
 class Bot:
     def __init__(self, config: Config) -> None:
         self.config = config
         self.tg = Telegram(config.require_token(), config.proxy)
+        # Источники частотности ходят через тот же прокси, что и сам бот.
+        frequency_tool.configure(config.proxy)
         self.brain = Brain(config.system_prompt, config.proxy)
         self.dialogue = Dialogue()
+        self._pool = ThreadPoolExecutor(max_workers=WORKERS, thread_name_prefix="chat")
         self._running = True
 
     def stop(self, *_: Any) -> None:
         self._running = False
         log.info("Останавливаюсь…")
+
+    def _handle_safely(self, message: dict) -> None:
+        """Ошибка в одном разговоре не должна ронять пул и остальные чаты."""
+        try:
+            self.handle(message)
+        except Exception:  # noqa: BLE001 - логируем и продолжаем работать
+            log.exception("Не смог обработать сообщение")
+
+    def shutdown(self) -> None:
+        """Дать текущим ответам уйти в Telegram перед выходом."""
+        self._pool.shutdown(wait=True)
 
     def run(self) -> None:
         me = self.tg.me()
@@ -244,7 +361,7 @@ class Bot:
         while self._running:
             try:
                 for update in self.tg.updates():
-                    self.handle(update.get("message") or {})
+                    self._pool.submit(self._handle_safely, update.get("message") or {})
                 backoff = 1
             except requests.RequestException as exc:
                 log.warning("Сеть недоступна (%s), повтор через %ss", exc, backoff)
@@ -276,9 +393,10 @@ class Bot:
             return
 
         self.dialogue.add(chat_id, "user", text)
-        self.tg.typing(chat_id)
         try:
-            answer = self.brain.reply(self.dialogue.history(chat_id))
+            # Замер частотности длится секунды — держим «печатает» до конца.
+            with self.tg.typing_until_done(chat_id):
+                answer = self.brain.reply(self.dialogue.history(chat_id))
         except anthropic.RateLimitError:
             self.dialogue.drop_last_user_turn(chat_id)
             self.tg.send(chat_id, "Слишком много запросов подряд — напиши ещё раз через минуту.")
@@ -313,6 +431,7 @@ def main() -> int:
     signal.signal(signal.SIGINT, bot.stop)
     signal.signal(signal.SIGTERM, bot.stop)
     bot.run()
+    bot.shutdown()
     return 0
 
 

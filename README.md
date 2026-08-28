@@ -52,6 +52,23 @@ streamlit run search_frequency_app.py
 ходом по выдаче WB и Ozon — цифры остаются на месте. Коэффициенты модели
 вынесены в `frequency/estimate.py`.
 
+### Деплой на Streamlit Cloud
+
+1. Откройте [share.streamlit.io](https://share.streamlit.io) и войдите через GitHub.
+2. **Create app → Deploy a public app from GitHub** и заполните:
+   - Repository: `ibri95989-hash/cyber_unit_economy_app.py`
+   - Branch: `claude/search-frequency-aggregator-li8h4z` (или `main`, если вольёте ветку)
+   - Main file path: `search_frequency_app.py`
+3. **Deploy.** Зависимости ставятся из `requirements.txt` автоматически.
+4. Необязательно: **Settings → Secrets** — вставьте содержимое
+   `.streamlit/secrets.toml.example` со своими значениями, чтобы прокси и ключи
+   подставлялись сами и их не пришлось вводить в каждой сессии.
+
+Важно про облако: серверы Streamlit Cloud находятся за пределами РФ, и
+Wildberries с Ozon нередко не отвечают на запросы из дата-центров. Приложение
+это переживёт — оценка достроится по Google Trends, — но если нужны и цифры
+маркетплейсов, пропишите в секретах `proxy` с российским адресом.
+
 ### Работа через прокси
 
 Если WB, Ozon или Google Trends не открываются напрямую (корпоративная сеть,

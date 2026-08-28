@@ -111,6 +111,19 @@ def chart(results: list[SourceResult], query: str) -> Optional[go.Figure]:
     return fig
 
 
+def secret(name: str, default: str = "") -> str:
+    """Значение из Streamlit secrets — удобно на Streamlit Cloud.
+
+    На Cloud ключи и прокси задаются один раз в Settings → Secrets, и поля
+    ниже подставляются автоматически. Локально файла с секретами может не
+    быть — тогда просто пустая строка.
+    """
+    try:
+        return str(st.secrets.get(name, default))
+    except Exception:  # noqa: BLE001 - без secrets.toml обращение бросает исключение
+        return default
+
+
 with st.sidebar:
     st.header("Настройки")
     st.caption(
@@ -119,15 +132,29 @@ with st.sidebar:
         "карточке заменится точными цифрами."
     )
     with st.expander("Яндекс.Вордстат (необязательно)"):
-        yandex_oauth = st.text_input("OAuth-токен Wordstat API", type="password")
+        yandex_oauth = st.text_input(
+            "OAuth-токен Wordstat API", value=secret("yandex_oauth"), type="password"
+        )
         st.caption("Получить: yandex.ru/dev/wordstat — приложение в Яндекс ID.")
-        xmlriver_user = st.text_input("XMLRiver user id")
-        xmlriver_key = st.text_input("XMLRiver key", type="password")
+        xmlriver_user = st.text_input("XMLRiver user id", value=secret("xmlriver_user"))
+        xmlriver_key = st.text_input(
+            "XMLRiver key", value=secret("xmlriver_key"), type="password"
+        )
     with st.expander("Wildberries (необязательно)"):
-        wb_token = st.text_input("Токен продавца (категория «Аналитика»)", type="password")
+        wb_token = st.text_input(
+            "Токен продавца (категория «Аналитика»)",
+            value=secret("wb_token"),
+            type="password",
+        )
     with st.expander("Ozon (необязательно)"):
-        ozon_client_id = st.text_input("Performance API Client Id")
-        ozon_client_secret = st.text_input("Performance API Client Secret", type="password")
+        ozon_client_id = st.text_input(
+            "Performance API Client Id", value=secret("ozon_client_id")
+        )
+        ozon_client_secret = st.text_input(
+            "Performance API Client Secret",
+            value=secret("ozon_client_secret"),
+            type="password",
+        )
 
     st.divider()
     st.subheader("Сеть")
@@ -136,7 +163,11 @@ with st.sidebar:
         "Поддерживаются http://, https:// и socks5:// (в том числе с логином "
         "и паролем: http://user:pass@host:port)."
     )
-    proxy = st.text_input("Адрес прокси", placeholder="socks5://127.0.0.1:1080")
+    proxy = st.text_input(
+        "Адрес прокси",
+        value=secret("proxy"),
+        placeholder="socks5://127.0.0.1:1080",
+    )
     trust_env = st.checkbox(
         "Использовать системный прокси",
         value=True,

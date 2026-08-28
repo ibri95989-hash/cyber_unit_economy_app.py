@@ -13,6 +13,7 @@ import requests
 from .estimate import google_from_yandex
 from .http import DEFAULT_HEADERS
 from .models import SourceResult, Status
+from .trends import TrendsDemand
 
 SOURCE = "Google"
 
@@ -35,24 +36,31 @@ def _suggestions(query: str) -> list[str]:
     return []
 
 
-def fetch(query: str, yandex_monthly: Optional[int] = None) -> SourceResult:
+def fetch(
+    query: str,
+    yandex_monthly: Optional[int] = None,
+    web_demand: Optional[TrendsDemand] = None,
+) -> SourceResult:
     related = [(s, None) for s in _suggestions(query)]
-    monthly = google_from_yandex(yandex_monthly)
+    base = yandex_monthly or (web_demand.monthly if web_demand else None)
+    monthly = google_from_yandex(base)
     if monthly is None:
         return SourceResult(
             SOURCE,
             query,
-            Status.NO_KEY,
+            Status.ERROR,
             None,
-            "Оценка Google считается от Вордстата — подключите Яндекс, "
-            "и цифра появится автоматически.",
+            "Нет базового замера спроса: Google Trends не ответил, повторите через минуту.",
             related,
         )
+    source_note = (
+        "от частотности Вордстата" if yandex_monthly else "от базового замера спроса"
+    )
     return SourceResult(
         SOURCE,
         query,
         Status.ESTIMATE,
         monthly,
-        "Оценка: доля Google в поиске РФ от частотности Вордстата.",
+        f"Оценка: доля Google в поиске РФ {source_note}.",
         related,
     )

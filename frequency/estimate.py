@@ -21,6 +21,13 @@ MARKETPLACE_ANCHOR = {
 # Доля рынка поиска в РФ: Google к Яндексу по коммерческим запросам.
 GOOGLE_TO_YANDEX = 0.55
 
+# Какая часть поискового спроса из веба доходит до поиска маркетплейса.
+# По товарным запросам на WB ищут заметно чаще, чем на Ozon.
+MARKETPLACE_SHARE_OF_DEMAND = {
+    "Wildberries": 0.85,
+    "Ozon": 0.45,
+}
+
 # Поправка на длину запроса: у длинного хвоста товаров много, спроса мало.
 def _length_factor(query: str) -> float:
     words = max(1, len(query.split()))
@@ -42,3 +49,25 @@ def google_from_yandex(yandex_monthly: Optional[int]) -> Optional[int]:
         return None
     value = yandex_monthly * GOOGLE_TO_YANDEX
     return int(round(value, -2)) if value >= 1000 else int(round(value, -1))
+
+
+def from_web_demand(source: str, web_monthly: Optional[int]) -> Optional[int]:
+    """Оценить спрос внутри маркетплейса от общего поискового спроса в вебе."""
+    if not web_monthly:
+        return None
+    share = MARKETPLACE_SHARE_OF_DEMAND.get(source, 0.5)
+    value = web_monthly * share
+    return int(round(value, -2)) if value >= 1000 else int(round(value, -1))
+
+
+def blend(*values: Optional[int]) -> Optional[int]:
+    """Свести несколько независимых оценок в одну (среднее геометрическое).
+
+    Среднее геометрическое, а не арифметическое: оценки живут в разных
+    порядках величины, и одна завышенная не должна тянуть результат за собой.
+    """
+    points = [float(v) for v in values if v]
+    if not points:
+        return None
+    result = math.exp(sum(math.log(v) for v in points) / len(points))
+    return int(round(result, -2)) if result >= 1000 else int(round(result, -1))

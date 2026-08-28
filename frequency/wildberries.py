@@ -1,16 +1,18 @@
 """Wildberries: частотность запроса.
 
-Точные данные — из отчёта «Поисковые запросы» (Аналитика продавца), для него
-нужен токен продавца с правом «Аналитика». Без токена считаем оценку по
-публичному поиску WB: он отдаёт количество товаров под запрос.
+Работает без ключей: оценка собирается из двух независимых открытых сигналов —
+сколько товаров WB показывает под запрос (публичный поиск) и какой спрос на
+запрос в вебе (Google Trends). Если есть токен продавца с правом «Аналитика»,
+берём точные показы из отчёта «Поисковые запросы» — он важнее любых оценок.
 """
 from __future__ import annotations
 
 from typing import Optional
 
-from .estimate import from_product_count
+from .estimate import blend, from_product_count, from_web_demand
 from .http import SourceError, get_json, post_json
 from .models import SourceResult, Status
+from .trends import TrendsDemand
 
 SOURCE = "Wildberries"
 
@@ -108,7 +110,11 @@ def _exact_from_api(query: str, token: str) -> SourceResult:
     )
 
 
-def fetch(query: str, token: Optional[str] = None) -> SourceResult:
+def fetch(
+    query: str,
+    token: Optional[str] = None,
+    web_demand: Optional[TrendsDemand] = None,
+) -> SourceResult:
     if token:
         try:
             return _exact_from_api(query, token)
@@ -117,14 +123,21 @@ def fetch(query: str, token: Optional[str] = None) -> SourceResult:
     else:
         fallback_note = ""
 
+    products: Optional[int] = None
+    signals: list[str] = []
     try:
         products = _public_products(query)
-    except SourceError as exc:
-        return SourceResult(
-            SOURCE, query, Status.ERROR, None, f"{fallback_note}Публичный поиск WB: {exc}"
-        )
+    except SourceError:
+        pass
 
-    monthly = from_product_count(SOURCE, query, products or 0)
+    by_products = from_product_count(SOURCE, query, products or 0)
+    if by_products:
+        signals.append(f"{products:,} товаров в выдаче WB".replace(",", " "))
+    by_demand = from_web_demand(SOURCE, web_demand.monthly if web_demand else None)
+    if by_demand:
+        signals.append("спрос в вебе по Google Trends")
+
+    monthly = blend(by_products, by_demand)
     related = [(s, None) for s in _suggestions(query)]
     if monthly is None:
         return SourceResult(
@@ -132,7 +145,7 @@ def fetch(query: str, token: Optional[str] = None) -> SourceResult:
             query,
             Status.ERROR,
             None,
-            f"{fallback_note}WB не вернул товаров по запросу.",
+            f"{fallback_note}WB не ответил и замера спроса нет — повторите через минуту.",
             related,
         )
     return SourceResult(
@@ -140,7 +153,7 @@ def fetch(query: str, token: Optional[str] = None) -> SourceResult:
         query,
         Status.ESTIMATE,
         monthly,
-        f"{fallback_note}Оценка по выдаче WB: {products:,} товаров под запрос.".replace(",", " "),
+        f"{fallback_note}Оценка по открытым данным: " + " + ".join(signals) + ".",
         related,
         {"products": products},
     )

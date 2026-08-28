@@ -1,8 +1,9 @@
 """Ozon: частотность запроса.
 
-Точные показы отдаёт Performance API (статистика по поисковым фразам рекламных
-кампаний) — нужны Client Id и Client Secret из личного кабинета рекламы.
-Без них считаем оценку по публичной выдаче Ozon.
+Работает без ключей: оценка складывается из публичной выдачи Ozon (сколько
+товаров под запрос) и замера спроса в вебе через Google Trends. Если есть
+Client Id и Client Secret рекламного кабинета, Performance API даёт точные
+показы по фразе, и они имеют приоритет.
 """
 from __future__ import annotations
 
@@ -11,9 +12,10 @@ from typing import Optional
 
 import requests
 
-from .estimate import from_product_count
+from .estimate import blend, from_product_count, from_web_demand
 from .http import DEFAULT_HEADERS, SourceError, get_json, post_json
 from .models import SourceResult, Status
+from .trends import TrendsDemand
 
 SOURCE = "Ozon"
 
@@ -136,6 +138,7 @@ def fetch(
     query: str,
     client_id: Optional[str] = None,
     client_secret: Optional[str] = None,
+    web_demand: Optional[TrendsDemand] = None,
 ) -> SourceResult:
     note = ""
     if client_id and client_secret:
@@ -144,23 +147,37 @@ def fetch(
         except SourceError as exc:
             note = f"Performance API недоступен ({exc}). "
 
+    products: Optional[int] = None
+    signals: list[str] = []
     try:
         products = _public_products(query)
-    except SourceError as exc:
-        return SourceResult(SOURCE, query, Status.ERROR, None, f"{note}Публичный поиск Ozon: {exc}")
+    except SourceError:
+        pass
 
-    monthly = from_product_count(SOURCE, query, products or 0)
+    by_products = from_product_count(SOURCE, query, products or 0)
+    if by_products:
+        signals.append(f"{products:,} товаров в выдаче Ozon".replace(",", " "))
+    by_demand = from_web_demand(SOURCE, web_demand.monthly if web_demand else None)
+    if by_demand:
+        signals.append("спрос в вебе по Google Trends")
+
+    monthly = blend(by_products, by_demand)
     related = [(s, None) for s in _suggestions(query)]
     if monthly is None:
         return SourceResult(
-            SOURCE, query, Status.ERROR, None, f"{note}Ozon не вернул количество товаров.", related
+            SOURCE,
+            query,
+            Status.ERROR,
+            None,
+            f"{note}Ozon не ответил и замера спроса нет — повторите через минуту.",
+            related,
         )
     return SourceResult(
         SOURCE,
         query,
         Status.ESTIMATE,
         monthly,
-        f"{note}Оценка по выдаче Ozon: {products:,} товаров под запрос.".replace(",", " "),
+        f"{note}Оценка по открытым данным: " + " + ".join(signals) + ".",
         related,
         {"products": products},
     )

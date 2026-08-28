@@ -1,11 +1,12 @@
-"""Яндекс.Вордстат: сколько раз запрос вводили в Яндексе за месяц.
+"""Яндекс: сколько раз запрос вводили в поиске за месяц.
 
-Два способа получить реальные цифры:
-  1) Официальный Wordstat API — нужен OAuth-токен приложения Яндекс ID
+Работает без ключей: базовый режим — оценка по Google Trends, приведённая к
+абсолютным показам через опорные запросы (frequency/trends.py).
+
+Если ключи всё-таки есть, они дают точные цифры и имеют приоритет:
+  1) Официальный Wordstat API — OAuth-токен приложения Яндекс ID
      (https://yandex.ru/dev/wordstat/).
-  2) XMLRiver — платный шлюз к Вордстату, нужны user id и key
-     (подходит, если нет своего доступа к API Яндекса).
-Без доступа честно возвращаем «нужен ключ», а не выдуманное число.
+  2) XMLRiver — платный шлюз к Вордстату, user id и key.
 """
 from __future__ import annotations
 
@@ -13,8 +14,9 @@ from typing import Optional
 
 from .http import SourceError, get_json, post_json
 from .models import SourceResult, Status
+from .trends import TrendsDemand, TrendsUnavailable, demand as trends_demand
 
-SOURCE = "Яндекс (Вордстат)"
+SOURCE = "Яндекс"
 
 WORDSTAT_TOP = "https://api.wordstat.yandex.net/v1/topRequests"
 XMLRIVER_URL = "https://xmlriver.com/wordstat/json"
@@ -96,6 +98,7 @@ def fetch(
     xmlriver_user: Optional[str] = None,
     xmlriver_key: Optional[str] = None,
     regions: Optional[list[int]] = None,
+    web_demand: Optional[TrendsDemand] = None,
 ) -> SourceResult:
     regions = regions if regions is not None else DEFAULT_REGIONS
     errors = []
@@ -109,13 +112,25 @@ def fetch(
             return _from_xmlriver(query, xmlriver_user, xmlriver_key, regions)
         except SourceError as exc:
             errors.append(f"XMLRiver: {exc}")
-    if errors:
-        return SourceResult(SOURCE, query, Status.ERROR, None, " | ".join(errors))
+    # Ключей нет (или они не сработали) — считаем оценку без них.
+    trends_error: Optional[str] = None
+    if web_demand is None:
+        try:
+            web_demand = trends_demand(query)
+        except TrendsUnavailable as exc:
+            trends_error = str(exc)
+
+    prefix = ("Ключи не сработали: " + " | ".join(errors) + ". ") if errors else ""
+    if web_demand is None:
+        return SourceResult(
+            SOURCE,
+            query,
+            Status.ERROR,
+            None,
+            prefix
+            + (trends_error or "Google Trends не отвечает")
+            + " — повторите через минуту.",
+        )
     return SourceResult(
-        SOURCE,
-        query,
-        Status.NO_KEY,
-        None,
-        "Добавьте OAuth-токен Вордстата или доступ XMLRiver в настройках слева — "
-        "и здесь появятся реальные показы за месяц.",
+        SOURCE, query, Status.ESTIMATE, web_demand.monthly, prefix + web_demand.note
     )

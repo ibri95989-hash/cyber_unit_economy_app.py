@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import io
 from typing import Optional
+from urllib.parse import quote_plus
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -26,6 +27,14 @@ ACCENT = {
     "Wildberries": "#cb11ab",
     "Ozon": "#005bff",
     "Google": "#34a853",
+}
+
+# Куда пойти, чтобы перепроверить цифру руками на самой площадке.
+SOURCE_LINKS = {
+    "Яндекс": "https://wordstat.yandex.ru/?region=225&words={q}",
+    "Wildberries": "https://www.wildberries.ru/catalog/0/search.aspx?search={q}",
+    "Ozon": "https://www.ozon.ru/search/?text={q}",
+    "Google": "https://trends.google.com/trends/explore?geo=RU&q={q}",
 }
 
 STATUS_STYLE = {
@@ -55,6 +64,11 @@ st.markdown(
         border-radius: 999px; color:#fff;
       }
       .card .note {font-size:.8rem; color:#7c828c; margin-top:.6rem; line-height:1.35;}
+      .card .check {
+        display:inline-block; margin-top:.7rem; font-size:.8rem; font-weight:600;
+        text-decoration:none; color:#5b5bd6;
+      }
+      .card .check:hover {text-decoration: underline;}
       div[data-testid="stMetricValue"] {font-size: 1.8rem;}
     </style>
     """,
@@ -71,6 +85,7 @@ def fmt(value: Optional[int]) -> str:
 def card(res: SourceResult) -> str:
     color, _ = STATUS_STYLE[res.status]
     note = res.detail if len(res.detail) <= 220 else res.detail[:217] + "…"
+    link = SOURCE_LINKS.get(res.source, "").format(q=quote_plus(res.query))
     accent = ACCENT.get(res.source, "#666")
     return f"""
     <div class="card">
@@ -79,6 +94,7 @@ def card(res: SourceResult) -> str:
       <div class="unit">показов в месяц</div>
       <span class="badge" style="background:{color}">{res.label}</span>
       <div class="note">{note}</div>
+      <a class="check" href="{link}" target="_blank" rel="noopener">Проверить на площадке →</a>
     </div>
     """
 

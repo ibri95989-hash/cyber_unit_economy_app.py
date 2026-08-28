@@ -187,6 +187,14 @@ if go_clicked and queries:
         if figure is not None:
             st.plotly_chart(figure, use_container_width=True)
 
+        if not any(r.is_number for r in results):
+            st.error(
+                "Ни один источник не ответил — почти всегда это закрытый выход "
+                "в интернет: прокси, корпоративная сеть или VPN. Проверьте "
+                "доступ командой `curl -I https://trends.google.com/`, "
+                "подробности по каждому источнику — в карточках выше."
+            )
+
         total = sum(r.monthly for r in results if r.is_number)
         if total:
             st.caption(f"Суммарно по доступным источникам: **{fmt(total)}** показов в месяц.")

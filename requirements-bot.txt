@@ -1,0 +1,4 @@
+# Зависимости Telegram-бота (telegram_bot.py).
+# Приложениям Streamlit они не нужны — ставьте отдельно.
+anthropic>=1.0,<2
+requests>=2.31

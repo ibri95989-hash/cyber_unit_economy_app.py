@@ -11,6 +11,7 @@
      node render.mjs --workers 2            # ограничить параллелизм
      node render.mjs --fps 30 --preset fast # быстрый черновик
      node render.mjs --limit 240            # только первые 240 кадров
+     node render.mjs --capture png          # захват без потерь (в 3 раза медленнее)
      node render.mjs --preview 0,2.3,6.5    # PNG-превью моментов
    ============================================================ */
 import { createRequire } from 'node:module';
@@ -73,6 +74,14 @@ const crfArg = arg('--crf', '19');
 const outArg = arg('--out', join(OUT, 'video_silent.mp4'));
 const fpsArg = arg('--fps', null);
 const limitArg = arg('--limit', null);   // отрендерить только первые N кадров (черновик)
+// Захват кадра — главная статья расходов: PNG-скриншот стоит ~610 мс,
+// JPEG q100 — ~110 мс при PSNR 55 дБ к PNG, то есть потери заметно меньше,
+// чем вносит сам x264. PNG оставлен на случай, когда нужен строго
+// побитовый кадр (--capture png).
+const captureArg = arg('--capture', 'jpeg');
+const SHOT = captureArg === 'png'
+  ? { type: 'png' }
+  : { type: 'jpeg', quality: parseInt(arg('--quality', '100'), 10) };
 // по одному воркеру на ядро, но одно оставляем ffmpeg-у и системе
 const WORKERS = Math.max(1, parseInt(arg('--workers', String(Math.max(1, cpus().length - 1))), 10));
 
@@ -98,7 +107,8 @@ async function openPage(chromium, port) {
 function encoder(target, fps) {
   const ff = spawn(FFMPEG, [
     '-y',
-    '-f', 'image2pipe', '-vcodec', 'png', '-framerate', String(fps), '-i', '-',
+    '-f', 'image2pipe', '-vcodec', SHOT.type === 'png' ? 'png' : 'mjpeg',
+    '-framerate', String(fps), '-i', '-',
     '-an',
     '-c:v', 'libx264',
     '-preset', presetArg,
@@ -158,7 +168,8 @@ function encoder(target, fps) {
   const slices = [];
   for (let s = 0; s < total; s += per) slices.push([s, Math.min(total, s + per)]);
 
-  console.log(`кадров: ${total} @ ${fps} fps, воркеров: ${slices.length} (по ~${per} кадров)`);
+  console.log(`кадров: ${total} @ ${fps} fps, воркеров: ${slices.length} ` +
+              `(по ~${per} кадров), захват: ${SHOT.type}`);
 
   const t0 = Date.now();
   let doneFrames = 0;
@@ -172,16 +183,18 @@ function encoder(target, fps) {
       `${el.toFixed(0)}c прошло, ~${eta.toFixed(0)}c осталось   `);
   };
 
-  const segFiles = [];
+  // ВАЖНО: индексируем по номеру куска, а не push — воркеры финишируют
+  // в произвольном порядке, и склейка перемешала бы сцены
+  const segFiles = new Array(slices.length);
   await Promise.all(slices.map(async ([from, to], idx) => {
     const ctxPage = idx === 0 ? first : await openPage(chromium, port);
     const canvas = await ctxPage.page.$('#stage');
     const seg = join(OUT, `seg_${String(idx).padStart(2, '0')}.mp4`);
-    segFiles.push(seg);
+    segFiles[idx] = seg;
     const { ff, done } = encoder(seg, fps);
     for (let i = from; i < to; i++) {
       await ctxPage.page.evaluate((t) => window.__seek(t), i / fps);
-      const buf = await canvas.screenshot({ type: 'png' });
+      const buf = await canvas.screenshot(SHOT);
       if (!ff.stdin.write(buf)) await new Promise(r => ff.stdin.once('drain', r));
       tick();
     }

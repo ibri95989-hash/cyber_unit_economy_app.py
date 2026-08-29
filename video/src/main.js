@@ -8,40 +8,52 @@ const FPS = 60;
 const TOTAL = 2112;            // 35.2 c × 60 fps
 const DUR = TOTAL / FPS;
 
-/* Каждая сцена имеет собственную длительность и карту времени `anchors`:
-   пары [сценарное время, экранное время]. Сценарное время — то, на котором
-   свёрстаны все появления и раскрытия; экранное — реальное время в ролике.
-   Так «боевая» часть сцены играет 1:1 и не теряет резкости, а лишние
-   секунды уходят в удержание, пока фоновая жизнь кадра идёт в реальном темпе. */
+/* Склейки стоят в паузах между фразами, за 0,12 c до следующей — новая сцена
+   успевает встать на место ровно к началу речи. `authored` — длительность,
+   под которую сцена изначально свёрстана; из отношения к реальной берётся
+   масштаб, а моменты появления элементов притягиваются к речевым атакам. */
 const TL = [
-  { fn: scene1, start: 0,     dur: 4.58, anchors: [[0, 0], [1.7, 1.7], [2.0, 4.58]] },
-  { fn: scene2, start: 4.58,  dur: 2.49, anchors: [[0, 0], [2.1, 2.1], [3.0, 2.49]] },
-  { fn: scene3, start: 7.07,  dur: 6.48, anchors: [[0, 0], [3.4, 3.4], [4.0, 6.48]] },
-  { fn: scene4, start: 13.55, dur: 5.28, anchors: [[0, 0], [2.4, 2.4], [4.0, 5.28]] },
-  { fn: scene5, start: 18.83, dur: 4.04, anchors: [[0, 0], [4.0, 4.04]] },
-  { fn: scene6, start: 22.87, dur: 5.91, anchors: [[0, 0], [3.1, 3.1], [4.0, 5.91]] },
-  { fn: scene7, start: 28.78, dur: 6.42, anchors: [[0, 0], [2.4, 2.4], [4.0, 6.42]] },
+  { fn: scene1, start: 0,     dur: 4.74, authored: 2 },
+  { fn: scene2, start: 4.74,  dur: 2.35, authored: 3 },
+  { fn: scene3, start: 7.09,  dur: 6.54, authored: 4 },
+  { fn: scene4, start: 13.63, dur: 5.30, authored: 4 },
+  { fn: scene5, start: 18.93, dur: 4.23, authored: 4 },
+  { fn: scene6, start: 23.16, dur: 5.66, authored: 4 },
+  { fn: scene7, start: 28.82, dur: 6.38, authored: 4 },
 ];
+
+/* Притяжка к речи: запланированный момент масштабируется под новую длину
+   сцены и сдвигается на ближайшую атаку голоса, если та рядом. Короткие
+   длительности раскрытий не растягиваем — иначе появления станут вялыми;
+   длинные (проезды камеры на всю сцену) масштабируем. */
+function makeSnapper(startAbs, dur, authored) {
+  const scale = dur / authored;
+  const win = clamp(0.18 * scale, 0.14, 0.45);
+  const local = (typeof CUES === 'undefined' ? [] : CUES.onsets)
+    .map(o => o - startAbs)
+    .filter(v => v >= -0.06 && v <= dur + 0.05);
+  const f = (x) => {
+    const target = x * scale;
+    let best = target, bd = win;
+    for (const v of local) {
+      const d = Math.abs(v - target);
+      if (d < bd) { bd = d; best = v; }
+    }
+    return best;
+  };
+  f.d = (d) => (d <= 1.2 ? d : d * scale);
+  return f;
+}
+for (const sc of TL) sc.S = makeSnapper(sc.start, sc.dur, sc.authored);
 
 const TR = [
-  { at: 4.58,  type: 'glitch', pre: .12, post: .20 },
-  { at: 7.07,  type: 'whipL',  pre: .10, post: .26 },
-  { at: 13.55, type: 'zoom',   pre: .12, post: .30 },
-  { at: 18.83, type: 'split',  pre: .12, post: .32 },
-  { at: 22.87, type: 'whipU',  pre: .10, post: .28 },
-  { at: 28.78, type: 'glitch', pre: .12, post: .22 },
+  { at: 4.74,  type: 'glitch', pre: .12, post: .20 },
+  { at: 7.09,  type: 'whipL',  pre: .10, post: .26 },
+  { at: 13.63, type: 'zoom',   pre: .12, post: .30 },
+  { at: 18.93, type: 'split',  pre: .12, post: .32 },
+  { at: 23.16, type: 'whipU',  pre: .10, post: .28 },
+  { at: 28.82, type: 'glitch', pre: .12, post: .22 },
 ];
-
-/** экранное время внутри сцены -> сценарное время */
-function warp(sc, w) {
-  const a = sc.anchors;
-  if (w <= a[0][1]) return a[0][0];
-  for (let i = 0; i < a.length - 1; i++) {
-    const [s0, w0] = a[i], [s1, w1] = a[i + 1];
-    if (w <= w1) return s0 + (s1 - s0) * ((w - w0) / (w1 - w0 || 1e-6));
-  }
-  return a[a.length - 1][0];    // дальше сценарное время замирает
-}
 
 /* ---------- холсты ---------- */
 let MAIN, OA, OB;
@@ -65,7 +77,7 @@ function drawScene(ctx, i, wallLocal) {
   ctx.filter = 'none';
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, W, H);
-  TL[i].fn(ctx, warp(TL[i], wallLocal), wallLocal);
+  TL[i].fn(ctx, wallLocal, wallLocal, TL[i].S);
   ctx.restore();
 }
 

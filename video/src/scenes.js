@@ -65,10 +65,10 @@ function embers(ctx, t, count, color, alpha = .5, seed = 5, speed = 60) {
 /* ==================================================================
    СЦЕНА 1 — HOOK (0.0 – 2.0)
    ================================================================== */
-function scene1(ctx, t, w) {
-  const camScale = 1 + E.outExpo(inv(t, .18, 1.0)) * .06 + inv(w, 1.5, 4.58) * .07;
-  const [sx, sy] = shake(t, .22, .45, 16, 2);
-  const [sx2, sy2] = shake(t, 1.02, .3, 9, 8);
+function scene1(ctx, t, w, S) {
+  const camScale = 1 + E.outExpo(inv(t, S(.18), S(.18) + S.d(0.82))) * .06 + inv(w, 1.5, 4.58) * .07;
+  const [sx, sy] = shake(t, S(.22), .45, 16, 2);
+  const [sx2, sy2] = shake(t, S(1.02), .3, 9, 8);
 
   ctx.save();
   camera(ctx, camScale, sx + sx2, sy + sy2);
@@ -82,7 +82,7 @@ function scene1(ctx, t, w) {
   const alarm = .35 + .65 * Math.pow(pulse(w, 1.6), 2);
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  ctx.globalAlpha = .5 * alarm * inv(t, .05, .5);
+  ctx.globalAlpha = .5 * alarm * inv(t, S(.05), S(.05) + S.d(0.45));
   ctx.fillStyle = rg(ctx, CX, H * .5, H * .1, H * .62,
     [[0, A(C.red, .0)], [.55, A(C.red, .10)], [1, A(C.red, .34)]]);
   ctx.fillRect(0, 0, W, H);
@@ -96,7 +96,7 @@ function scene1(ctx, t, w) {
   embers(ctx, w, 26, C.red, .35, 11, 70);
 
   /* --- карточка уведомления --- */
-  const np = inv(t, .06, .46);
+  const np = inv(t, S(.06), S(.06) + S.d(0.4));
   if (np > 0) {
     const ny = lerp(-240, 236, E.outExpo(np));
     const ph = 200;
@@ -133,7 +133,7 @@ function scene1(ctx, t, w) {
 
   /* --- главный заголовок --- */
   const blockY = 940;
-  const punch = inv(t, .20, .78);
+  const punch = inv(t, S(.20), S(.20) + S.d(0.58));
   const bs = lerp(1.34, 1, E.outExpo(punch));
   ctx.save();
   ctx.translate(CX, blockY);
@@ -146,15 +146,15 @@ function scene1(ctx, t, w) {
   const y1 = blockY - 150, y2 = blockY + 10, y3 = blockY + 196;
 
   revealLine(ctx, 'WILDBERRIES', CX, y1, s1, {
-    p: inv(t, .20, .60), weight: 900, ls: -2, color: C.ink,
+    p: inv(t, S(.20), S(.20) + S.d(0.4)), weight: 900, ls: -2, color: C.ink,
     glow: { color: 'rgba(255,255,255,.25)', blur: 40 },
   });
   revealLine(ctx, 'ЗАДЕРЖИВАЕТ', CX, y2, s2, {
-    p: inv(t, .32, .72), weight: 900, ls: -2, color: C.ink,
+    p: inv(t, S(.32), S(.32) + S.d(0.4)), weight: 900, ls: -2, color: C.ink,
     glow: { color: 'rgba(255,255,255,.2)', blur: 36 },
   });
   // третья строка — акцент
-  const p3 = inv(t, .44, .86);
+  const p3 = inv(t, S(.44), S(.44) + S.d(0.42));
   if (p3 > 0) {
     ctx.save();
     const grad = lg(ctx, CX - CW / 2, y3 - s3, CX + CW / 2, y3,
@@ -168,7 +168,7 @@ function scene1(ctx, t, w) {
   ctx.restore();
 
   /* --- подпись-плашка --- */
-  const cp = inv(t, .95, 1.35);
+  const cp = inv(t, S(.95), S(.95) + S.d(0.4));
   if (cp > 0) {
     ctx.save();
     ctx.globalAlpha = E.outCubic(cp);
@@ -194,16 +194,16 @@ function scene1(ctx, t, w) {
     rgbSplit(ctx, gg * 7);
   }
   rgbSplit(ctx, 1.1);
-  flash(ctx, inv(t, 0, .06) > 0 ? (1 - inv(t, 0, .12)) * .55 : 0, '#FFDCE4');
+  flash(ctx, inv(t, S(0), S(0) + S.d(0.06)) > 0 ? (1 - inv(t, S(0), S(0) + S.d(0.12))) * .55 : 0, '#FFDCE4');
 }
 
 /* ==================================================================
    СЦЕНА 2 — ДАТА (2.0 – 5.0), длительность 3.0
    ================================================================== */
-function scene2(ctx, t, w) {
-  const [sx, sy] = shake(t, 1.42, .5, 20, 4);
+function scene2(ctx, t, w, S) {
+  const [sx, sy] = shake(t, S(1.42), .5, 20, 4);
   ctx.save();
-  camera(ctx, 1 + inv(t, 0, 3) * .05, sx, sy);
+  camera(ctx, 1 + inv(t, S(0), S(0) + S.d(3.0)) * .05, sx, sy);
 
   drawBackground(ctx, w, {
     accent: '#2B1370', accent2: '#0E3A6B', mid: '#0A1024',
@@ -211,12 +211,12 @@ function scene2(ctx, t, w) {
   });
 
   /* --- дата --- */
-  const dp = inv(t, .05, .5);
+  const dp = inv(t, S(.05), S(.05) + S.d(0.45));
   const rollSeq = ['06', '13', '19', '23', '26', '27', '28'];
-  const idx = Math.min(rollSeq.length - 1, Math.floor(E.outQuart(inv(t, .05, .62)) * rollSeq.length));
+  const idx = Math.min(rollSeq.length - 1, Math.floor(E.outQuart(inv(t, S(.05), S(.05) + S.d(0.57))) * rollSeq.length));
   const day = rollSeq[idx];
   const locked = t > .62;
-  const dayScale = locked ? 1 + Math.pow(1 - inv(t, .62, .82), 2) * .12 : 1;
+  const dayScale = locked ? 1 + Math.pow(1 - inv(t, S(.62), S(.62) + S.d(0.2)), 2) * .12 : 1;
 
   ctx.save();
   ctx.globalAlpha = E.outCubic(dp);
@@ -228,7 +228,7 @@ function scene2(ctx, t, w) {
   });
   ctx.restore();
 
-  const ap = inv(t, .3, .7);
+  const ap = inv(t, S(.3), S(.3) + S.d(0.4));
   ctx.save();
   ctx.globalAlpha = E.outCubic(ap);
   text(ctx, 'А В Г У С Т А', CX, 660, {
@@ -238,7 +238,7 @@ function scene2(ctx, t, w) {
   ctx.restore();
 
   // разделительная линия
-  const lp = E.outExpo(inv(t, .5, .95));
+  const lp = E.outExpo(inv(t, S(.5), S(.5) + S.d(0.45)));
   ctx.save();
   ctx.globalAlpha = .8;
   ctx.strokeStyle = lg(ctx, CX - CW / 2, 0, CX + CW / 2, 0,
@@ -252,7 +252,7 @@ function scene2(ctx, t, w) {
   /* --- цепочка: календарь → деньги → задержка --- */
   const rowY = 1010;
   const xs = [214, 470, 880];
-  const chainP = inv(t, .62, 1.25);
+  const chainP = inv(t, S(.62), S(.62) + S.d(0.63));
 
   // соединительная линия
   ctx.save();
@@ -269,7 +269,7 @@ function scene2(ctx, t, w) {
   ctx.restore();
 
   const stopX = 706;                       // положение красной линии
-  const barrier = inv(t, 1.40, 1.52);      // момент удара
+  const barrier = inv(t, S(1.40), S(1.40) + S.d(0.12));      // момент удара
 
   // монеты, идущие по цепочке
   const rng = new Rng(21);
@@ -289,7 +289,7 @@ function scene2(ctx, t, w) {
   }
 
   // иконки
-  const ip = [inv(t, .62, .95), inv(t, .78, 1.1), inv(t, .95, 1.3)];
+  const ip = [inv(t, S(.62), S(.62) + S.d(0.33)), inv(t, S(.78), S(.78) + S.d(0.32)), inv(t, S(.95), S(.95) + S.d(0.35))];
   const iconWrap = (i, fn, color) => {
     if (ip[i] <= 0) return;
     ctx.save();
@@ -307,7 +307,7 @@ function scene2(ctx, t, w) {
     fn();
     ctx.restore();
   };
-  iconWrap(0, () => iconCalendar(ctx, xs[0], rowY, 100, C.cyan, A(C.cyan, .8), clamp(inv(t, .7, 1.2))), C.cyan);
+  iconWrap(0, () => iconCalendar(ctx, xs[0], rowY, 100, C.cyan, A(C.cyan, .8), clamp(inv(t, S(.7), S(.7) + S.d(0.5)))), C.cyan);
   iconWrap(1, () => iconBanknote(ctx, xs[1], rowY, 104, C.green, A(C.green, .8)), C.green);
   iconWrap(2, () => {
     const red = barrier > 0;
@@ -337,11 +337,11 @@ function scene2(ctx, t, w) {
     }
     ctx.restore();
     // вспышка удара
-    flash(ctx, Math.max(0, .5 - inv(t, 1.42, 1.62) * .5), A(C.red, .8));
+    flash(ctx, Math.max(0, .5 - inv(t, S(1.42), S(1.42) + S.d(0.2)) * .5), A(C.red, .8));
   }
 
   /* --- нижний текст --- */
-  const tp1 = inv(t, 1.30, 1.74), tp2 = inv(t, 1.46, 1.90);
+  const tp1 = inv(t, S(1.30), S(1.30) + S.d(0.44)), tp2 = inv(t, S(1.46), S(1.46) + S.d(0.44));
   const ty = 1404;
   revealLine(ctx, 'ПРОДАВЦЫ СООБЩАЮТ', CX, ty, fitSize(ctx, 'ПРОДАВЦЫ СООБЩАЮТ', 88, CW, 800), {
     p: tp1, weight: 800, ls: -1, color: C.ink, align: 'center',
@@ -360,9 +360,9 @@ function scene2(ctx, t, w) {
 /* ==================================================================
    СЦЕНА 3 — ПОТОК ВЫПЛАТЫ (5.0 – 9.0), длительность 4.0
    ================================================================== */
-function scene3(ctx, t, w) {
+function scene3(ctx, t, w, S) {
   ctx.save();
-  camera(ctx, 1 + inv(t, 0, 4) * .07, 0, -inv(t, 0, 4) * 26);
+  camera(ctx, 1 + inv(t, S(0), S(0) + S.d(4.0)) * .07, 0, -inv(t, S(0), S(0) + S.d(4.0)) * 26);
 
   drawBackground(ctx, w, {
     accent: '#12275E', accent2: '#3A0E52', mid: '#080C1A',
@@ -371,7 +371,7 @@ function scene3(ctx, t, w) {
 
   // верхний кикер
   ctx.save();
-  ctx.globalAlpha = E.outCubic(inv(t, .05, .4));
+  ctx.globalAlpha = E.outCubic(inv(t, S(.05), S(.05) + S.d(0.35)));
   chip(ctx, CX, 322, 'ЦЕПОЧКА ВЫПЛАТЫ', C.cyan, { align: 'center', size: 33, h: 70, padX: 32 });
   ctx.restore();
 
@@ -382,7 +382,7 @@ function scene3(ctx, t, w) {
 
   /* --- вертикальный «канал» потока --- */
   ctx.save();
-  const railP = E.outCubic(inv(t, .1, .8));
+  const railP = E.outCubic(inv(t, S(.1), S(.1) + S.d(0.7)));
   ctx.strokeStyle = A(C.cyan, .22);
   ctx.lineWidth = 5;
   ctx.beginPath();
@@ -413,7 +413,7 @@ function scene3(ctx, t, w) {
   }
 
   /* --- барьер --- */
-  const bp = E.outExpo(inv(t, 2.0, 2.2));
+  const bp = E.outExpo(inv(t, S(2.0), S(2.0) + S.d(0.2)));
   if (bp > 0) {
     ctx.save();
     ctx.strokeStyle = C.red;
@@ -433,7 +433,7 @@ function scene3(ctx, t, w) {
     { title: 'ЗАДЕРЖКА', chipTxt: 'ЗАЧИСЛЕНИЯ НЕТ', col: C.red, icon: 'alert' },
   ];
   cards.forEach((cd, i) => {
-    const p = inv(t, .25 + i * .26, .85 + i * .26);
+    const p = inv(t, S(.25 + i * .26), S(.25 + i * .26) + S.d(0.6));
     if (p <= 0) return;
     const e = E.outExpo(p);
     const y = cardY[i];
@@ -457,7 +457,7 @@ function scene3(ctx, t, w) {
     ctx.restore();
     if (cd.icon === 'note') iconBanknote(ctx, ix, iy, 76, cd.col, A(cd.col, .8));
     if (cd.icon === 'glass') iconHourglass(ctx, ix, iy, 76, cd.col, A(cd.col, .8),
-      clamp(.15 + inv(t, .8, 3.4) * .8));
+      clamp(.15 + inv(t, S(.8), S(.8) + S.d(2.6)) * .8));
     if (cd.icon === 'alert') iconAlert(ctx, ix, iy + 4, 74, cd.col, A(cd.col, .9));
 
     // тексты
@@ -469,7 +469,7 @@ function scene3(ctx, t, w) {
 
     // прогресс во второй карточке — застревает
     if (i === 1) {
-      const raw = inv(t, .9, 2.3);
+      const raw = inv(t, S(.9), S(.9) + S.d(1.4));
       const stall = .68 + Math.sin(t * 3.4) * .006;
       const pr = Math.min(E.outCubic(raw) * .95, stall);
       progressBar(ctx, tx, y + cardH - 34, cardW - 240, 12, pr, C.amber, { head: false });
@@ -479,8 +479,8 @@ function scene3(ctx, t, w) {
 
   // нижний вопрос-хук
   ctx.save();
-  ctx.globalAlpha = E.outCubic(inv(t, 2.5, 3.0));
-  ctx.translate(0, (1 - E.outExpo(inv(t, 2.5, 3.0))) * 34);
+  ctx.globalAlpha = E.outCubic(inv(t, S(2.5), S(2.5) + S.d(0.5)));
+  ctx.translate(0, (1 - E.outExpo(inv(t, S(2.5), S(2.5) + S.d(0.5)))) * 34);
   text(ctx, 'ЧТО ПРОИСХОДИТ С ВЫПЛАТОЙ?', CX, 1520, {
     size: fitSize(ctx, 'ЧТО ПРОИСХОДИТ С ВЫПЛАТОЙ?', 68, CW, 800),
     weight: 800, color: C.dim, align: 'center',
@@ -496,18 +496,18 @@ function scene3(ctx, t, w) {
 /* ==================================================================
    СЦЕНА 4 — ВОПРОС + АНАЛИТИКА (9.0 – 13.0), длительность 4.0
    ================================================================== */
-function scene4(ctx, t, w) {
+function scene4(ctx, t, w, S) {
   /* ---------- слой 1: интерфейс аналитики с наездом камеры ---------- */
   ctx.save();
-  const cam = 1 + E.inOutCubic(inv(t, 0, 3.6)) * .18;
-  camera(ctx, cam, 0, -inv(t, 0, 3.6) * 40, CX, 980);
+  const cam = 1 + E.inOutCubic(inv(t, S(0), S(0) + S.d(3.6))) * .18;
+  camera(ctx, cam, 0, -inv(t, S(0), S(0) + S.d(3.6)) * 40, CX, 980);
 
   drawBackground(ctx, w, {
     accent: '#0C2E66', accent2: '#4A1060', mid: '#070B18',
     grid: .6, energy: .5, gridSpeed: 34,
   });
 
-  const pp = E.outExpo(inv(t, .0, .6));
+  const pp = E.outExpo(inv(t, S(.0), S(.0) + S.d(0.6)));
   const px = M, py = 560, pw = CW, ph = 800;
   ctx.save();
   ctx.globalAlpha = clamp(pp * 1.4);
@@ -526,16 +526,16 @@ function scene4(ctx, t, w) {
 
   const pts = [.42, .55, .5, .66, .74, .62, .70, .52, .34, .22, .18, .16];
   lineChart(ctx, px + 44, py + 140, pw - 88, 320, pts, C.cyan,
-    { reveal: E.outCubic(inv(t, .35, 1.6)), w: 6 });
+    { reveal: E.outCubic(inv(t, S(.35), S(.35) + S.d(1.25))), w: 6 });
 
   barChart(ctx, px + 44, py + 500, pw - 88, 150,
     [.85, .72, .64, .5, .38, .3, .22, .16], C.violet, {
-      reveal: inv(t, .8, 1.9), gap: 16,
+      reveal: inv(t, S(.8), S(.8) + S.d(1.1)), gap: 16,
       colors: ['#4F86F7', '#4F86F7', '#5B7BF0', '#6B6AE8', '#8355DF', '#A03FCB', '#C42FA8', '#FF2D55'],
     });
 
   ctx.save();
-  ctx.globalAlpha = E.outCubic(inv(t, 1.2, 1.8));
+  ctx.globalAlpha = E.outCubic(inv(t, S(1.2), S(1.2) + S.d(0.6)));
   iconHourglass(ctx, px + 74, py + ph - 66, 52, C.amber, A(C.amber, .7), .35 + .3 * pulse(w, .5));
   text(ctx, 'СТАТУС НЕ ОБНОВЛЁН', px + 116, py + ph - 48, {
     size: 40, weight: 700, color: C.dim, align: 'left',
@@ -551,11 +551,11 @@ function scene4(ctx, t, w) {
     { x: 112, y: 1534, txt: 'В ОЧЕРЕДИ', col: C.violet, at: 1.5, rot: -.04 },
   ];
   for (const to of toasts) {
-    const p = inv(t, to.at, to.at + .45);
+    const p = inv(t, S(to.at), S(to.at) + S.d(.45));
     if (p <= 0) continue;
     const e = E.outBack(p);
     ctx.save();
-    ctx.globalAlpha = clamp(p * 2) * (1 - inv(t, 2.6, 3.5) * .6);
+    ctx.globalAlpha = clamp(p * 2) * (1 - inv(t, S(2.6), S(2.6) + S.d(0.9)) * .6);
     ctx.translate(to.x + 130, to.y);
     ctx.rotate(to.rot);
     ctx.scale(lerp(.7, 1, e), lerp(.7, 1, e));
@@ -566,7 +566,7 @@ function scene4(ctx, t, w) {
   ctx.restore();
 
   /* ---------- слой 2: вопрос поверх, без камеры ---------- */
-  const qp = inv(t, 1.55, 1.78);
+  const qp = inv(t, S(1.55), S(1.55) + S.d(0.23));
   if (qp > 0) {
     ctx.save();
     ctx.globalAlpha = E.outCubic(qp) * .8;
@@ -576,7 +576,7 @@ function scene4(ctx, t, w) {
     ctx.restore();
   }
 
-  const qq = inv(t, 1.62, 2.3);
+  const qq = inv(t, S(1.62), S(1.62) + S.d(0.68));
   if (qq > 0) {
     ctx.save();
     ctx.globalAlpha = .045 * E.outCubic(qq);
@@ -587,12 +587,12 @@ function scene4(ctx, t, w) {
     const sz = Math.min(...L.map(s => fitSize(ctx, s, 144, CW, 900)));
     const lh = sz * 1.10;
     const by = 980 + lh * .5;
-    const punch = lerp(1.18, 1, E.outExpo(inv(t, 1.62, 2.3)));
+    const punch = lerp(1.18, 1, E.outExpo(inv(t, S(1.62), S(1.62) + S.d(0.68))));
     ctx.save();
     ctx.translate(CX, 980); ctx.scale(punch, punch); ctx.translate(-CX, -980);
     L.forEach((s, i) => {
       revealLine(ctx, s, CX, by - lh * 2 + i * lh, sz, {
-        p: inv(t, 1.62 + i * .09, 2.06 + i * .09),
+        p: inv(t, S(1.62 + i * .09), S(1.62 + i * .09) + S.d(0.44)),
         weight: 900, ls: -2, align: 'center',
         color: i === 3 ? lg(ctx, CX - CW / 2, 0, CX + CW / 2, 0,
           [[0, '#FF4D6D'], [1, '#E7239B']]) : C.ink,
@@ -604,7 +604,7 @@ function scene4(ctx, t, w) {
 
   vignette(ctx, .9, '#03050D');
   scanlines(ctx, .04, 6);
-  const g = Math.max(inv(t, 1.6, 1.66) * (1 - inv(t, 1.66, 1.78)), 0);
+  const g = Math.max(inv(t, S(1.6), S(1.6) + S.d(0.06)) * (1 - inv(t, S(1.66), S(1.66) + S.d(0.12))), 0);
   if (g > .01) { sliceGlitch(ctx, g * .4, Math.floor(t * 60) + 3, 10); rgbSplit(ctx, g * 7); }
   rgbSplit(ctx, 1.1);
 }
@@ -612,9 +612,9 @@ function scene4(ctx, t, w) {
 /* ==================================================================
    СЦЕНА 5 — РАЗДЕЛЕНИЕ ЭКРАНА (13.0 – 17.0), длительность 4.0
    ================================================================== */
-function scene5(ctx, t, w) {
+function scene5(ctx, t, w, S) {
   ctx.save();
-  camera(ctx, 1 + inv(t, 0, 4) * .03);
+  camera(ctx, 1 + inv(t, S(0), S(0) + S.d(4.0)) * .03);
 
   // общий тёмный низ
   ctx.fillStyle = C.bg0;
@@ -622,8 +622,8 @@ function scene5(ctx, t, w) {
 
   const tilt = 46;                       // наклон разделителя
   const divX = (y) => CX + lerp(tilt, -tilt, y / H);
-  const inL = E.outExpo(inv(t, .0, .62));
-  const inR = E.outExpo(inv(t, .08, .70));
+  const inL = E.outExpo(inv(t, S(.0), S(.0) + S.d(0.62)));
+  const inR = E.outExpo(inv(t, S(.08), S(.08) + S.d(0.62)));
 
   /* ---------- ЛЕВАЯ ПОЛОВИНА ---------- */
   ctx.save();
@@ -643,7 +643,7 @@ function scene5(ctx, t, w) {
   const LW = 400;
   ['ПРОДАВЦЫ', 'ЖДУТ', 'ВЫПЛАТЫ'].forEach((s, i) => {
     revealLine(ctx, s, LX, 560 + i * 96, fitSize(ctx, s, 92, LW, 900), {
-      p: inv(t, .35 + i * .09, .85 + i * .09),
+      p: inv(t, S(.35 + i * .09), S(.35 + i * .09) + S.d(0.5)),
       weight: 900, ls: -1, color: i === 2 ? C.cyan : C.ink, align: 'center',
       glow: { color: i === 2 ? A(C.cyan, .5) : 'rgba(255,255,255,.2)', blur: 30 },
     });
@@ -651,7 +651,7 @@ function scene5(ctx, t, w) {
 
   // очередь ожидающих строк
   for (let i = 0; i < 5; i++) {
-    const p = inv(t, .8 + i * .12, 1.25 + i * .12);
+    const p = inv(t, S(.8 + i * .12), S(.8 + i * .12) + S.d(0.45));
     if (p <= 0) continue;
     const e = E.outExpo(p);
     const ry = 900 + i * 96;
@@ -671,10 +671,10 @@ function scene5(ctx, t, w) {
 
   // затухающий график
   ctx.save();
-  ctx.globalAlpha = E.outCubic(inv(t, 1.5, 2.2)) * .95;
+  ctx.globalAlpha = E.outCubic(inv(t, S(1.5), S(1.5) + S.d(0.7))) * .95;
   lineChart(ctx, 82, 1400, 386, 190,
     [.6, .58, .55, .5, .44, .36, .3, .26, .24, .23], C.blue,
-    { reveal: E.outCubic(inv(t, 1.5, 2.8)), w: 5, grid: true });
+    { reveal: E.outCubic(inv(t, S(1.5), S(1.5) + S.d(1.3))), w: 5, grid: true });
   ctx.restore();
   ctx.restore();
 
@@ -695,7 +695,7 @@ function scene5(ctx, t, w) {
   const RX = 812, RW = 400;
   ['ДЕНЬГИ', 'В ОБОРОТЕ'].forEach((s, i) => {
     revealLine(ctx, s, RX, 560 + i * 100, fitSize(ctx, s, 96, RW, 900), {
-      p: inv(t, .42 + i * .09, .92 + i * .09),
+      p: inv(t, S(.42 + i * .09), S(.42 + i * .09) + S.d(0.5)),
       weight: 900, ls: -1, color: i === 1 ? C.magenta : C.ink, align: 'center',
       glow: { color: i === 1 ? A(C.magenta, .55) : 'rgba(255,255,255,.2)', blur: 34 },
     });
@@ -704,7 +704,7 @@ function scene5(ctx, t, w) {
   // орбита денежного потока
   const ocx = RX, ocy = 1090, orx = 178, ory = 118;
   ctx.save();
-  ctx.globalAlpha = E.outCubic(inv(t, .8, 1.4)) * .5;
+  ctx.globalAlpha = E.outCubic(inv(t, S(.8), S(.8) + S.d(0.6))) * .5;
   ctx.strokeStyle = A(C.magenta, .45);
   ctx.lineWidth = 3;
   for (let k = 0; k < 3; k++) {
@@ -713,7 +713,7 @@ function scene5(ctx, t, w) {
     ctx.stroke();
   }
   ctx.restore();
-  const orbP = inv(t, .8, 1.4);
+  const orbP = inv(t, S(.8), S(.8) + S.d(0.6));
   if (orbP > 0) {
     for (let i = 0; i < 12; i++) {
       const k = i / 12;
@@ -730,11 +730,11 @@ function scene5(ctx, t, w) {
 
   // растущие столбцы
   ctx.save();
-  ctx.globalAlpha = E.outCubic(inv(t, 1.4, 2.1));
+  ctx.globalAlpha = E.outCubic(inv(t, S(1.4), S(1.4) + S.d(0.7)));
   const bv = [.35, .5, .42, .66, .58, .8, .72, .95];
   barChart(ctx, 620, 1400, 368, 190, bv.map((v, i) =>
     clamp(v * (.8 + .2 * pulse(w + i * .2, .8)))), C.magenta,
-    { reveal: inv(t, 1.4, 2.4), gap: 12 });
+    { reveal: inv(t, S(1.4), S(1.4) + S.d(1.0)), gap: 12 });
   ctx.restore();
 
   // летящие «стримы» денег
@@ -754,7 +754,7 @@ function scene5(ctx, t, w) {
   ctx.restore();
 
   /* ---------- разделитель ---------- */
-  const dp = E.outExpo(inv(t, .05, .55));
+  const dp = E.outExpo(inv(t, S(.05), S(.05) + S.d(0.5)));
   ctx.save();
   ctx.beginPath();
   ctx.moveTo(divX(0), 0);
@@ -796,15 +796,15 @@ function scene5(ctx, t, w) {
 /* ==================================================================
    СЦЕНА 6 — НАПРЯЖЕНИЕ / ТАЙМЕР (17.0 – 21.0), длительность 4.0
    ================================================================== */
-function scene6(ctx, t, w) {
+function scene6(ctx, t, w, S) {
   // «замедление»: скорость счётчика падает почти до нуля
   const speed = Math.exp(-t * 1.15);
   const spin = (1 - Math.exp(-t * 1.15)) / 1.15;   // интеграл скорости
   const frozen = t > 2.75;
 
-  const [sx, sy] = shake(t, 2.72, .5, 14, 6);
+  const [sx, sy] = shake(t, S(2.72), .5, 14, 6);
   ctx.save();
-  camera(ctx, 1 + inv(t, 0, 4) * .05 + inv(t, 2.75, 3.1) * .05, sx, sy, CX, 1150);
+  camera(ctx, 1 + inv(t, S(0), S(0) + S.d(4.0)) * .05 + inv(t, S(2.75), S(2.75) + S.d(0.35)) * .05, sx, sy, CX, 1150);
 
   drawBackground(ctx, w, {
     accent: '#5A0C24', accent2: '#2A0A46', mid: '#0B0710',
@@ -814,7 +814,7 @@ function scene6(ctx, t, w) {
   // сжимающаяся тревожная виньетка
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  ctx.globalAlpha = .16 + .22 * pulse(w, 1.1) + inv(t, 2.4, 4) * .2;
+  ctx.globalAlpha = .16 + .22 * pulse(w, 1.1) + inv(t, S(2.4), S(2.4) + S.d(1.6)) * .2;
   ctx.fillStyle = rg(ctx, CX, 1150, H * .12, H * .55,
     [[0, A(C.red, 0)], [1, A(C.red, .55)]]);
   ctx.fillRect(0, 0, W, H);
@@ -824,7 +824,7 @@ function scene6(ctx, t, w) {
 
   /* --- текст --- */
   ctx.save();
-  ctx.globalAlpha = E.outCubic(inv(t, .05, .4));
+  ctx.globalAlpha = E.outCubic(inv(t, S(.05), S(.05) + S.d(0.35)));
   chip(ctx, CX, 404, 'ГЛАВНЫЙ ВОПРОС', C.red, { align: 'center', size: 33, h: 70, padX: 32 });
   ctx.restore();
 
@@ -832,7 +832,7 @@ function scene6(ctx, t, w) {
   const sz = Math.min(...L.map(s => fitSize(ctx, s, 132, CW, 900)));
   L.forEach((s, i) => {
     revealLine(ctx, s, CX, 560 + i * (sz * 1.06), sz, {
-      p: inv(t, .2 + i * .12, .75 + i * .12),
+      p: inv(t, S(.2 + i * .12), S(.2 + i * .12) + S.d(0.55)),
       weight: 900, ls: -2, align: 'center',
       color: i === 1 ? lg(ctx, CX - CW / 2, 0, CX + CW / 2, 0, [[0, '#FF4D6D'], [1, '#FF9A3D']]) : C.ink,
       glow: { color: i === 1 ? A(C.red, .65) : 'rgba(255,255,255,.2)', blur: i === 1 ? 56 : 32 },
@@ -843,7 +843,7 @@ function scene6(ctx, t, w) {
   const cy = 1150, R = 392;
   const ringP = clamp(spin * .95);
   ctx.save();
-  ctx.globalAlpha = E.outCubic(inv(t, .3, .9));
+  ctx.globalAlpha = E.outCubic(inv(t, S(.3), S(.3) + S.d(0.6)));
   // засечки
   for (let i = 0; i < 60; i++) {
     const a = (i / 60) * Math.PI * 2 - Math.PI / 2;
@@ -878,7 +878,7 @@ function scene6(ctx, t, w) {
   const groups = 3;
   const totalW = groups * (cellW * 2 + gap) + (groups - 1) * grpGap;
   let x0 = CX - totalW / 2 + cellW / 2;
-  const appear = E.outCubic(inv(t, .45, 1.0));
+  const appear = E.outCubic(inv(t, S(.45), S(.45) + S.d(0.55)));
   ctx.save();
   ctx.globalAlpha = appear;
   for (let g = 0; g < groups; g++) {
@@ -918,7 +918,7 @@ function scene6(ctx, t, w) {
 
   /* --- подпись под таймером --- */
   ctx.save();
-  ctx.globalAlpha = E.outCubic(inv(t, 2.5, 3.0));
+  ctx.globalAlpha = E.outCubic(inv(t, S(2.5), S(2.5) + S.d(0.5)));
   chip(ctx, CX, 1420, 'ТОЧНОЕ ВРЕМЯ НЕИЗВЕСТНО', C.amber,
     { align: 'center', size: 32, h: 68, padX: 30, dotScale: .8 + .3 * pulse(w, 1.2) });
   ctx.restore();
@@ -926,18 +926,18 @@ function scene6(ctx, t, w) {
   ctx.restore();
   vignette(ctx, .98, '#0D0004');
   scanlines(ctx, .05, 6);
-  const g = Math.max(inv(t, 2.72, 2.78) * (1 - inv(t, 2.78, 2.95)), 0);
+  const g = Math.max(inv(t, S(2.72), S(2.72) + S.d(0.06)) * (1 - inv(t, S(2.78), S(2.78) + S.d(0.17))), 0);
   if (g > .01) { sliceGlitch(ctx, g * .3, Math.floor(t * 60) + 9, 9); }
   rgbSplit(ctx, 1.1 + g * 6);
-  flash(ctx, Math.max(0, .35 - inv(t, 2.72, 2.95) * .35), A(C.red, .7));
+  flash(ctx, Math.max(0, .35 - inv(t, S(2.72), S(2.72) + S.d(0.23)) * .35), A(C.red, .7));
 }
 
 /* ==================================================================
    СЦЕНА 7 — ФИНАЛ + CTA (21.0 – 25.0), длительность 4.0
    ================================================================== */
-function scene7(ctx, t, w) {
+function scene7(ctx, t, w, S) {
   ctx.save();
-  camera(ctx, 1 + inv(t, 0, 4) * .03);
+  camera(ctx, 1 + inv(t, S(0), S(0) + S.d(4.0)) * .03);
 
   drawBackground(ctx, w, {
     accent: '#48138C', accent2: '#96125F', mid: '#0D0A1C',
@@ -946,7 +946,7 @@ function scene7(ctx, t, w) {
   embers(ctx, w, 34, C.magenta, .45, 77, 58);
 
   /* --- вопрос: по центру, затем поднимается --- */
-  const shift = E.inOutCubic(inv(t, 1.45, 2.05));
+  const shift = E.inOutCubic(inv(t, S(1.45), S(1.45) + S.d(0.6)));
   const baseY = lerp(940, 700, shift);
   const scale = lerp(1, .86, shift);
   const L = ['ЭТО ПРОБЛЕМА', 'ОДНОГО ДНЯ', 'ИЛИ НОВАЯ', 'ТЕНДЕНЦИЯ?'];
@@ -958,7 +958,7 @@ function scene7(ctx, t, w) {
   L.forEach((s, i) => {
     const accent = i >= 2;
     revealLine(ctx, s, CX, baseY - lh * 1.5 + i * lh, sz, {
-      p: inv(t, .12 + i * .12, .66 + i * .12),
+      p: inv(t, S(.12 + i * .12), S(.12 + i * .12) + S.d(0.54)),
       weight: 900, ls: -2, align: 'center',
       color: accent ? lg(ctx, CX - CW / 2, 0, CX + CW / 2, 0,
         [[0, '#FF3B7B'], [.5, '#E7239B'], [1, '#A855F7']]) : C.ink,
@@ -968,7 +968,7 @@ function scene7(ctx, t, w) {
   ctx.restore();
 
   /* --- CTA --- */
-  const cp = inv(t, 1.75, 2.4);
+  const cp = inv(t, S(1.75), S(1.75) + S.d(0.65));
   if (cp > 0) {
     const e = E.outExpo(cp);
     const py = lerp(1560, 1070, e);
@@ -1022,5 +1022,5 @@ function scene7(ctx, t, w) {
   vignette(ctx, .9, '#05030E');
   scanlines(ctx, .04, 6);
   rgbSplit(ctx, 1.1);
-  flash(ctx, Math.max(0, .45 - inv(t, 0, .25) * .45), '#FFE6F4');
+  flash(ctx, Math.max(0, .45 - inv(t, S(0), S(0) + S.d(0.25)) * .45), '#FFE6F4');
 }

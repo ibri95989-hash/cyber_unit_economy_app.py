@@ -77,7 +77,7 @@ const ff = spawn(FFMPEG, [
   '-f', 'image2pipe', '-framerate', String(FPS), '-i', '-',
   '-i', arg('audio', path.join(ROOT, 'build/voice.wav')),
   '-map', '0:v', '-map', '1:a',
-  '-c:v', 'libx264', '-preset', 'slow', '-crf', '17', '-profile:v', 'high', '-level', '4.2',
+  '-c:v', 'libx264', '-preset', arg('preset', 'veryfast'), '-crf', arg('crf', '16'), '-profile:v', 'high', '-level', '4.2',
   '-pix_fmt', 'yuv420p', '-x264-params', 'keyint=120:min-keyint=60:scenecut=0',
   '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-ac', '2',
   '-movflags', '+faststart', '-shortest', OUT,

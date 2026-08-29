@@ -89,7 +89,11 @@ function font(ctx, weight, size, family = 'Montserrat') {
   ctx.font = `${weight} ${size}px "${family}", "Inter", sans-serif`;
 }
 
+const _fitCache = new Map();
 function fitSize(ctx, text, maxW, size, weight, family = 'Montserrat', spacing = 0) {
+  const key = `${text}|${maxW}|${size}|${weight}|${family}|${spacing}`;
+  const hit = _fitCache.get(key);
+  if (hit !== undefined) return hit;
   let s = size;
   for (let i = 0; i < 40; i++) {
     font(ctx, weight, s, family);
@@ -97,18 +101,25 @@ function fitSize(ctx, text, maxW, size, weight, family = 'Montserrat', spacing =
     if (w <= maxW) break;
     s *= Math.max(0.86, maxW / w);
   }
+  _fitCache.set(key, s);
   return s;
 }
 
 /* layout a string as individual glyphs so each can be animated */
+const _layoutCache = new Map();
 function layout(ctx, text, size, weight, spacing, family = 'Montserrat') {
+  const key = `${text}|${size}|${weight}|${spacing}|${family}`;
+  const hit = _layoutCache.get(key);
+  if (hit) return hit;
   font(ctx, weight, size, family);
   const chars = [...text];
   const ws = chars.map(c => ctx.measureText(c).width);
   const total = ws.reduce((a, b) => a + b, 0) + spacing * (chars.length - 1);
   const out = []; let x = -total / 2;
   chars.forEach((c, i) => { out.push({ c, x: x + ws[i] / 2, w: ws[i] }); x += ws[i] + spacing; });
-  return { chars: out, width: total };
+  const res = { chars: out, width: total };
+  _layoutCache.set(key, res);
+  return res;
 }
 
 /* kinetic headline: per-glyph stagger, blur-in, y-slide */
@@ -136,11 +147,19 @@ function kinetic(ctx, text, cx, cy, size, opts = {}) {
     ctx.save();
     ctx.globalAlpha = alpha * clamp(st * 1.6);
     ctx.translate(g.x + ox, (1 - e) * 46 * dir);
-    const bl = (1 - st) * blurIn;
-    if (bl > 0.4) ctx.filter = `blur(${bl.toFixed(2)}px)`;
-    if (glow) { ctx.shadowColor = glow; ctx.shadowBlur = glowSize; }
+    if (glow) { ctx.shadowColor = glow; ctx.shadowBlur = Math.min(glowSize, 22); }
     else if (shadow) { ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = 26; ctx.shadowOffsetY = 6; }
     ctx.fillStyle = color;
+    /* soft focus while the glyph flies in - three offset copies instead of a
+       per-glyph canvas filter, which would allocate a full-size layer */
+    const off = (1 - st) * blurIn * 0.5;
+    if (off > 0.6) {
+      const a0 = ctx.globalAlpha;
+      ctx.globalAlpha = a0 * 0.34;
+      ctx.fillText(g.c, -off, -off * 0.5);
+      ctx.fillText(g.c, off, off * 0.5);
+      ctx.globalAlpha = a0 * 0.55;
+    }
     ctx.fillText(g.c, 0, 0);
     ctx.restore();
   }
@@ -161,7 +180,7 @@ function text(ctx, str, x, y, size, opts = {}) {
   font(ctx, weight, s, family);
   ctx.textAlign = align; ctx.textBaseline = baseline;
   ctx.globalAlpha *= alpha;
-  if (glow) { ctx.shadowColor = glow; ctx.shadowBlur = glowSize; }
+  if (glow) { ctx.shadowColor = glow; ctx.shadowBlur = Math.min(glowSize, 30); }
   ctx.fillStyle = color;
   ctx.fillText(str, x, y);
   ctx.restore();
@@ -365,6 +384,29 @@ function grain(ctx, frame, amount = 0.05) {
   const ox = hash(frame) * 512, oy = hash(frame + 77) * 512;
   /* one stretched pass - cheap, and the film texture survives H.264 */
   ctx.drawImage(grainTile, -ox, -oy, W + 512, H + 512);
+  ctx.restore();
+}
+
+/* pre-blurred dark plate behind headlines - cached, so the expensive
+   blur pass runs once instead of on every frame */
+const _plateCache = new Map();
+function plate(ctx, x, y, w, h, r, color = 'rgba(3,5,12,0.9)', blurPx = 34, alpha = 1) {
+  const key = `${w | 0}|${h | 0}|${r | 0}|${color}|${blurPx | 0}`;
+  let c = _plateCache.get(key);
+  if (!c) {
+    const pad = blurPx * 2;
+    c = document.createElement('canvas');
+    c.width = (w + pad * 2) | 0; c.height = (h + pad * 2) | 0;
+    const g = c.getContext('2d');
+    g.filter = `blur(${blurPx}px)`;
+    g.fillStyle = color;
+    rr(g, pad, pad, w, h, r);
+    g.fill();
+    _plateCache.set(key, c);
+  }
+  ctx.save();
+  ctx.globalAlpha *= clamp(alpha);
+  ctx.drawImage(c, x - blurPx * 2, y - blurPx * 2);
   ctx.restore();
 }
 

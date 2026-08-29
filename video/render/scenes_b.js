@@ -58,7 +58,8 @@ function scene6(ctx, p, lt, gt, A) {
     const x = ((off * (W + 300) + lt * speed * 210) % (W + 300)) - 150;
     const s = 92 + rb() * 46;
     ctx.save();
-    if (speed > 3) ctx.filter = `blur(${(speed - 3) * 1.6}px)`;
+    const trail = Math.max(0, speed - 2.5) * 9;
+    if (trail > 1) isoBox(ctx, x - trail, beltY + 20, s, { alpha: 0.26, accent: i % 2 ? C.violet : C.cyan });
     isoBox(ctx, x, beltY + 20, s, { alpha: 0.9, accent: i % 2 ? C.violet : C.cyan, rot: Math.sin(lt * 3 + i) * 0.03 });
     ctx.restore();
   }
@@ -86,12 +87,7 @@ function scene6(ctx, p, lt, gt, A) {
     ctx.save();
     ctx.translate(0, -30);
     const bg = clamp(th * 3);
-    ctx.save();
-    ctx.globalAlpha = bg;
-    ctx.fillStyle = 'rgba(3,5,12,0.9)';
-    ctx.filter = 'blur(34px)';
-    rr(ctx, 20, 655, W - 40, 500, 70); ctx.fill();
-    ctx.restore();
+    plate(ctx, 20, 655, W - 40, 500, 70, 'rgba(3,5,12,0.9)', 34, bg);
     kinetic(ctx, 'БОЛЬШЕ ПРОДАЖ', W / 2, 790, 118,
       { p: th * 2.6, color: '#fff', spacing: 1, maxW: 900, glow: rgba(C.cyan, 0.45), glowSize: 40 });
     const ne = easeOutBack(clamp((th - 0.14) * 3.2));
@@ -123,7 +119,7 @@ function scene7(ctx, p, lt, gt, A) {
 
   /* flying cards */
   const rc = rng(303);
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < 9; i++) {
     const card = CARDS[i % CARDS.length];
     const off = rc(), sp = 0.55 + rc() * 0.5;
     const ph = ((lt * sp * 0.85 + off) % 1);
@@ -132,17 +128,21 @@ function scene7(ctx, p, lt, gt, A) {
     const sc = 0.62 + rc() * 0.5;
     const a = Math.sin(ph * Math.PI) * 1.15;
     if (a <= 0.02) continue;
-    ctx.save();
-    ctx.globalAlpha = clamp(a) * 0.95;
-    ctx.translate(x, y);
-    ctx.rotate((rc() - 0.5) * 0.16);
-    ctx.scale(sc, sc);
-    const bl = 2 + (1 - Math.sin(ph * Math.PI)) * 9;
-    ctx.filter = `blur(${bl.toFixed(1)}px)`;
-    glassPanel(ctx, -230, -80, 460, 160, 34, { glow: rgba(card.c, 0.3) });
-    text(ctx, card.l, 0, -22, 34, { weight: 700, family: 'Inter', color: 'rgba(255,255,255,0.62)', spacing: 3, maxW: 400 });
-    text(ctx, card.v, 0, 34, 56, { weight: 900, color: card.c, maxW: 400 });
-    ctx.restore();
+    const smear = (1 - Math.sin(ph * Math.PI)) * 26;     /* cheap vertical motion smear */
+    const rot = ((i * 0.37) % 1 - 0.5) * 0.16;
+    for (const [dy, al] of [[-smear, 0.3], [smear, 0.3], [0, 1]]) {
+      if (al < 1 && smear < 9) continue;
+      ctx.save();
+      ctx.globalAlpha = clamp(a) * 0.95 * al;
+      ctx.translate(x, y + dy);
+      ctx.rotate(rot);
+      ctx.scale(sc, sc);
+      if (al === 1) glow(ctx, 0, 0, 230, card.c, 0.18);
+      glassPanel(ctx, -230, -80, 460, 160, 34);
+      text(ctx, card.l, 0, -22, 34, { weight: 700, family: 'Inter', color: 'rgba(255,255,255,0.62)', spacing: 3, maxW: 400 });
+      text(ctx, card.v, 0, 34, 56, { weight: 900, color: card.c, maxW: 400 });
+      ctx.restore();
+    }
   }
 
   /* centre statements */
@@ -152,11 +152,7 @@ function scene7(ctx, p, lt, gt, A) {
     const out = win(p, 0.44, 0.52);
     ctx.globalAlpha = 1 - out;
     ctx.translate(W / 2 - out * 700, 960);
-    if (out > 0.02) ctx.filter = `blur(${out * 22}px)`;
-    ctx.save();
-    ctx.globalAlpha *= 0.92; ctx.fillStyle = 'rgba(3,5,12,0.75)'; ctx.filter = 'blur(34px)';
-    rr(ctx, -520, -180, 1040, 360, 60); ctx.fill();
-    ctx.restore();
+    plate(ctx, -520, -180, 1040, 360, 60, 'rgba(3,5,12,0.78)', 30, 0.94);
     kinetic(ctx, 'ТЫ РАБОТАЕШЬ', 0, -70, 130, { p: t1 * 2.4, color: '#fff', spacing: 1, maxW: 900,
       glow: rgba(C.violet, 0.55), glowSize: 44 });
     kinetic(ctx, 'БОЛЬШЕ…', 0, 70, 130, { p: t1 * 2.4 - 0.18, color: '#fff', spacing: 1, maxW: 900,
@@ -167,11 +163,7 @@ function scene7(ctx, p, lt, gt, A) {
     ctx.save();
     const e = easeOutQuint(clamp(t2 * 2.6));
     ctx.translate(W / 2 + (1 - e) * 640, 960);
-    if (e < 0.9) ctx.filter = `blur(${(1 - e) * 26}px)`;
-    ctx.save();
-    ctx.globalAlpha *= 0.92; ctx.fillStyle = 'rgba(3,5,12,0.78)'; ctx.filter = 'blur(34px)';
-    rr(ctx, -520, -220, 1040, 440, 60); ctx.fill();
-    ctx.restore();
+    plate(ctx, -520, -220, 1040, 440, 60, 'rgba(3,5,12,0.8)', 30, 0.94);
     kinetic(ctx, 'НО ЗАРАБАТЫВАЕШЬ', 0, -100, 122, { p: t2 * 2.6, color: '#fff', spacing: 0, maxW: 940,
       glow: rgba(C.magenta, 0.6), glowSize: 46 });
     kinetic(ctx, 'ЛИ БОЛЬШЕ?', 0, 60, 148, { p: t2 * 2.6 - 0.22, color: C.magenta, spacing: 1, maxW: 900,

@@ -72,7 +72,7 @@ function scene1(ctx, p, lt, gt, A) {
     const pop = 1 + 0.17 * Math.exp(-since * 5) + A * 0.012;
     ctx.save();
     ctx.globalAlpha = 1 - numOut;
-    if (numOut > 0.02) ctx.filter = `blur(${numOut * 26}px)`;
+    if (numOut > 0.05) ctx.filter = `blur(${Math.min(numOut * 26, 14).toFixed(1)}px)`;
     ctx.translate(W / 2, 880);
     ctx.scale(pop * (1 + numOut * 0.4), pop * (1 + numOut * 0.4));
 

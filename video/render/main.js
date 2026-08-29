@@ -62,7 +62,7 @@ function composite(type, k, A) {
   const put = (img, { sc = 1, dx = 0, dy = 0, alpha = 1, bl = 0 }) => {
     ctx.save();
     ctx.globalAlpha = clamp(alpha);
-    if (bl > 0.4) ctx.filter = `blur(${bl.toFixed(2)}px)`;
+    if (bl > 1.5) ctx.filter = `blur(${Math.min(bl, 16).toFixed(2)}px)`;
     ctx.translate(W / 2 + dx, H / 2 + dy);
     ctx.scale(sc, sc);
     ctx.drawImage(img, -W / 2, -H / 2);

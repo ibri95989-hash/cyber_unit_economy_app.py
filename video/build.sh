@@ -34,7 +34,7 @@ echo "==> 3/3  сведение видео и звука"
 "$FFMPEG" -y -loglevel error \
   -i out/video_silent.mp4 -i out/audio.wav \
   -c:v copy \
-  -c:a aac -b:a 192k -ar 44100 -ac 2 \
+  -c:a aac -b:a 160k -ar 44100 -ac 2 \
   -movflags +faststart -shortest \
   out/wildberries_payout_delay_9x16.mp4
 

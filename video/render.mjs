@@ -104,10 +104,13 @@ const previewArg = args.includes('--preview') ? args[args.indexOf('--preview') +
     '-an',
     '-c:v', 'libx264',
     '-preset', 'slow',
-    '-crf', '16',
+    // tune=animation + aq-mode=3 держат плоскую векторную графику и тёмные
+    // градиенты чистыми, а плёночное зерно не раздувает битрейт
+    '-crf', '19',
+    '-tune', 'animation',
     '-profile:v', 'high', '-level', '4.2',
     '-pix_fmt', 'yuv420p',
-    '-x264-params', 'keyint=120:min-keyint=60:scenecut=0:ref=4:bframes=3',
+    '-x264-params', 'aq-mode=3:keyint=120:min-keyint=60:scenecut=0:ref=4:bframes=3',
     '-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709',
     '-movflags', '+faststart',
     '-r', String(meta.FPS),

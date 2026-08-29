@@ -242,7 +242,7 @@ function scene8(ctx, p, lt, gt, A) {
     const y = baseY - maxH * PROFIT * grow;
     ctx.beginPath(); ctx.moveTo(180, y); ctx.lineTo(W - 140, y); ctx.stroke();
     ctx.restore();
-    chip(ctx, 'ЭТО 9% ОТ ВЫРУЧКИ', W / 2, baseY - maxH * PROFIT - 130, {
+    chip(ctx, 'ЭТО 9% ОТ ВЫРУЧКИ', W / 2, baseY - maxH * PROFIT - 250, {
       size: 40, color: C.green, bg: rgba(C.green, 0.12), border: rgba(C.green, 0.45),
       glowC: rgba(C.green, 0.5), alpha: clamp(tb * 2),
     });

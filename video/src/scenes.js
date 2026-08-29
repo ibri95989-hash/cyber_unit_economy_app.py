@@ -65,21 +65,21 @@ function embers(ctx, t, count, color, alpha = .5, seed = 5, speed = 60) {
 /* ==================================================================
    СЦЕНА 1 — HOOK (0.0 – 2.0)
    ================================================================== */
-function scene1(ctx, t) {
-  const camScale = 1 + E.outExpo(inv(t, .18, 1.0)) * .06 + inv(t, 1.5, 2.0) * .07;
+function scene1(ctx, t, w) {
+  const camScale = 1 + E.outExpo(inv(t, .18, 1.0)) * .06 + inv(w, 1.5, 4.58) * .07;
   const [sx, sy] = shake(t, .22, .45, 16, 2);
   const [sx2, sy2] = shake(t, 1.02, .3, 9, 8);
 
   ctx.save();
   camera(ctx, camScale, sx + sx2, sy + sy2);
 
-  drawBackground(ctx, t, {
+  drawBackground(ctx, w, {
     accent: '#7A0B2B', accent2: '#31063F', mid: '#150713',
-    grid: .45, energy: .35 + .3 * pulse(t, .9), gridSpeed: 44,
+    grid: .45, energy: .35 + .3 * pulse(w, .9), gridSpeed: 44,
   });
 
   // красная пульсация тревоги
-  const alarm = .35 + .65 * Math.pow(pulse(t, 1.6), 2);
+  const alarm = .35 + .65 * Math.pow(pulse(w, 1.6), 2);
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   ctx.globalAlpha = .5 * alarm * inv(t, .05, .5);
@@ -88,10 +88,12 @@ function scene1(ctx, t) {
   ctx.fillRect(0, 0, W, H);
   ctx.restore();
 
-  alarmRing(ctx, t, .24, CX, H * .52, 120, 900, A(C.red, .9), 1.2, 8);
-  alarmRing(ctx, t, 1.05, CX, H * .52, 120, 900, A(C.magenta, .8), 1.2, 6);
+  for (const [rt, rc, rw] of [[.24, C.red, 8], [1.5, C.magenta, 6],
+                              [2.7, C.red, 7], [3.9, C.magenta, 6]]) {
+    alarmRing(ctx, w, rt, CX, H * .52, 120, 900, A(rc, .85), 1.2, rw);
+  }
 
-  embers(ctx, t, 26, C.red, .35, 11, 70);
+  embers(ctx, w, 26, C.red, .35, 11, 70);
 
   /* --- карточка уведомления --- */
   const np = inv(t, .06, .46);
@@ -122,7 +124,7 @@ function scene1(ctx, t) {
     });
     // мигающая точка
     ctx.save();
-    ctx.globalAlpha = .4 + .6 * pulse(t, 2.4);
+    ctx.globalAlpha = .4 + .6 * pulse(w, 2.4);
     ctx.fillStyle = C.red; ctx.shadowColor = C.red; ctx.shadowBlur = 24;
     ctx.beginPath(); ctx.arc(W - M - 48, ny + 52, 12, 0, 7); ctx.fill();
     ctx.restore();
@@ -172,7 +174,7 @@ function scene1(ctx, t) {
     ctx.globalAlpha = E.outCubic(cp);
     ctx.translate(0, (1 - E.outExpo(cp)) * 40);
     chip(ctx, CX, 1330, 'ПРОДАВЦЫ СООБЩАЮТ О ЗАДЕРЖКАХ', C.amber, {
-      align: 'center', size: 33, h: 72, padX: 34, dotScale: .9 + .25 * pulse(t, 2),
+      align: 'center', size: 33, h: 72, padX: 34, dotScale: .9 + .25 * pulse(w, 2),
     });
     ctx.restore();
   }
@@ -183,11 +185,12 @@ function scene1(ctx, t) {
   scanlines(ctx, .05, 6);
 
   // глитч-всплески
-  const g1 = Math.max(inv(t, .86, .96) * (1 - inv(t, .96, 1.04)), 0);
-  const g2 = Math.max(inv(t, 1.42, 1.5) * (1 - inv(t, 1.5, 1.6)), 0);
-  const gg = Math.max(g1, g2);
+  let gg = 0;
+  for (const gt of [.9, 2.35, 3.75]) {
+    gg = Math.max(gg, inv(w, gt, gt + .09) * (1 - inv(w, gt + .09, gt + .2)));
+  }
   if (gg > .01) {
-    sliceGlitch(ctx, gg * .3, Math.floor(t * 60), 10);
+    sliceGlitch(ctx, gg * .3, Math.floor(w * 60), 10);
     rgbSplit(ctx, gg * 7);
   }
   rgbSplit(ctx, 1.1);
@@ -197,12 +200,12 @@ function scene1(ctx, t) {
 /* ==================================================================
    СЦЕНА 2 — ДАТА (2.0 – 5.0), длительность 3.0
    ================================================================== */
-function scene2(ctx, t) {
+function scene2(ctx, t, w) {
   const [sx, sy] = shake(t, 1.42, .5, 20, 4);
   ctx.save();
   camera(ctx, 1 + inv(t, 0, 3) * .05, sx, sy);
 
-  drawBackground(ctx, t, {
+  drawBackground(ctx, w, {
     accent: '#2B1370', accent2: '#0E3A6B', mid: '#0A1024',
     grid: .55, energy: .45, gridSpeed: 30,
   });
@@ -255,7 +258,7 @@ function scene2(ctx, t) {
   ctx.save();
   ctx.globalAlpha = .9;
   ctx.setLineDash([14, 16]);
-  ctx.lineDashOffset = -t * 90;
+  ctx.lineDashOffset = -w * 90;
   ctx.strokeStyle = A(C.cyan, .5);
   ctx.lineWidth = 4;
   ctx.beginPath();
@@ -309,7 +312,7 @@ function scene2(ctx, t) {
   iconWrap(2, () => {
     const red = barrier > 0;
     iconClock(ctx, xs[2], rowY, 114, red ? C.red : C.dim, red ? A(C.red, .9) : null,
-      t * 1.7, t * 7.5);
+      w * 1.7, w * 7.5);
   }, barrier > 0 ? C.red : C.dim2);
 
   /* --- красная линия останавливает поток --- */
@@ -326,7 +329,7 @@ function scene2(ctx, t) {
     ctx.lineTo(stopX, yEnd);
     ctx.stroke();
     // засечки
-    ctx.globalAlpha = .55 + .45 * pulse(t, 3);
+    ctx.globalAlpha = .55 + .45 * pulse(w, 3);
     ctx.lineWidth = 4;
     for (const yy of [y0 + 40, rowY, y1 - 40]) {
       if (yy > yEnd) continue;
@@ -357,11 +360,11 @@ function scene2(ctx, t) {
 /* ==================================================================
    СЦЕНА 3 — ПОТОК ВЫПЛАТЫ (5.0 – 9.0), длительность 4.0
    ================================================================== */
-function scene3(ctx, t) {
+function scene3(ctx, t, w) {
   ctx.save();
   camera(ctx, 1 + inv(t, 0, 4) * .07, 0, -inv(t, 0, 4) * 26);
 
-  drawBackground(ctx, t, {
+  drawBackground(ctx, w, {
     accent: '#12275E', accent2: '#3A0E52', mid: '#080C1A',
     grid: .5, energy: .4, gridSpeed: 22,
   });
@@ -387,7 +390,7 @@ function scene3(ctx, t) {
   ctx.lineTo(railX, lerp(392, barrierY, railP));
   ctx.stroke();
   ctx.setLineDash([10, 18]);
-  ctx.lineDashOffset = -t * 120;
+  ctx.lineDashOffset = -w * 120;
   ctx.strokeStyle = A(C.cyan, .5);
   ctx.lineWidth = 2.5;
   ctx.stroke();
@@ -404,7 +407,7 @@ function scene3(ctx, t) {
     u = Math.min(u, Math.max(.12, stackTarget));
     const y = lerp(392, barrierY - 30, u);
     const jam = u >= stackTarget - .004 && tau > 1.2;
-    const wob = jam ? Math.sin(t * 9 + i * 1.7) * 2.2 : 0;
+    const wob = jam ? Math.sin(w * 9 + i * 1.7) * 2.2 : 0;
     const col = y > cardY[2] ? C.red : y > cardY[1] ? C.amber : C.green;
     coin(ctx, railX + wob, y, 21, col, clamp(tau * 3) * .96, true);
   }
@@ -416,7 +419,7 @@ function scene3(ctx, t) {
     ctx.strokeStyle = C.red;
     ctx.lineWidth = 11;
     ctx.shadowColor = C.red; ctx.shadowBlur = 42;
-    ctx.globalAlpha = .8 + .2 * pulse(t, 2.6);
+    ctx.globalAlpha = .8 + .2 * pulse(w, 2.6);
     ctx.beginPath();
     ctx.moveTo(railX - 78 * bp, barrierY); ctx.lineTo(railX + 78 * bp, barrierY);
     ctx.stroke();
@@ -442,7 +445,7 @@ function scene3(ctx, t) {
       r: 32,
       fill: lg(ctx, cardX, y, cardX, y + cardH,
         [[0, 'rgba(24,30,50,.94)'], [1, 'rgba(11,15,26,.94)']]),
-      border: A(cd.col, hot ? .3 + .35 * pulse(t, 2.4) : .28),
+      border: A(cd.col, hot ? .3 + .35 * pulse(w, 2.4) : .28),
       accent: cd.col, topLine: cd.col,
     });
     // иконка
@@ -493,13 +496,13 @@ function scene3(ctx, t) {
 /* ==================================================================
    СЦЕНА 4 — ВОПРОС + АНАЛИТИКА (9.0 – 13.0), длительность 4.0
    ================================================================== */
-function scene4(ctx, t) {
+function scene4(ctx, t, w) {
   /* ---------- слой 1: интерфейс аналитики с наездом камеры ---------- */
   ctx.save();
   const cam = 1 + E.inOutCubic(inv(t, 0, 3.6)) * .18;
   camera(ctx, cam, 0, -inv(t, 0, 3.6) * 40, CX, 980);
 
-  drawBackground(ctx, t, {
+  drawBackground(ctx, w, {
     accent: '#0C2E66', accent2: '#4A1060', mid: '#070B18',
     grid: .6, energy: .5, gridSpeed: 34,
   });
@@ -519,7 +522,7 @@ function scene4(ctx, t) {
     size: 34, weight: 700, family: MONO, ls: 5, color: A(C.cyan, .95), align: 'left',
   });
   chip(ctx, px + pw - 44 - 226, py + 66, 'ОЖИДАНИЕ', C.amber,
-    { size: 30, h: 54, padX: 22, dotScale: .8 + .35 * pulse(t, 2.2) });
+    { size: 30, h: 54, padX: 22, dotScale: .8 + .35 * pulse(w, 2.2) });
 
   const pts = [.42, .55, .5, .66, .74, .62, .70, .52, .34, .22, .18, .16];
   lineChart(ctx, px + 44, py + 140, pw - 88, 320, pts, C.cyan,
@@ -533,7 +536,7 @@ function scene4(ctx, t) {
 
   ctx.save();
   ctx.globalAlpha = E.outCubic(inv(t, 1.2, 1.8));
-  iconHourglass(ctx, px + 74, py + ph - 66, 52, C.amber, A(C.amber, .7), .35 + .3 * pulse(t, .5));
+  iconHourglass(ctx, px + 74, py + ph - 66, 52, C.amber, A(C.amber, .7), .35 + .3 * pulse(w, .5));
   text(ctx, 'СТАТУС НЕ ОБНОВЛЁН', px + 116, py + ph - 48, {
     size: 40, weight: 700, color: C.dim, align: 'left',
   });
@@ -609,7 +612,7 @@ function scene4(ctx, t) {
 /* ==================================================================
    СЦЕНА 5 — РАЗДЕЛЕНИЕ ЭКРАНА (13.0 – 17.0), длительность 4.0
    ================================================================== */
-function scene5(ctx, t) {
+function scene5(ctx, t, w) {
   ctx.save();
   camera(ctx, 1 + inv(t, 0, 4) * .03);
 
@@ -629,7 +632,7 @@ function scene5(ctx, t) {
   ctx.closePath(); ctx.clip();
   ctx.translate((1 - inL) * -W * .5, 0);
 
-  drawBackground(ctx, t, {
+  drawBackground(ctx, w, {
     accent: '#0B2E63', accent2: '#123A72', mid: '#08111F',
     grid: .5, energy: .35, gridSpeed: 14, ticks: false,
   });
@@ -659,9 +662,9 @@ function scene5(ctx, t) {
     ctx.fillStyle = 'rgba(255,255,255,.05)';
     ctx.fill();
     ctx.strokeStyle = A(C.cyan, .22); ctx.lineWidth = 2; ctx.stroke();
-    iconHourglass(ctx, 108, ry + 37, 42, C.amber, null, .3 + .4 * pulse(t + i * .3, .6));
+    iconHourglass(ctx, 108, ry + 37, 42, C.amber, null, .3 + .4 * pulse(w + i * .3, .6));
     // «полоса ожидания», ползущая почти на месте
-    progressBar(ctx, 148, ry + 30, 288, 14, .12 + .18 * pulse(t + i, .35), C.amber,
+    progressBar(ctx, 148, ry + 30, 288, 14, .12 + .18 * pulse(w + i, .35), C.amber,
       { head: false, alpha: .9 });
     ctx.restore();
   }
@@ -682,7 +685,7 @@ function scene5(ctx, t) {
   ctx.closePath(); ctx.clip();
   ctx.translate((1 - inR) * W * .5, 0);
 
-  drawBackground(ctx, t, {
+  drawBackground(ctx, w, {
     accent: '#59105F', accent2: '#8A1160', mid: '#170920',
     grid: .5, energy: .55, gridSpeed: 40, ticks: false,
   });
@@ -716,7 +719,7 @@ function scene5(ctx, t) {
       const k = i / 12;
       const ringIdx = i % 3;
       const rr_ = orx - ringIdx * 44, ry_ = ory - ringIdx * 30;
-      const a = (t * (1.5 + ringIdx * .5) + k * Math.PI * 2 * 3) % (Math.PI * 2);
+      const a = (w * (1.5 + ringIdx * .5) + k * Math.PI * 2 * 3) % (Math.PI * 2);
       const x = ocx + Math.cos(a) * rr_;
       const y = ocy + Math.sin(a) * ry_;
       const depth = .5 + .5 * Math.sin(a);
@@ -730,7 +733,7 @@ function scene5(ctx, t) {
   ctx.globalAlpha = E.outCubic(inv(t, 1.4, 2.1));
   const bv = [.35, .5, .42, .66, .58, .8, .72, .95];
   barChart(ctx, 620, 1400, 368, 190, bv.map((v, i) =>
-    clamp(v * (.8 + .2 * pulse(t + i * .2, .8)))), C.magenta,
+    clamp(v * (.8 + .2 * pulse(w + i * .2, .8)))), C.magenta,
     { reveal: inv(t, 1.4, 2.4), gap: 12 });
   ctx.restore();
 
@@ -740,7 +743,7 @@ function scene5(ctx, t) {
   for (let i = 0; i < 14; i++) {
     const ph = hash11(i * 5.3) * 10;
     const y = 300 + hash11(i * 2.1) * 1400;
-    const x = ((t * (280 + hash11(i) * 260) + ph * 300) % (W * .75)) + CX;
+    const x = ((w * (280 + hash11(i) * 260) + ph * 300) % (W * .75)) + CX;
     const len = 60 + hash11(i * 7.7) * 120;
     ctx.globalAlpha = .18 + .2 * hash11(i * 3.3);
     ctx.strokeStyle = i % 2 ? C.magenta : C.amber;
@@ -766,7 +769,7 @@ function scene5(ctx, t) {
   ctx.stroke();
   // бегущий блик
   if (dp >= 1) {
-    const sy = ((t - .55) * 900) % (H + 400) - 200;
+    const sy = ((w - .55) * 900) % (H + 400) - 200;
     const g = ctx.createLinearGradient(0, sy - 180, 0, sy + 180);
     g.addColorStop(0, 'rgba(255,255,255,0)');
     g.addColorStop(.5, 'rgba(255,255,255,.9)');
@@ -793,7 +796,7 @@ function scene5(ctx, t) {
 /* ==================================================================
    СЦЕНА 6 — НАПРЯЖЕНИЕ / ТАЙМЕР (17.0 – 21.0), длительность 4.0
    ================================================================== */
-function scene6(ctx, t) {
+function scene6(ctx, t, w) {
   // «замедление»: скорость счётчика падает почти до нуля
   const speed = Math.exp(-t * 1.15);
   const spin = (1 - Math.exp(-t * 1.15)) / 1.15;   // интеграл скорости
@@ -803,21 +806,21 @@ function scene6(ctx, t) {
   ctx.save();
   camera(ctx, 1 + inv(t, 0, 4) * .05 + inv(t, 2.75, 3.1) * .05, sx, sy, CX, 1150);
 
-  drawBackground(ctx, t, {
+  drawBackground(ctx, w, {
     accent: '#5A0C24', accent2: '#2A0A46', mid: '#0B0710',
-    grid: .35, energy: .35 + .35 * pulse(t, .55), gridSpeed: 12,
+    grid: .35, energy: .35 + .35 * pulse(w, .55), gridSpeed: 12,
   });
 
   // сжимающаяся тревожная виньетка
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  ctx.globalAlpha = .16 + .22 * pulse(t, 1.1) + inv(t, 2.4, 4) * .2;
+  ctx.globalAlpha = .16 + .22 * pulse(w, 1.1) + inv(t, 2.4, 4) * .2;
   ctx.fillStyle = rg(ctx, CX, 1150, H * .12, H * .55,
     [[0, A(C.red, 0)], [1, A(C.red, .55)]]);
   ctx.fillRect(0, 0, W, H);
   ctx.restore();
 
-  embers(ctx, t, 22, C.red, .3, 33, 46);
+  embers(ctx, w, 22, C.red, .3, 33, 46);
 
   /* --- текст --- */
   ctx.save();
@@ -904,7 +907,7 @@ function scene6(ctx, t) {
     }
     if (g < groups - 1) {
       const colX = x0 + g * (cellW * 2 + gap + grpGap) + cellW * 1.5 + gap + grpGap / 2;
-      ctx.fillStyle = A(C.red, .55 + .45 * pulse(t, frozen ? .5 : 2.2));
+      ctx.fillStyle = A(C.red, .55 + .45 * pulse(w, frozen ? .5 : 2.2));
       ctx.shadowColor = C.red; ctx.shadowBlur = 18;
       ctx.beginPath(); ctx.arc(colX, cy - 30, 10, 0, 7); ctx.fill();
       ctx.beginPath(); ctx.arc(colX, cy + 30, 10, 0, 7); ctx.fill();
@@ -917,7 +920,7 @@ function scene6(ctx, t) {
   ctx.save();
   ctx.globalAlpha = E.outCubic(inv(t, 2.5, 3.0));
   chip(ctx, CX, 1420, 'ТОЧНОЕ ВРЕМЯ НЕИЗВЕСТНО', C.amber,
-    { align: 'center', size: 32, h: 68, padX: 30, dotScale: .8 + .3 * pulse(t, 1.2) });
+    { align: 'center', size: 32, h: 68, padX: 30, dotScale: .8 + .3 * pulse(w, 1.2) });
   ctx.restore();
 
   ctx.restore();
@@ -932,15 +935,15 @@ function scene6(ctx, t) {
 /* ==================================================================
    СЦЕНА 7 — ФИНАЛ + CTA (21.0 – 25.0), длительность 4.0
    ================================================================== */
-function scene7(ctx, t) {
+function scene7(ctx, t, w) {
   ctx.save();
   camera(ctx, 1 + inv(t, 0, 4) * .03);
 
-  drawBackground(ctx, t, {
+  drawBackground(ctx, w, {
     accent: '#48138C', accent2: '#96125F', mid: '#0D0A1C',
-    grid: .5, energy: .62 + .2 * pulse(t, .7), gridSpeed: 26,
+    grid: .5, energy: .62 + .2 * pulse(w, .7), gridSpeed: 26,
   });
-  embers(ctx, t, 34, C.magenta, .45, 77, 58);
+  embers(ctx, w, 34, C.magenta, .45, 77, 58);
 
   /* --- вопрос: по центру, затем поднимается --- */
   const shift = E.inOutCubic(inv(t, 1.45, 2.05));
@@ -973,19 +976,19 @@ function scene7(ctx, t) {
     ctx.save();
     ctx.globalAlpha = clamp(cp * 2);
 
-    glowBlob(ctx, CX, py + ph / 2, 500, C.magenta, .55 * (.6 + .4 * pulse(t, 1.1)));
+    glowBlob(ctx, CX, py + ph / 2, 500, C.magenta, .55 * (.6 + .4 * pulse(w, 1.1)));
 
     panel(ctx, M, py, CW, ph, {
       r: 44,
       fill: lg(ctx, M, py, M + CW, py + ph,
         [[0, 'rgba(66,16,84,.96)'], [1, 'rgba(24,11,40,.96)']]),
-      border: A(C.magenta, .55 + .25 * pulse(t, 1.6)), topLine: C.magenta,
+      border: A(C.magenta, .55 + .25 * pulse(w, 1.6)), topLine: C.magenta,
     });
     // бегущий блик по рамке
     ctx.save();
     rr(ctx, M + 3, py + 3, CW - 6, ph - 6, 41);
     ctx.clip();
-    const ang = t * 1.7;
+    const ang = w * 1.7;
     const gx = CX + Math.cos(ang) * CW, gy = py + ph / 2 + Math.sin(ang) * ph;
     ctx.strokeStyle = rg(ctx, gx, gy, 0, 440,
       [[0, 'rgba(255,255,255,.95)'], [1, 'rgba(255,255,255,0)']]);
@@ -1008,7 +1011,7 @@ function scene7(ctx, t) {
 
     // каскад стрелок вниз
     for (let i = 0; i < 3; i++) {
-      const ph2 = (t * 1.45 + i * .3) % 1;
+      const ph2 = (w * 1.45 + i * .3) % 1;
       const a = clamp(cp * 2) * clamp(1.25 - ph2) * .95;
       iconChevron(ctx, CX, 1442 + i * 66 + ph2 * 22, 100, i === 2 ? C.amber : C.magenta, a,
         A(i === 2 ? C.amber : C.magenta, .8));

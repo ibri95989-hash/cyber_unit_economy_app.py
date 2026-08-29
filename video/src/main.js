@@ -1,35 +1,47 @@
 /* ============================================================
    main.js — таймлайн, переходы, покадровый рендер
+   Хронометраж собран под озвучку 35,2 c: границы сцен поставлены
+   в паузы между фразами, чтобы кадр менялся на вдохе, а не посреди слова.
    ============================================================ */
 
 const FPS = 60;
-const DUR = 25;                       // общая длительность, с
-const TOTAL = Math.round(FPS * DUR);  // 1500 кадров
+const TOTAL = 2112;            // 35.2 c × 60 fps
+const DUR = TOTAL / FPS;
 
+/* Каждая сцена имеет собственную длительность и карту времени `anchors`:
+   пары [сценарное время, экранное время]. Сценарное время — то, на котором
+   свёрстаны все появления и раскрытия; экранное — реальное время в ролике.
+   Так «боевая» часть сцены играет 1:1 и не теряет резкости, а лишние
+   секунды уходят в удержание, пока фоновая жизнь кадра идёт в реальном темпе. */
 const TL = [
-  { fn: scene1, start: 0,  dur: 2 },   // HOOK
-  { fn: scene2, start: 2,  dur: 3 },   // ДАТА
-  { fn: scene3, start: 5,  dur: 4 },   // ПОТОК
-  { fn: scene4, start: 9,  dur: 4 },   // ВОПРОС
-  { fn: scene5, start: 13, dur: 4 },   // СПЛИТ
-  { fn: scene6, start: 17, dur: 4 },   // ТАЙМЕР
-  { fn: scene7, start: 21, dur: 4 },   // ФИНАЛ
+  { fn: scene1, start: 0,     dur: 4.58, anchors: [[0, 0], [1.7, 1.7], [2.0, 4.58]] },
+  { fn: scene2, start: 4.58,  dur: 2.49, anchors: [[0, 0], [2.1, 2.1], [3.0, 2.49]] },
+  { fn: scene3, start: 7.07,  dur: 6.48, anchors: [[0, 0], [3.4, 3.4], [4.0, 6.48]] },
+  { fn: scene4, start: 13.55, dur: 5.28, anchors: [[0, 0], [2.4, 2.4], [4.0, 5.28]] },
+  { fn: scene5, start: 18.83, dur: 4.04, anchors: [[0, 0], [4.0, 4.04]] },
+  { fn: scene6, start: 22.87, dur: 5.91, anchors: [[0, 0], [3.1, 3.1], [4.0, 5.91]] },
+  { fn: scene7, start: 28.78, dur: 6.42, anchors: [[0, 0], [2.4, 2.4], [4.0, 6.42]] },
 ];
 
-/* Переходы на стыках. type:
-   glitch  — жёсткая склейка с глитчем (без кросс-рендера)
-   whipL   — быстрый горизонтальный whip-pan
-   whipU   — вертикальный whip-pan
-   zoom    — zoom punch «сквозь» кадр
-   split   — экран расходится створками                          */
 const TR = [
-  { at: 2,  type: 'glitch', pre: .12, post: .20 },
-  { at: 5,  type: 'whipL',  pre: .10, post: .26 },
-  { at: 9,  type: 'zoom',   pre: .12, post: .30 },
-  { at: 13, type: 'split',  pre: .12, post: .32 },
-  { at: 17, type: 'whipU',  pre: .10, post: .28 },
-  { at: 21, type: 'glitch', pre: .12, post: .22 },
+  { at: 4.58,  type: 'glitch', pre: .12, post: .20 },
+  { at: 7.07,  type: 'whipL',  pre: .10, post: .26 },
+  { at: 13.55, type: 'zoom',   pre: .12, post: .30 },
+  { at: 18.83, type: 'split',  pre: .12, post: .32 },
+  { at: 22.87, type: 'whipU',  pre: .10, post: .28 },
+  { at: 28.78, type: 'glitch', pre: .12, post: .22 },
 ];
+
+/** экранное время внутри сцены -> сценарное время */
+function warp(sc, w) {
+  const a = sc.anchors;
+  if (w <= a[0][1]) return a[0][0];
+  for (let i = 0; i < a.length - 1; i++) {
+    const [s0, w0] = a[i], [s1, w1] = a[i + 1];
+    if (w <= w1) return s0 + (s1 - s0) * ((w - w0) / (w1 - w0 || 1e-6));
+  }
+  return a[a.length - 1][0];    // дальше сценарное время замирает
+}
 
 /* ---------- холсты ---------- */
 let MAIN, OA, OB;
@@ -44,7 +56,8 @@ function sceneAt(t) {
   return 0;
 }
 
-function drawScene(ctx, i, localT) {
+/** wallLocal — экранное время от начала сцены (может выходить за её длительность) */
+function drawScene(ctx, i, wallLocal) {
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalAlpha = 1;
@@ -52,7 +65,7 @@ function drawScene(ctx, i, localT) {
   ctx.filter = 'none';
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, W, H);
-  TL[i].fn(ctx, localT);
+  TL[i].fn(ctx, warp(TL[i], wallLocal), wallLocal);
   ctx.restore();
 }
 
@@ -94,7 +107,6 @@ function composeTransition(ctx, type, k, iA, tA, iB, tB) {
     rgbSplit(ctx, vel * 10, Math.PI / 2);
     flash(ctx, vel * .12, '#FFD8E4');
   } else if (type === 'zoom') {
-    const e = E.inOutQuad(k);
     drawImgT(ctx, a, 1 + E.inCubic(k) * .95, 0, 0, 1 - E.inQuad(k));
     if (k > .18) drawImgT(ctx, b, lerp(1.75, 1, E.outExpo(inv(k, .18, 1))), 0, 0, inv(k, .18, .62));
     blurFrame(ctx, vel * 9);
@@ -106,11 +118,9 @@ function composeTransition(ctx, type, k, iA, tA, iB, tB) {
     const off = e * (W / 2 + 40);
     ctx.drawImage(a, 0, 0, W / 2, H, -off, 0, W / 2, H);
     ctx.drawImage(a, W / 2, 0, W / 2, H, W / 2 + off, 0, W / 2, H);
-    // светящийся шов
     ctx.save();
-    const seamA = Math.sin(Math.PI * clamp(k)) * .95;
     ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = seamA;
+    ctx.globalAlpha = Math.sin(Math.PI * clamp(k)) * .95;
     ctx.fillStyle = lg(ctx, W / 2 - 80, 0, W / 2 + 80, 0,
       [[0, 'rgba(120,200,255,0)'], [.5, 'rgba(220,240,255,.95)'], [1, 'rgba(120,200,255,0)']]);
     ctx.fillRect(W / 2 - 80, 0, 160, H);
@@ -126,7 +136,6 @@ function render(t, frame) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.filter = 'none';
 
-  // ищем активный кросс-переход
   let cross = null;
   for (let bi = 0; bi < TR.length; bi++) {
     const tr = TR[bi];
@@ -144,14 +153,13 @@ function render(t, frame) {
   } else {
     const i = sceneAt(t);
     drawScene(ctx, i, t - TL[i].start);
-    // жёсткие склейки с глитчем
     for (const tr of TR) {
       if (tr.type !== 'glitch') continue;
       const d = t - tr.at;
       if (d < -tr.pre || d > tr.post) continue;
       const amt = d < 0
-        ? E.inQuad(inv(t, tr.at - tr.pre, tr.at))         // разгон перед склейкой
-        : 1 - E.outQuad(inv(t, tr.at, tr.at + tr.post));  // затухание после
+        ? E.inQuad(inv(t, tr.at - tr.pre, tr.at))
+        : 1 - E.outQuad(inv(t, tr.at, tr.at + tr.post));
       sliceGlitch(ctx, amt * .55, Math.floor(t * 60), 14);
       rgbSplit(ctx, amt * 11);
       if (d >= 0) flash(ctx, (1 - inv(t, tr.at, tr.at + .09)) * .5, '#FFFFFF');
@@ -159,9 +167,7 @@ function render(t, frame) {
     }
   }
 
-  // единый финальный пас: зерно + лёгкий блик
   grain(ctx, frame, .045);
-  // затемнение первых и последних кадров для чистого входа/выхода
   const fadeIn = 1 - inv(t, 0, .12);
   const fadeOut = inv(t, DUR - .18, DUR);
   if (fadeIn > 0) flash(ctx, fadeIn, '#000000', 'source-over');
@@ -180,7 +186,6 @@ async function boot() {
   ];
   await Promise.all(probes.map(p => document.fonts.load(p, 'АБВЁ0123₽—?')));
   await document.fonts.ready;
-  // прогрев: кэш зерна и временных холстов
   render(0, 0);
   window.__ready = true;
 }

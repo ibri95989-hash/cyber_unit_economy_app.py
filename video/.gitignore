@@ -1,0 +1,4 @@
+# промежуточные артефакты сборки; финальный ролик и обложка коммитятся
+out/*
+!out/wildberries_payout_delay_9x16.mp4
+!out/cover.jpg

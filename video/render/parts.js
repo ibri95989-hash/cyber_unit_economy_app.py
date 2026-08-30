@@ -73,13 +73,29 @@ function chartGrid(ctx, x, y, w, h, rows = 4, a = 0.10) {
 function chip(ctx, str, cx, cy, opts = {}) {
   const { size = 46, color = '#fff', bg = 'rgba(255,255,255,0.07)', border = 'rgba(255,255,255,0.16)',
           padX = 40, padY = 24, glowC = null, alpha = 1, weight = 800, family = 'Montserrat',
-          spacing = 2, scale = 1 } = opts;
+          spacing = 2, scale = 1, maxW = null } = opts;
+  /* auto-safety net: if the caller didn't cap the width, derive one from
+     the CURRENT transform so a chip can never bleed past the frame edge -
+     even a few frames under a parent zoom/whip transition stay honest.
+     Reads the real on-screen anchor via getTransform(), so it holds under
+     nested translate/scale (not rotation, which chip() is never drawn
+     under in this codebase). An explicit maxW always wins. */
+  let safeMaxW = maxW;
+  if (safeMaxW == null) {
+    const m = ctx.getTransform();
+    const scrX = m.a * cx + m.c * cy + m.e;
+    const totalScale = Math.max(0.05, Math.hypot(m.a, m.b) * scale);
+    const halfAvail = Math.max(60, Math.min(scrX, W - scrX) - 24);
+    safeMaxW = (halfAvail * 2) / totalScale;
+  }
   ctx.save();
   ctx.globalAlpha *= alpha;
   ctx.translate(cx, cy); ctx.scale(scale, scale);
   ctx.letterSpacing = `${spacing}px`;
-  font(ctx, weight, size, family);
-  const w = ctx.measureText(str).width + padX * 2, h = size + padY * 2;
+  let fitted = size;
+  if (safeMaxW) fitted = fitSize(ctx, str, safeMaxW - padX * 2, size, weight, family, spacing);
+  font(ctx, weight, fitted, family);
+  const w = ctx.measureText(str).width + padX * 2, h = fitted + padY * 2;
   if (glowC) { ctx.shadowColor = glowC; ctx.shadowBlur = 45; }
   rr(ctx, -w / 2, -h / 2, w, h, h / 2);
   ctx.fillStyle = bg; ctx.fill();

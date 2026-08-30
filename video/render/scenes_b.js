@@ -224,7 +224,7 @@ function scene8(ctx, p, lt, gt, A) {
     /* label + number */
     ctx.save();
     ctx.globalAlpha = 1 - c.dim * 0.8;
-    text(ctx, c.label, c.x + c.w / 2, baseY + 66, 44, { weight: 800, color: '#fff', spacing: 3 });
+    text(ctx, c.label, c.x + c.w / 2, baseY + 66, 44, { weight: 800, color: '#fff', spacing: 3, maxW: c.w + 40 });
     const shown = lerp(0, c.val, easeOutExpo(win(p, 0.1 + i * 0.06, 0.62)));
     const ty = baseY - h - 70;
     ctx.globalAlpha *= clamp((win(p, 0.1, 0.28)) * 2);

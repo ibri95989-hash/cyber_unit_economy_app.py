@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>WB profit leak - reel renderer</title>
+<link rel="stylesheet" href="fonts.css">
+<style>
+  html, body { margin: 0; padding: 0; background: #000; overflow: hidden; }
+  #cv { display: block; width: 1080px; height: 1920px; }
+</style>
+</head>
+<body>
+<canvas id="cv" width="1080" height="1920"></canvas>
+<script src="engine.js"></script>
+<script src="parts.js"></script>
+<script src="captions.js"></script>
+<script src="scenes_a.js"></script>
+<script src="scenes2_a.js"></script>
+<script src="scenes2_b.js"></script>
+<script src="main2.js"></script>
+<script>
+  window.fontsReady = (async () => {
+    const jobs = [];
+    for (const w of [700, 800, 900]) jobs.push(document.fonts.load(`${w} 100px Montserrat`, 'АБВЁЙЩЮЯ0123456789₽…—'));
+    for (const w of [500, 600, 700, 800]) jobs.push(document.fonts.load(`${w} 100px Inter`, 'АБВЁЙЩЮЯ0123456789₽'));
+    await Promise.all(jobs);
+    await document.fonts.ready;
+    return true;
+  })();
+</script>
+</body>
+</html>

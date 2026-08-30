@@ -83,7 +83,7 @@ function scene1(ctx, p, lt, gt, A) {
     const sz = fitSize(ctx, str, 940, 200, 900);
     ctx.save();
     ctx.shadowColor = rgba(C.cyan, 0.75); ctx.shadowBlur = 70;
-    text(ctx, str, 0, -50, sz, { weight: 900, color: '#ffffff' });
+    text(ctx, str, 0, -50, sz, { weight: 900, color: '#ffffff', maxW: 940 });
     ctx.restore();
 
     /* step ticks */
@@ -140,7 +140,7 @@ function dashboardPanel(ctx, p, lt, opts = {}) {
   glassPanel(ctx, px, py, pw, ph, 44, { glow: rgba(color, 0.22) });
 
   /* header */
-  text(ctx, title, px + 46, py + 74, 40, { align: 'left', weight: 800, color: '#fff', spacing: 3 });
+  text(ctx, title, px + 46, py + 74, 40, { align: 'left', weight: 800, color: '#fff', spacing: 3, maxW: pw - 92 });
   ctx.save();
   const pulse = 0.5 + 0.5 * Math.sin(lt * 6);
   ctx.fillStyle = rgba(color, 0.9); ctx.shadowColor = color; ctx.shadowBlur = 20 + pulse * 22;
@@ -150,7 +150,7 @@ function dashboardPanel(ctx, p, lt, opts = {}) {
     { align: 'right', weight: 700, family: 'Inter', color: 'rgba(255,255,255,0.55)', spacing: 4 });
 
   text(ctx, label, px + 46, py + 132, 28,
-    { align: 'left', weight: 600, family: 'Inter', color: 'rgba(255,255,255,0.45)', spacing: 3 });
+    { align: 'left', weight: 600, family: 'Inter', color: 'rgba(255,255,255,0.45)', spacing: 3, maxW: pw - 92 });
 
   const cx = px + 46, cy = py + 186, cw = pw - 92, ch = 430;
   chartGrid(ctx, cx, cy, cw, ch, 4);
@@ -163,7 +163,7 @@ function dashboardPanel(ctx, p, lt, opts = {}) {
   ctx.save();
   ctx.globalAlpha = 0.42;
   ['01', '08', '15', '22', '30'].forEach((d, i) => {
-    text(ctx, d, cx + (i / 4) * cw, cy + ch + 46, 24, { weight: 600, family: 'Inter', color: '#fff', spacing: 2 });
+    text(ctx, d, cx + (i / 4) * cw, cy + ch + 46, 24, { weight: 600, family: 'Inter', color: '#fff', spacing: 2, maxW: 80 });
   });
   ctx.restore();
   return { px, py, pw, ph, head, cx, cy, cw, ch };
@@ -465,7 +465,7 @@ function scene5(ctx, p, lt, gt, A) {
       const lx = cx + Math.cos(mid) * (rOut + 78), ly = cy + Math.sin(mid) * (rOut + 78);
       ctx.save();
       ctx.globalAlpha = clamp((local - 0.6) * 3) * (1 - focusP * 0.8);
-      text(ctx, s.label, lx, ly - 16, 34, { weight: 800, color: '#fff' });
+      text(ctx, s.label, lx, ly - 16, 34, { weight: 800, color: '#fff', maxW: 300 });
       text(ctx, '−' + Math.round(s.pct * 100) + '%', lx, ly + 26, 34, { weight: 800, color: s.color });
       ctx.restore();
     }

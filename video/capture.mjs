@@ -20,6 +20,7 @@ const FPS    = parseInt(arg('fps', '60'), 10);
 const QUAL   = parseFloat(arg('quality', '0.96'));
 const FFMPEG = arg('ffmpeg', process.env.FFMPEG || 'ffmpeg');
 const STILLS = arg('stills', null);          /* comma separated seconds -> png files */
+const ENTRY  = arg('entry', 'index.html');   /* which render/*.html to load */
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json' };
 
@@ -43,7 +44,7 @@ const browser = await chromium.launch({
 });
 const page = await browser.newPage({ viewport: { width: 1080, height: 1920 }, deviceScaleFactor: 1 });
 page.on('pageerror', e => { console.error('PAGE ERROR:', e.message); process.exitCode = 1; });
-await page.goto(`http://127.0.0.1:${port}/index.html`);
+await page.goto(`http://127.0.0.1:${port}/${ENTRY}`);
 await page.evaluate(() => window.fontsReady);
 await page.evaluate(c => window.configure(c), cfg);
 

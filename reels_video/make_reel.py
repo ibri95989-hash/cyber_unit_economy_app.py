@@ -16,6 +16,14 @@
 """
 import argparse, json, os, shutil, subprocess, sys, tempfile, time
 
+import sys
+if hasattr(sys.stdout, 'reconfigure'):        # консоль Windows по умолчанию не в utf-8
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 

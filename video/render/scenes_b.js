@@ -123,7 +123,8 @@ function scene7(ctx, p, lt, gt, A) {
     const card = CARDS[i % CARDS.length];
     const off = rc(), sp = 0.55 + rc() * 0.5;
     const ph = ((lt * sp * 0.85 + off) % 1);
-    const y = H + 260 - ph * (H + 520);
+    const y = 1300 - ph * 1450;   /* bottom bound accounts for the card's own ~90px
+       half-height at max scale, so its edge - not just its centre - clears the caption bar */
     const x = 150 + rc() * (W - 300);
     const sc = 0.62 + rc() * 0.5;
     const a = Math.sin(ph * Math.PI) * 1.15;
@@ -187,7 +188,7 @@ function scene8(ctx, p, lt, gt, A) {
   ctx.scale(sc, sc);
   ctx.translate(-W * 0.72, -1180);
 
-  const baseY = 1560, maxH = 900;
+  const baseY = 1240, maxH = 800;   /* lifted clear of the caption bar reserved below ~1450 */
   const grow = easeOutCubic(win(p, 0.05, 0.55));
   const cols = [
     { x: 200, w: 300, label: 'ВЫРУЧКА', val: REVENUE,          frac: 1,      color: C.violet, dim: push * 0.65 },

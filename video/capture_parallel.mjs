@@ -35,6 +35,7 @@ const FFMPEG  = arg('ffmpeg', process.env.FFMPEG || 'ffmpeg');
 const PRESET  = arg('preset', 'veryfast');
 const CRF     = arg('crf', '18');
 const WORKERS = parseInt(arg('workers', String(Math.max(1, Math.floor(os.cpus().length / 2)))), 10);
+const BATCH   = parseInt(arg('batch', '24'), 10);   /* frames per page.evaluate() round-trip */
 const TMP     = arg('tmp', path.join(ROOT, 'build/segments'));
 const KEEP    = argv.includes('--keep-temp');
 
@@ -74,17 +75,29 @@ async function renderChunk(browser, port, seg, idx, cfg, progress) {
     '-pix_fmt', 'yuv420p', outFile,
   ], { stdio: ['pipe', 'inherit', 'inherit'] });
 
+  /* Render BATCH frames per page.evaluate() call instead of one - each
+     Playwright round-trip (CDP call + response) costs a few ms of fixed
+     overhead regardless of payload, so at 60fps that overhead alone can
+     rival the actual draw+encode time. Collecting a batch of base64
+     strings in one call and unpacking them here amortizes it away. */
   const [from, to] = seg;
-  for (let i = from; i < to; i++) {
-    const t = i / FPS;
-    const b64 = await page.evaluate(([t, i, q]) => {
-      window.renderFrame(t, i);
-      return document.getElementById('cv').toDataURL('image/jpeg', q).slice(23);
-    }, [t, i, QUAL]);
-    const buf = Buffer.from(b64, 'base64');
-    if (!ff.stdin.write(buf)) await new Promise(r => ff.stdin.once('drain', r));
-    progress.done++;
-    progress.report();
+  for (let batchStart = from; batchStart < to; batchStart += BATCH) {
+    const count = Math.min(BATCH, to - batchStart);
+    const frames = await page.evaluate(([batchStart, count, fps, q]) => {
+      const out = [];
+      for (let k = 0; k < count; k++) {
+        const i = batchStart + k;
+        window.renderFrame(i / fps, i);
+        out.push(document.getElementById('cv').toDataURL('image/jpeg', q).slice(23));
+      }
+      return out;
+    }, [batchStart, count, FPS, QUAL]);
+    for (const b64 of frames) {
+      const buf = Buffer.from(b64, 'base64');
+      if (!ff.stdin.write(buf)) await new Promise(r => ff.stdin.once('drain', r));
+      progress.done++;
+      progress.report();
+    }
   }
   ff.stdin.end();
   await new Promise((res, rej) => ff.on('close', c => c === 0 ? res() : rej(new Error(`ffmpeg segment ${idx} exit ${c}`))));

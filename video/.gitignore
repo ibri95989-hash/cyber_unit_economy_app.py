@@ -1,0 +1,5 @@
+# generated / heavy render output
+build/
+node_modules/
+# 1.5 MB base64-шрифты, восстанавливаются из fonts/*.woff2 через fetch_fonts.py
+render/fonts.css

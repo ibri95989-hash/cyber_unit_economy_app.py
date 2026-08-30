@@ -66,6 +66,9 @@ def main():
     ap.add_argument('--plan', default=None, help='готовый план сцен вместо автоматического')
     ap.add_argument('--dump-plan', default=None, help='сохранить сгенерированный план в файл')
     ap.add_argument('--preview', default=None, help='вместо рендера снять кадры в указанные секунды: 1.2,15.4')
+    ap.add_argument('--sfx-level', type=float, default=0.55,
+                    help='громкость звуковых эффектов, 0 — выключить совсем')
+    ap.add_argument('--no-sfx', action='store_true', help='собрать без звуковых эффектов')
     ap.add_argument('--keep', action='store_true', help='не удалять промежуточные файлы')
     ap.add_argument('--quiet', action='store_true')
     a = ap.parse_args()
@@ -139,8 +142,10 @@ def main():
                     preset=a.preset, quiet=a.quiet)
 
     # 4 — звук
-    if not a.quiet: print('4/4  накладываю озвучку…')
-    muxer.mux(raw, a.audio, out)
+    lvl = 0.0 if a.no_sfx else a.sfx_level
+    if not a.quiet:
+        print('4/4  накладываю озвучку%s…' % ('' if lvl <= 0 else ' и звуковые эффекты'))
+    muxer.mux(raw, a.audio, out, plan=None if lvl <= 0 else pl, words=words, sfx_level=lvl)
     if not a.keep: shutil.rmtree(work, ignore_errors=True)
 
     mb = os.path.getsize(out) / 1048576.0

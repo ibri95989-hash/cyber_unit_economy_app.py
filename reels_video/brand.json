@@ -1,0 +1,78 @@
+{
+  "_": "Все надписи и цифры ролика. Правьте свободно — код трогать не нужно.",
+
+  "texts": {
+    "hook1": "ВАШИ",
+    "hook2": "REELS",
+    "hook3": "ПРОЛИСТЫВАЮТ?",
+
+    "boringChip": "ВАШ КОНТЕНТ СЕЙЧАС",
+    "boringStamp": "СКУЧНО",
+    "boringMetric": "ПРОСМОТРЫ",
+    "boringOutro1": "ПРОЛИСТАЛИ",
+    "boringOutro2": "ЗА 1.2 СЕКУНДЫ",
+
+    "compYou": "ВЫ",
+    "compRival": "КОНКУРЕНТЫ",
+    "compAttention": "ВНИМАНИЕ ЗАХВАЧЕНО",
+    "compTimerTop": "ПЕРВЫЕ 3 СЕКУНДЫ",
+    "compTimerBottom": "РЕШАЮТ ВСЁ",
+    "compGraphics": "МОЩНАЯ ГРАФИКА",
+    "compDynamic": "ДИНАМИКА",
+    "compDynamicUnit": "FPS ЭНЕРГИИ",
+    "compAI": "AI ТЕХНОЛОГИИ",
+    "compAITags": ["ГЕНЕРАЦИЯ", "АНАЛИЗ", "СКОРОСТЬ"],
+
+    "scrollChip": "ВАША ПОТЕНЦИАЛЬНАЯ АУДИТОРИЯ",
+    "scrollAudience": "ПОТЕНЦИАЛЬНЫХ КЛИЕНТОВ",
+    "scrollVerdict": "ЛИСТАЮТ ДАЛЬШЕ",
+
+    "pipeChip": "ПОЛНЫЙ ЦИКЛ ПРОИЗВОДСТВА",
+    "pipeTitle": "REELS",
+    "pipeSubtitle": "ПОД КЛЮЧ",
+    "pipeHeader": "ПРОЦЕСС ПРОИЗВОДСТВА",
+    "pipeFinal": "ГОТОВЫЙ REELS",
+
+    "noeffHead": "ВАМ НЕ НУЖНО",
+    "noeffBadge": "0 УСИЛИЙ С ВАШЕЙ СТОРОНЫ",
+
+    "resultHero": "ГОТОВЫЕ REELS",
+    "resultPhone": "REELS",
+    "resultRise": "ВЫДЕЛЯЮТ ВАШ БИЗНЕС",
+    "resultMetric": "УДЕРЖАНИЕ ВНИМАНИЯ",
+    "resultTiles": [["ОХВАТ", "×5.4"], ["СОХРАНЕНИЯ", "+218%"], ["ЗАЯВКИ", "+37"]],
+    "resultFinal": "УДЕРЖИВАЮТ ВНИМАНИЕ",
+
+    "ctaQ1": "ХОТИТЕ",
+    "ctaQ2": "REELS",
+    "ctaQ3": "КОТОРЫЕ ЦЕПЛЯЮТ?",
+    "ctaWrite1": "НАПИШИТЕ",
+    "ctaWrite2": "МНЕ",
+    "ctaDM": "Хочу такие Reels для бизнеса",
+    "ctaMessages": ["Хочу такие Reels 🔥", "Сколько стоит?", "Когда начнём? 🚀"],
+    "ctaViewsLabel": "ПРОСМОТРОВ",
+    "ctaViral": "ВИРУСНЫЙ РОЛИК",
+    "ctaLockup": "НАПИШИТЕ МНЕ",
+    "ctaLockSub1": "И СОЗДАДИМ ВАШ СЛЕДУЮЩИЙ",
+    "ctaLockSub2": "ВИРУСНЫЙ REELS",
+    "ctaLockChips": ["ИДЕЯ", "СЦЕНАРИЙ", "AI", "ОЗВУЧКА", "МОНТАЖ"],
+
+    "kineticFallback": "REELS"
+  },
+
+  "numbers": {
+    "__": "Показатели в инфографике. Поставьте свои реальные цифры.",
+    "viewsFrom": 214,
+    "viewsTo": 9,
+    "growth": 340,
+    "audience": 12480,
+    "retention": 87,
+    "views": 1240000
+  },
+
+  "spelling": {
+    "__": "Как распознанные слова писать на экране. Сюда же — названия и бренды.",
+    "риулс": "REELS",
+    "рилс": "REELS"
+  }
+}

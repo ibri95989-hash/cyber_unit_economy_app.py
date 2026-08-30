@@ -50,12 +50,30 @@ def main():
 
     step(3, total, 'Шрифты (Montserrat, Inter, JetBrains Mono — лицензия OFL)')
     os.makedirs(SRC, exist_ok=True)
+    sys.path.insert(0, HERE)
+    from pipeline.checks import font_problem
     for name, url in FONTS.items():
         dst = os.path.join(SRC, name)
-        if os.path.exists(dst) and os.path.getsize(dst) > 10000:
+        if font_problem(dst) is None:
             print('     уже есть: ' + name); continue
-        print('     скачиваю ' + name, flush=True)
-        urllib.request.urlretrieve(url, dst)
+        ok = False
+        for attempt in range(1, 4):
+            print('     скачиваю %s%s' % (name, '' if attempt == 1 else ' (попытка %d)' % attempt),
+                  flush=True)
+            try:
+                urllib.request.urlretrieve(url, dst)
+            except Exception as e:
+                print('       не вышло: %s' % e); continue
+            # проверяем содержимое: вместо шрифта могла прийти страница ошибки
+            problem = font_problem(dst)
+            if problem is None:
+                ok = True; break
+            print('       файл повреждён (%s), пробую снова' % problem)
+        if not ok:
+            try: os.remove(dst)
+            except OSError: pass
+            sys.exit('Не удалось скачать шрифт %s.\nБез него ролик получится кривым. '
+                     'Проверьте интернет и запустите установку снова.' % name)
 
     step(4, total, 'Модель распознавания русской речи (~170 МБ, один раз)')
     sys.path.insert(0, HERE)

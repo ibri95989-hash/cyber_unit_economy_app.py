@@ -30,7 +30,8 @@ FILES = ['make_reel.py', 'install.py', 'update.py', 'requirements.txt',
          'src/index.html', 'src/reel.js',
          'pipeline/__init__.py', 'pipeline/asr.py', 'pipeline/ffmpeg.py',
          'pipeline/mux.py', 'pipeline/numbers.py', 'pipeline/plan.py',
-         'pipeline/render.py', 'pipeline/sfx.py']
+         'pipeline/render.py', 'pipeline/sfx.py', 'pipeline/checks.py',
+         'ОБНОВИТЬ.bat', 'ОБНОВИТЬ.command', 'ПРОВЕРКА.bat', 'ПРОВЕРКА.command']
 # что не трогаем ни при каких условиях
 KEEP = ['brand.json', 'out', 'clients', 'src/Montserrat.ttf', 'src/Inter.ttf',
         'src/JetBrainsMono.ttf', 'src/plan.js']

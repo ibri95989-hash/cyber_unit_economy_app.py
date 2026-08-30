@@ -55,7 +55,7 @@ def main():
                '  python make_reel.py voice.mp3 --preview 0.4,17.2,40.1\n'
                '  python make_reel.py voice.mp3 --dump-plan plan.json   # план для ручной правки\n'
                '  python make_reel.py voice.mp3 --plan plan.json        # рендер по готовому плану\n')
-    ap.add_argument('audio', help='файл озвучки (mp3, wav, m4a…)')
+    ap.add_argument('audio', nargs='?', help='файл озвучки (mp3, wav, m4a…)')
     ap.add_argument('-o', '--out', default=None, help='куда сохранить ролик (по умолчанию out/<имя>.mp4)')
     ap.add_argument('-b', '--brand', default=os.path.join(HERE, 'brand.json'), help='файл с текстами и цифрами')
     ap.add_argument('--fps', type=int, default=30)
@@ -70,16 +70,29 @@ def main():
                     help='громкость звуковых эффектов, 0 — выключить совсем')
     ap.add_argument('--no-sfx', action='store_true', help='собрать без звуковых эффектов')
     ap.add_argument('--keep', action='store_true', help='не удалять промежуточные файлы')
+    ap.add_argument('--check', action='store_true',
+                    help='проверить установку и выйти (что сломано и что делать)')
     ap.add_argument('--quiet', action='store_true')
     a = ap.parse_args()
 
+    from pipeline import checks
+    if a.check:
+        raise SystemExit(1 if checks.run(HERE) else 0)
+    if not a.audio:
+        ap.error('укажите файл озвучки, либо запустите с --check для проверки установки')
     if not os.path.exists(a.audio): raise SystemExit('нет файла: ' + a.audio)
     src = os.path.join(HERE, 'src')
     for need in ('index.html', 'reel.js'):
         if not os.path.exists(os.path.join(src, need)):
             raise SystemExit('нет файла src/%s' % need)
-    if not os.path.exists(os.path.join(src, 'Montserrat.ttf')):
-        raise SystemExit('нет шрифтов. Выполните: python install.py')
+    bad = checks.check_fonts(src)
+    if bad:
+        raise SystemExit(
+            'Шрифты не в порядке:\n' +
+            '\n'.join('  %s — %s' % b for b in bad) +
+            '\n\nИменно из-за этого ролик получается кривым: текст рисуется\n'
+            'системным шрифтом и вся вёрстка разъезжается.\n'
+            'Запустите установку заново — СТАРТ или install.py.')
 
     base = os.path.splitext(os.path.basename(a.audio))[0]
     out = a.out or os.path.join(HERE, 'out', base + '.mp4')

@@ -25,6 +25,25 @@ def _browser(pw, headed=False):
         raise
 
 
+def _wait_ready(pg):
+    """Ждёт готовности сцены и проверяет, что шрифты действительно применились."""
+    try:
+        pg.wait_for_function("window.__ready===true && typeof window.render==='function'",
+                             timeout=45000)
+    except Exception:
+        raise SystemExit(
+            'Сцена не запустилась за 45 секунд.\n'
+            'Чаще всего это повреждённые шрифты в папке src.\n'
+            'Запустите проверку:  python make_reel.py --check')
+    err = pg.evaluate('window.__fontError')
+    if err:
+        raise SystemExit(
+            'Рендер остановлен: %s.\n'
+            'Без них текст рисуется системным шрифтом и вся вёрстка разъезжается.\n'
+            'Запустите установку заново (СТАРТ или install.py), затем проверку:\n'
+            '  python make_reel.py --check' % err)
+
+
 def render(page_url, out_mp4, duration, fps=30, crf=16, preset='slow',
            width=1080, height=1920, quiet=False, log=None):
     from playwright.sync_api import sync_playwright
@@ -45,7 +64,7 @@ def render(page_url, out_mp4, duration, fps=30, crf=16, preset='slow',
         pg = b.new_page(viewport={'width': width, 'height': height}, device_scale_factor=1)
         pg.on('pageerror', lambda e: errors.append(str(e)))
         pg.goto(page_url)
-        pg.wait_for_function("window.__ready===true && typeof window.render==='function'", timeout=90000)
+        _wait_ready(pg)
         for i in range(n):
             pg.evaluate('t=>window.render(t)', i / fps)
             proc.stdin.write(pg.screenshot(type='png'))
@@ -76,7 +95,7 @@ def preview(page_url, times, out_dir, width=1080, height=1920):
         errors = []
         pg.on('pageerror', lambda e: errors.append(str(e)))
         pg.goto(page_url)
-        pg.wait_for_function("window.__ready===true && typeof window.render==='function'", timeout=90000)
+        _wait_ready(pg)
         for t in times:
             pg.evaluate('t=>window.render(t)', t)
             p = os.path.join(out_dir, 'frame_%07.2f.png' % t)

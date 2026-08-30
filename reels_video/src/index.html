@@ -10,8 +10,19 @@ canvas{display:block;width:1080px;height:1920px}
 <script src="plan.js"></script>
 <script src="reel.js"></script>
 <script>
-window.__ready=false;
-(async()=>{ await document.fonts.load('900 100px Mont'); await document.fonts.load('700 100px Mont');
-  await document.fonts.load('500 100px Inter'); await document.fonts.load('800 100px Inter');
-  await document.fonts.load('700 100px Mono'); await document.fonts.ready; window.__ready=true; })();
+window.__ready=false; window.__fontError=null;
+(async()=>{
+  const need=[['900 100px Mont','Mont'],['700 100px Mont','Mont'],
+              ['500 100px Inter','Inter'],['800 100px Inter','Inter'],
+              ['700 100px Mono','Mono']];
+  // Битый шрифт заставляет document.fonts.load() ждать вечно — ограничиваем время.
+  const guard=(p,ms)=>Promise.race([p,new Promise(r=>setTimeout(()=>r('timeout'),ms))]);
+  try{
+    for(const [spec] of need) await guard(document.fonts.load(spec), 8000);
+    await guard(document.fonts.ready, 8000);
+  }catch(e){}
+  const missing=[...new Set(need.filter(([spec])=>!document.fonts.check(spec)).map(x=>x[1]))];
+  if(missing.length) window.__fontError='шрифты не загрузились: '+missing.join(', ');
+  window.__ready=true;
+})();
 </script></body></html>

@@ -29,6 +29,56 @@ python make_reel.py voice.mp3
 JetBrains Mono — лицензия OFL) и модель распознавания русской речи (~170 МБ).
 Отдельно ставить ffmpeg не нужно.
 
+## Если привычнее PowerShell (Windows)
+
+Откройте PowerShell: **Win + X → Terminal** (или наберите `powershell` в меню «Пуск»).
+Команды ниже вводятся по одной, после каждой — Enter.
+
+```powershell
+# 1. Проверяем Python. Должно ответить "Python 3.x.x"
+py --version
+
+# 2. Скачиваем проект на рабочий стол
+cd $HOME\Desktop
+git clone -b claude/professional-reels-video-8oqd7l https://github.com/ibri95989-hash/cyber_unit_economy_app.py.git
+cd cyber_unit_economy_app.py\reels_video
+
+# 3. Установка. Один раз, минут десять
+py install.py
+
+# 4. Сборка ролика. Путь к mp3 можно не набирать:
+#    напишите  py make_reel.py  пробел  и перетащите файл мышью в окно PowerShell
+py make_reel.py "$HOME\Desktop\voice.mp3"
+
+# 5. Открыть папку с готовым роликом
+explorer out
+```
+
+Полезное:
+
+```powershell
+py make_reel.py voice.mp3 --preview 0.4,17.2,40.1        # только отдельные кадры
+py make_reel.py voice.mp3 --crf 22 --preset medium       # версия полегче
+py make_reel.py voice.mp3 --brand clients\barbershop.json # свои тексты и цифры
+```
+
+### Что может пойти не так в PowerShell
+
+**`py` не найдено** — попробуйте `python` вместо `py`. Если открывается
+Microsoft Store, значит Python не установлен: скачайте с
+[python.org](https://www.python.org/downloads/) и отметьте
+«Add Python to PATH».
+
+**`git` не найдено** — скачайте проект как ZIP: на странице репозитория
+**Code → Download ZIP**, распакуйте, затем перейдите в папку командой
+`cd` (путь можно перетащить мышью в окно).
+
+**Хотите запустить `.bat` из PowerShell** — нужна точка со слешем впереди:
+`.\make_reel.bat voice.mp3`, иначе PowerShell файл не найдёт.
+
+**В пути есть пробелы или кириллица** — берите путь в кавычки:
+`py make_reel.py "C:\Мои файлы\озвучка.mp3"`.
+
 ## Как пользоваться
 
 **Самый простой способ.** Перетащите mp3 мышью на `make_reel.bat` (Windows)

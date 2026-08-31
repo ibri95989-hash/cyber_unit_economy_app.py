@@ -22,19 +22,33 @@ BRANCH = 'claude/professional-reels-video-8oqd7l'
 ZIP = ('https://github.com/ibri95989-hash/cyber_unit_economy_app.py/'
        'archive/refs/heads/' + BRANCH + '.zip')
 
-# что обновляем — только код и документация
-FILES = ['make_reel.py', 'install.py', 'update.py', 'requirements.txt',
-         'README.md', 'STORYBOARD.md', '.gitattributes',
-         'СТАРТ.bat', 'СТАРТ.command', 'install.bat', 'install.command',
-         'make_reel.bat', 'make_reel.command',
-         'src/index.html', 'src/reel.js',
-         'pipeline/__init__.py', 'pipeline/asr.py', 'pipeline/ffmpeg.py',
-         'pipeline/mux.py', 'pipeline/numbers.py', 'pipeline/plan.py',
-         'pipeline/render.py', 'pipeline/sfx.py', 'pipeline/checks.py',
-         'ОБНОВИТЬ.bat', 'ОБНОВИТЬ.command', 'ПРОВЕРКА.bat', 'ПРОВЕРКА.command']
-# что не трогаем ни при каких условиях
-KEEP = ['brand.json', 'out', 'clients', 'src/Montserrat.ttf', 'src/Inter.ttf',
-        'src/JetBrainsMono.ttf', 'src/plan.js']
+# Что НЕ трогаем ни при каких условиях — всё остальное берётся из архива.
+# Список обновляемых файлов раньше был зашит здесь, и старая версия
+# не знала про файлы, появившиеся позже: она их не искала и сообщала
+# «у вас последняя версия», хотя половины новых файлов не было.
+KEEP_NAMES = {'brand.json', 'plan.js'}
+KEEP_DIRS = {'out', 'clients', 'preview', 'examples'}
+KEEP_EXT = {'.ttf', '.otf', '.mp4', '.mov', '.mp3', '.wav', '.backup'}
+
+
+def _updatable(rel):
+    parts = rel.replace('\\', '/').split('/')
+    if any(p in KEEP_DIRS or p.startswith('.work_') for p in parts[:-1]): return False
+    name = parts[-1]
+    if name in KEEP_NAMES: return False
+    if os.path.splitext(name)[1].lower() in KEEP_EXT: return False
+    return True
+
+
+def _archive_files(src):
+    """Все файлы свежей версии, которые можно обновлять."""
+    out = []
+    for root, dirs, files in os.walk(src):
+        dirs[:] = [d for d in dirs if d not in KEEP_DIRS and not d.startswith('.work_')]
+        for f in files:
+            rel = os.path.relpath(os.path.join(root, f), src).replace(os.sep, '/')
+            if _updatable(rel): out.append(rel)
+    return sorted(out)
 
 
 def main():
@@ -59,7 +73,7 @@ def main():
             shutil.copy2(brand, brand + '.backup')
 
         changed, added = [], []
-        for rel in FILES:
+        for rel in _archive_files(src):
             s = os.path.join(src, rel.replace('/', os.sep))
             d = os.path.join(HERE, rel.replace('/', os.sep))
             if not os.path.exists(s): continue
@@ -79,13 +93,14 @@ def main():
         newly = _merge_brand(os.path.join(src, 'brand.json'), brand)
 
         if not changed and not added and not newly:
-            print('\nУ вас уже последняя версия.')
+            print('\nУ вас уже последняя версия (проверено %d файлов).' % len(_archive_files(src)))
         else:
             if added:   print('\nДобавлено:  ' + ', '.join(added))
             if changed: print('Обновлено:  ' + ', '.join(changed))
             if newly:   print('Новые настройки в brand.json: ' + ', '.join(newly))
-            print('\nГотово. Ваши настройки и ролики не тронуты.')
-            print('Запускайте СТАРТ как обычно.')
+            print('\nГотово (проверено %d файлов). Ваши настройки и ролики не тронуты.'
+                  % len(_archive_files(src)))
+            print('Проверьте установку: ПРОВЕРКА, затем запускайте СТАРТ.')
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

@@ -15,7 +15,9 @@ from .numbers import find_numbers, assign as assign_numbers
 # ---------------------------------------------------------------- словари
 # Ключевые слова ищутся по началу слова (стеммы), регистр не важен.
 SCENE_KEYS = {
-    'boring': ['скучн','обычн','статичн','однообраз','шаблон','сер','устарел',
+    'boring': ['теряеш','теря деньг','убыт','минус','съедает','утекает','парадокс',
+               'почти нет','не остаёт','не остает','работаеш в ноль','вхолостую',
+               'скучн','обычн','статичн','однообраз','шаблон','сер','устарел',
                'никто','не смотр','неинтересн','одинаков','простыми','слайд',
                'теряет','не работа','впустую','мимо кассы','старомодн','вчерашн'],
     'comp':   ['конкурент','другие','рынок','соперник','тренд','современн',
@@ -25,6 +27,9 @@ SCENE_KEYS = {
     'scroll': ['клиент','аудитор','подписчик','зрител','листа','пролист',
                'уход','теря','дальше','скролл','мимо','не увид','не дойд',
                'проход','забыва','выбира других','не запомн'],
+    'costs':  ['комисси','реклам','логистик','возврат','хранени','налог','себестоим',
+               'расход','затрат','платиш','тратиш','снижаеш цену','скидк на товар',
+               'упаковк','эквайринг','приёмк','приемк','штраф'],
     'offer':  ['гаранти','достав','бесплатн','скидк','бонус','опыт','лет на рынке',
                'качеств','быстро','сроки','рассрочк','подарок','акци','преимуществ',
                'работаем','предлага','включен','входит'],
@@ -35,7 +40,8 @@ SCENE_KEYS = {
     'noeff':  ['не нужно','не надо','не трат','без','сам','ничего не','забуд',
                'съёмк','съемк','камер','снимат','врем','час','не придётся','не придется',
                'не разбира','не нанима','не иска','избавим','возьмём на себя','возьмем на себя'],
-    'result': ['получ','готов','результат','выдел','удержив','рост','раст',
+    'result': ['прибыл','маржа','чистыми','остаёт','остает','посчита','видиш реальн',
+               'получ','готов','результат','выдел','удержив','рост','раст',
                'продаж','заявк','эффект','работа','окуп','прибыл','отлича',
                'выручк','доход','клиент пойд','поток','довольн','рекоменд','возвраща'],
     'cta':    ['напиши','пиши','свяжит','оставьт','заказ','хотите','жми',
@@ -134,6 +140,23 @@ STEP_LIB = [
 ]
 FINAL_STEP = ('ГОТОВЫЙ REELS', 'play', '#FFFFFF', [], '', 7, 'ГОТОВО')
 
+# Статьи расходов: слово -> иконка, подпись и доля, которую она съедает.
+# Доли берутся из речи, если названы; иначе — типичные для маркетплейсов.
+COSTS_LIB = [
+    (['комисси'],                        'percent', 'КОМИССИЯ',      15),
+    (['реклам','продвижен','трафик'],    'target',  'РЕКЛАМА',       12),
+    (['логистик','доставк','перевозк'],  'truck',   'ЛОГИСТИКА',     10),
+    (['возврат','отказ','невыкуп'],      'box',     'ВОЗВРАТЫ',       8),
+    (['хранени','склад'],                'house',   'ХРАНЕНИЕ',       5),
+    (['себестоим','закупк','товар'],     'coin',    'СЕБЕСТОИМОСТЬ', 30),
+    (['налог','ндс','усн'],              'doc',     'НАЛОГИ',         7),
+    (['упаковк','приёмк','приемк'],      'gift',    'УПАКОВКА',       3),
+    (['эквайринг','банк','платёжн'],     'wallet',  'ЭКВАЙРИНГ',      2),
+    (['штраф','санкц','блокировк'],      'x',       'ШТРАФЫ',         4),
+    (['скидк','снижаеш цену','демпинг'], 'percent', 'СКИДКИ',        10),
+]
+
+
 NOEFF_LIB = [
     (['врем','час','трат','долг','ждат'],      'clock', 'ТРАТИТЬ ВРЕМЯ',  'ЧАСЫ НА ЗАДАЧУ'),
     (['съёмк','съемк','камер','снима','студи'],'cam',   'СЪЁМКИ',         'КАМЕРА, СВЕТ, ЛОКАЦИИ'),
@@ -190,10 +213,11 @@ def wtext(ws): return ' '.join(w['w'] for w in ws)
 
 
 # ---------------------------------------------------------- выбор сцен
-UNIQUE = {'boring','scroll','pipe','offer','noeff','result','cta'}   # не повторяются
+UNIQUE = {'boring','scroll','costs','pipe','offer','noeff','result','cta'}   # не повторяются
 MIN_SCENE = 1.7                                              # короче — сливаем
+MAX_SCENE = 6.5      # длиннее — режем: зритель не должен смотреть одно и то же
 # канонический порядок повествования: назад ходить дорого
-RANK = {'boring':0,'comp':1,'scroll':2,'pipe':3,'offer':4,'noeff':5,'result':6,'cta':7}
+RANK = {'boring':0,'comp':1,'scroll':2,'costs':3,'pipe':4,'offer':5,'noeff':6,'result':7,'cta':8}
 STATES = list(RANK) + ['kinetic']
 KINETIC_FLOOR = 0.75         # порог, ниже которого сцена считается неопознанной
 
@@ -218,6 +242,7 @@ def emissions(ph):
         e['result'] += 0.7 * up(0.55, 1.00) - 1.5 * (1.0 - up(0.00, 0.45))
         e['pipe']   += 0.4 * (1.0 - abs(pos - 0.5) / 0.5)
         e['offer']  += 0.3 * up(0.30, 0.85) - 1.2 * (1.0 - up(0.00, 0.30))
+        e['costs']  += 0.4 * up(0.20, 0.80) - 1.5 * (1.0 - up(0.00, 0.18))
         e['kinetic'] = KINETIC_FLOOR
         out.append(e)
     return out
@@ -305,7 +330,10 @@ def choose_scenes(words, duration, tail):
         scenes.append({'n': nm, 's': starts[i], 'e': round(e, 3), 'words': wl[i]})
     scenes[-1]['e'] = round(duration, 3)
 
-    # 7. Переходы — по кругу, без повторов подряд.
+    # 7. Затянувшиеся сцены режем на части — иначе картинка стоит десятки секунд.
+    scenes = _split_long(scenes, words)
+
+    # 8. Переходы — по кругу, без повторов подряд.
     prev = None; k = 0
     for i, s in enumerate(scenes):
         if i == 0: s['tr'] = 'none'; continue
@@ -314,6 +342,43 @@ def choose_scenes(words, duration, tail):
         s['tr'] = tr; prev = tr; k += 1
         s['seed'] = 3 + i * 7
     return scenes
+
+
+def _split_long(scenes, words):
+    """Делит слишком длинные сцены по паузам в речи.
+
+    Без этого любой текст вне словарей превращается в одну сцену на полминуты:
+    пара слов появляется в начале и висит до конца. Режем по ближайшей к
+    равномерному делению паузе, чтобы стык попадал между фразами.
+    """
+    out = []
+    for sc in scenes:
+        d = sc['e'] - sc['s']
+        if sc['n'] not in ('kinetic', 'offer') or d <= MAX_SCENE:
+            out.append(sc); continue
+        parts = int(d / MAX_SCENE) + 1
+        bounds = [sc['s']]
+        for k in range(1, parts):
+            target = sc['s'] + d * k / parts
+            best = None
+            for i in range(len(words) - 1):
+                mid = (words[i]['e'] + words[i + 1]['s']) / 2.0
+                if not (sc['s'] + 1.0 < mid < sc['e'] - 1.0): continue
+                gap = words[i + 1]['s'] - words[i]['e']
+                if abs(mid - target) > 1.6: continue
+                score = gap * 2.0 - abs(mid - target)
+                if best is None or score > best[0]: best = (score, mid)
+            bounds.append(round(best[1] if best else target, 3))
+        bounds.append(sc['e'])
+        bounds = sorted(set(bounds))
+        for k in range(len(bounds) - 1):
+            part = dict(sc)
+            part['s'], part['e'] = bounds[k], bounds[k + 1]
+            part['words'] = [w for w in words if part['s'] - 0.05 <= w['s'] < part['e']]
+            part['seed'] = 3 + int(part['s'] * 7) % 97
+            part['variant'] = k % 3          # разная компоновка у соседних частей
+            out.append(part)
+    return out
 
 
 def _remerge(ms):
@@ -327,7 +392,29 @@ def _remerge(ms):
 
 
 # ------------------------------------------------------- тайминги внутри сцен
-def fill(scene, words, brand, duration, spoken=None):
+MEDIA_TOPIC = ['reels', 'рилс', 'риулс', 'видео', 'ролик', 'контент', 'съёмк', 'съемк',
+               'монтаж', 'сторис', 'клип', 'блог']
+
+
+def is_media_topic(words):
+    """Про видео ли озвучка. От этого зависит, уместны ли слова про Reels."""
+    low = [w['w'].lower() for w in words]
+    hits = sum(1 for w in low if any(w.startswith(k) for k in MEDIA_TOPIC))
+    return hits >= 2
+
+
+def key_words(W, count, minlen=5):
+    """Содержательные слова, разнесённые по отрезку."""
+    cand = [w for w in W if len(w['w']) >= minlen] or W
+    if not cand: return []
+    out, step = [], max(1, len(cand) // max(1, count))
+    for k in range(count):
+        i = min(len(cand) - 1, k * step)
+        if not out or cand[i]['s'] > out[-1]['s']: out.append(cand[i])
+    return out[:count]
+
+
+def fill(scene, words, brand, duration, spoken=None, media=True):
     n, a, b = scene['n'], scene['s'], scene['e']
     d = b - a
     W = [w for w in words if a - 0.05 <= w['s'] < b]
@@ -350,7 +437,15 @@ def fill(scene, words, brand, duration, spoken=None):
             picks.append(a + d * (0.05 + 0.42 * len(picks)))
         B['w1'], B['w2'], B['w3'] = order(picks[:3], a, b - 0.18, 0.26)
         B['w1'] = round(max(a + 0.02, min(B['w1'], a + 0.14)), 3)
-        P.update(l1=g('hook1', 'ВАШИ'), l2=g('hook2', 'REELS'), l3=g('hook3', 'ПРОЛИСТЫВАЮТ?'))
+        if media:
+            P.update(l1=g('hook1', 'ВАШИ'), l2=g('hook2', 'REELS'), l3=g('hook3', 'ПРОЛИСТЫВАЮТ?'))
+        else:
+            # Не про видео — слоган про Reels был бы бессмыслицей.
+            extra = {k.lower(): v for k, v in (brand.get('spelling') or {}).items()}
+            kw = key_words([w for w in words if w['s'] < min(b + 2.5, duration)], 3, 4)
+            txt = [spell(w['w'], extra) for w in kw]
+            while len(txt) < 3: txt.append('')
+            P.update(l1=txt[0], l2=txt[1], l3=txt[2])
 
     elif n == 'boring':
         dup   = find(W, a, b, SCENE_KEYS['boring'][:4]) or a + d * .35
@@ -434,7 +529,7 @@ def fill(scene, words, brand, duration, spoken=None):
             # Диктор не перечисляет этапы — выдумывать цепочку нечестно.
             # Сцена помечается и ниже пересобирается как крупная типографика.
             scene['n'] = 'kinetic'
-            return fill(scene, words, brand, duration, spoken)
+            return fill(scene, words, brand, duration, spoken, media)
         fk, fi, fc, fst, fcap, fart, fshort = FINAL_STEP
         media = {'ВИЗУАЛ', 'ОЗВУЧКА', 'МОНТАЖ', 'СУБТИТРЫ', 'СЦЕНАРИЙ'}
         if not any(x['k'] in media for x in steps):
@@ -489,7 +584,8 @@ def fill(scene, words, brand, duration, spoken=None):
             sgv = spoken['growth']
             tiles[1] = ['РОСТ', ('×%g' % round(sgv['value'], 1)) if sgv['kind'] == 'times'
                                 else '+%d%%' % round(sgv['value'])]
-        P.update(heroLabel=g('resultHero', 'ГОТОВЫЕ REELS'), phoneWord=g('resultPhone', 'REELS'),
+        P.update(heroLabel=g('resultHero', 'ГОТОВЫЕ REELS') if media else g('resultHeroGeneric', 'ВАШ РЕЗУЛЬТАТ'),
+                 phoneWord=g('resultPhone', 'REELS') if media else '',
                  riseChip=g('resultRise', 'ВЫДЕЛЯЮТ ВАШ БИЗНЕС'),
                  metricTitle=g('resultMetric', 'УДЕРЖАНИЕ ВНИМАНИЯ'),
                  pct=int(num('retention', nb.get('retention', 87))), tiles=tiles,
@@ -537,15 +633,51 @@ def fill(scene, words, brand, duration, spoken=None):
         B['viralText'] = round(vir + 0.16, 3)
         B['lockup'] = round(lock, 3)
         nb = brand.get('numbers', {})
-        P.update(q1=g('ctaQ1', 'ХОТИТЕ'), q2=g('ctaQ2', 'REELS'), q3=g('ctaQ3', 'КОТОРЫЕ ЦЕПЛЯЮТ?'),
+        extra = {k.lower(): v for k, v in (brand.get('spelling') or {}).items()}
+        if media:
+            q1, q2, q3 = g('ctaQ1', 'ХОТИТЕ'), g('ctaQ2', 'REELS'), g('ctaQ3', 'КОТОРЫЕ ЦЕПЛЯЮТ?')
+            dm = g('ctaDM', 'Хочу такие Reels для бизнеса')
+            msgs = T.get('ctaMessages', ['Хочу такие Reels 🔥', 'Сколько стоит?', 'Когда начнём? 🚀'])
+            sub2 = g('ctaLockSub2', 'ВИРУСНЫЙ REELS')
+        else:
+            kw = [spell(w['w'], extra) for w in key_words(W, 2, 5)]
+            q1 = g('ctaQ1Generic', 'ХОТИТЕ')
+            q2 = kw[0] if kw else g('ctaQ2Generic', 'РАЗОБРАТЬСЯ')
+            q3 = g('ctaQ3Generic', 'РАЗ И НАВСЕГДА?')
+            dm = g('ctaDMGeneric', 'Хочу разобраться, с чего начать')
+            msgs = T.get('ctaMessagesGeneric',
+                         ['Хочу разобраться 🔥', 'Сколько стоит?', 'Когда начнём? 🚀'])
+            sub2 = g('ctaLockSub2Generic', 'РЕЗУЛЬТАТ')
+        P.update(q1=q1, q2=q2, q3=q3,
                  cta1=g('ctaWrite1', 'НАПИШИТЕ'), cta2=g('ctaWrite2', 'МНЕ'),
-                 dmText=g('ctaDM', 'Хочу такие Reels для бизнеса'),
-                 messages=T.get('ctaMessages', ['Хочу такие Reels 🔥', 'Сколько стоит?', 'Когда начнём? 🚀']),
+                 dmText=dm, messages=msgs,
                  views=int(num('views', nb.get('views', 1240000))), viewsLabel=g('ctaViewsLabel', 'ПРОСМОТРОВ'),
                  viralLabel=g('ctaViral', 'ВИРУСНЫЙ РОЛИК'), lockup=g('ctaLockup', 'НАПИШИТЕ МНЕ'),
                  lockSub1=g('ctaLockSub1', 'И СОЗДАДИМ ВАШ СЛЕДУЮЩИЙ'),
-                 lockSub2=g('ctaLockSub2', 'ВИРУСНЫЙ REELS'),
-                 lockChips=T.get('ctaLockChips', ['ИДЕЯ', 'СЦЕНАРИЙ', 'AI', 'ОЗВУЧКА', 'МОНТАЖ']))
+                 lockSub2=sub2,
+                 lockChips=(T.get('ctaLockChips', ['ИДЕЯ', 'СЦЕНАРИЙ', 'AI', 'ОЗВУЧКА', 'МОНТАЖ'])
+                            if media else []))
+
+    elif n == 'costs':
+        items, last, seen = [], a - 0.1, set()
+        for w in W:
+            if w['s'] < last: continue
+            lw = w['w'].lower()
+            for stems, icon, label, pct in COSTS_LIB:
+                if label in seen: continue
+                if any(lw.startswith(k.split()[0]) for k in stems):
+                    items.append({'t': round(w['s'], 3), 'ic': icon, 'k': label, 'pct': pct})
+                    seen.add(label); last = w['s'] + 0.45
+                    break
+            if len(items) == 4: break
+        if len(items) < 2:
+            scene['n'] = 'kinetic'
+            return fill(scene, words, brand, duration, spoken, media)
+        P['items'] = items
+        B['head'] = round(a + 0.11, 3)
+        P.update(head=g('costsHead', 'КУДА УХОДЯТ ДЕНЬГИ'),
+                 profitLabel=g('costsRevenue', 'ВЫРУЧКА'),
+                 restLabel=g('costsRest', 'ОСТАЁТСЯ ВАМ'))
 
     elif n == 'offer':
         # Строки собираются из слов озвучки, у которых есть своя иконка.
@@ -563,7 +695,7 @@ def fill(scene, words, brand, duration, spoken=None):
         if len(items) < 2:
             # Меньше двух преимуществ — сцена не наберётся, отдаём типографике.
             scene['n'] = 'kinetic'
-            return fill(scene, words, brand, duration, spoken)
+            return fill(scene, words, brand, duration, spoken, media)
         P['items'] = items
         B['head'] = round(a + 0.11, 3)
         B['badge'] = round(max(items[-1]['t'] + 0.55, b - 0.6), 3)
@@ -571,11 +703,23 @@ def fill(scene, words, brand, duration, spoken=None):
 
     else:  # kinetic — крупная типографика по ключевым словам фразы
         extra = {k.lower(): v for k, v in (brand.get('spelling') or {}).items()}
-        key = [w for w in W if len(w['w']) >= 5][:3] or W[:3]
-        lines = [{'txt': spell(w['w'], extra), 't': round(w['s'], 3), 'accent': i == 1}
-                 for i, w in enumerate(key)]
+        cand = [w for w in W if len(w['w']) >= 5] or W
+        # Берём слова, разнесённые по всей сцене: иначе текст замирает после
+        # первых секунд и дальше ничего не происходит.
+        want = 3 if d > 2.2 else 2
+        picks, step = [], d / max(1, want)
+        for k in range(want):
+            target = a + step * k + step * 0.25
+            near = [w for w in cand if not picks or w['s'] > picks[-1]['s'] + 0.35]
+            if not near: break
+            picks.append(min(near, key=lambda w: abs(w['s'] - target)))
+        if not picks: picks = W[:1]
+        lines = [{'txt': spell(w['w'], extra), 't': round(w['s'], 3),
+                  'accent': i == (1 if len(picks) > 1 else 0)}
+                 for i, w in enumerate(picks)]
         if not lines: lines = [{'txt': g('kineticFallback', 'REELS'), 't': round(a + .1, 3), 'accent': True}]
         P['lines'] = lines
+        P['variant'] = scene.get('variant', 0)
         P['chip'] = None
 
     # страховка: ни один тайминг не должен вылезти за границы сцены
@@ -662,8 +806,9 @@ def build(words, brand, tail=2.05, fps=30):
     duration = round(int(duration * fps + 0.5) / fps, 4)
     scenes = choose_scenes(words, duration, tail)
     spoken = assign_numbers(find_numbers(words), words)
+    media = is_media_topic(words)
     for s in scenes:
-        fill(s, words, brand, duration, spoken)
+        fill(s, words, brand, duration, spoken, media)
         s.pop('words', None)
         s['s'] = round(s['s'], 3); s['e'] = round(s['e'], 3)
     subs = build_subs(words, scenes, brand.get('spelling'))

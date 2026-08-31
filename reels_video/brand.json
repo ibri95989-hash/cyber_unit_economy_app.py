@@ -80,7 +80,21 @@
     "pipeSubtitleGeneric": "ОТ ЗАЯВКИ ДО РЕЗУЛЬТАТА",
     "pipeFinalGeneric": "ГОТОВО",
     "offerHead": "ЧТО ВЫ ПОЛУЧАЕТЕ",
-    "offerBadge": "ВСЁ ВКЛЮЧЕНО"
+    "offerBadge": "ВСЁ ВКЛЮЧЕНО",
+    "costsHead": "КУДА УХОДЯТ ДЕНЬГИ",
+    "costsRevenue": "ВЫРУЧКА",
+    "costsRest": "ОСТАЁТСЯ ВАМ",
+    "ctaQ1Generic": "ХОТИТЕ",
+    "ctaQ2Generic": "РАЗОБРАТЬСЯ",
+    "ctaQ3Generic": "РАЗ И НАВСЕГДА?",
+    "ctaDMGeneric": "Хочу разобраться, с чего начать",
+    "ctaMessagesGeneric": [
+      "Хочу разобраться 🔥",
+      "Сколько стоит?",
+      "Когда начнём? 🚀"
+    ],
+    "ctaLockSub2Generic": "РЕЗУЛЬТАТ",
+    "resultHeroGeneric": "ВАШ РЕЗУЛЬТАТ"
   },
   "numbers": {
     "__": "Показатели в инфографике. Поставьте свои реальные цифры.",

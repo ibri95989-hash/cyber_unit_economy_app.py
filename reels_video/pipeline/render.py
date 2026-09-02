@@ -10,6 +10,13 @@
 Второй множитель — процессы. render(t) зависит только от t, поэтому ролик
 режется на равные куски, каждый рендерится своим браузером в свой сегмент,
 и сегменты склеиваются без перекодирования.
+
+Кодировать прямо в браузере (WebCodecs) пробовали — не взяли. H.264 в
+Chromium не собран, остаётся VP9, а VP9 → H.264 это два сжатия подряд:
+PSNR к исходным кадрам падает с 48,9 до 48,0 дБ, по цветности с 50,0 до
+48,1 — как раз там, где у нас цветной текст на тёмном фоне. Выигрыш при
+этом всего 1,7×, потому что больше половины времени кадра здесь занимает
+не снимок, а сам шейдер фона (на машине с видеокартой он почти бесплатный).
 """
 import base64, os, subprocess, sys, time
 from .ffmpeg import ffmpeg_exe
@@ -72,9 +79,12 @@ def _shooter(pg):
         return lambda: pg.screenshot(type='png')      # старый Chromium — работаем как раньше
 
 
-def _encoder(out_mp4, fps, crf, preset, log_path):
+def _encoder(out_mp4, fps, crf, preset, log_path, threads=0):
+    # При параллельном рендере каждый x264 по умолчанию берёт все ядра, и процессы
+    # начинают толкаться. Делим ядра поровну: качество то же, файл байт в байт.
+    thr = ['-threads', str(threads)] if threads else []
     cmd = [ffmpeg_exe(), '-y', '-f', 'image2pipe', '-vcodec', 'png', '-r', str(fps),
-           '-i', 'pipe:0', '-an', '-c:v', 'libx264', '-preset', preset, '-crf', str(crf),
+           '-i', 'pipe:0', '-an', '-c:v', 'libx264', '-preset', preset, '-crf', str(crf)] + thr + [
            '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-level', '4.2',
            '-movflags', '+faststart', out_mp4]
     logf = open(log_path, 'wb')
@@ -83,10 +93,10 @@ def _encoder(out_mp4, fps, crf, preset, log_path):
 
 
 def _render_range(page_url, out_mp4, i0, i1, fps, crf, preset, width, height, bg,
-                  log_path, progress=None):
+                  log_path, progress=None, threads=0):
     """Кадры [i0, i1) в отдельный mp4. Отдельный процесс — отдельный браузер."""
     from playwright.sync_api import sync_playwright
-    proc, logf = _encoder(out_mp4, fps, crf, preset, log_path)
+    proc, logf = _encoder(out_mp4, fps, crf, preset, log_path, threads)
     errors = []
     with sync_playwright() as pw:
         b = _browser(pw)
@@ -168,6 +178,7 @@ def render(page_url, out_mp4, duration, fps=30, crf=16, preset='slow',
         return out_mp4
 
     import multiprocessing as mp
+    threads = max(1, (os.cpu_count() or jobs) // jobs)
     ctx = mp.get_context('spawn')          # одинаково на Windows, macOS и Linux
     q = ctx.Queue()
     bounds = [n * k // jobs for k in range(jobs + 1)]
@@ -177,7 +188,7 @@ def render(page_url, out_mp4, duration, fps=30, crf=16, preset='slow',
         parts.append(part)
         p = ctx.Process(target=_seg, args=(page_url, part, bounds[k], bounds[k + 1], fps, crf,
                                            preset, width, height, bg,
-                                           log_path + '.%d' % k, q))
+                                           log_path + '.%d' % k, q, threads))
         p.start(); procs.append(p)
 
     done, fails = 0, []
@@ -206,11 +217,11 @@ def render(page_url, out_mp4, duration, fps=30, crf=16, preset='slow',
     return out_mp4
 
 
-def _seg(page_url, out_mp4, i0, i1, fps, crf, preset, width, height, bg, log_path, q):
+def _seg(page_url, out_mp4, i0, i1, fps, crf, preset, width, height, bg, log_path, q, threads=0):
     """Дочерний процесс: свой кусок кадров, свой ffmpeg, отчёт о прогрессе в очередь."""
     try:
         _render_range(page_url, out_mp4, i0, i1, fps, crf, preset, width, height, bg,
-                      log_path, progress=q.put)
+                      log_path, progress=q.put, threads=threads)
     except SystemExit as e:
         q.put(str(e))
     except Exception as e:

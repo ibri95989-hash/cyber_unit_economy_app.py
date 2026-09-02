@@ -74,7 +74,8 @@ ICON_MAP = [
     (['доля','структур','распределен'],                     'chart-pie',      'СТРУКТУРА'),
     (['баланс','сравн','весы','окупаем'],                   'scale',          'БАЛАНС'),
     # маркетплейсы и логистика
-    (['маркетплейс','вайлберрис','wildberries','озон','ozon','ярмарк'],'store','ПЛОЩАДКА'),
+    (['маркетплейс','вайлдберр','вайлберр','валдберр','вайлдбер','wildberries',
+     'озон','ozon','ярмарк'],                              'store',          'ПЛОЩАДКА'),
     (['достав','привоз','отправ','логист','курьер','перевозк'],'truck',       'ДОСТАВКА'),
     (['склад','хранени','фулфилмент'],                      'warehouse',      'ХРАНЕНИЕ'),
     (['возврат','отказ','невыкуп'],                         'undo-2',         'ВОЗВРАТЫ'),
@@ -92,7 +93,8 @@ ICON_MAP = [
     (['ремонт','настро','сервис','обслужив','оборудован','техник','установ'],'settings','СЕРВИС'),
     (['консультац','обсужд','созвон','бриф','вопрос'],      'message-circle', 'КОНСУЛЬТАЦИЯ'),
     (['договор','оформ','подпис','документ'],               'file-text',      'ДОГОВОР'),
-    (['замер','выезд','осмотр','диагностик'],               'search',         'ЗАМЕР'),
+    (['аудит','диагностик','анализ'],                       'search',         'АУДИТ'),
+    (['замер','выезд','осмотр'],                            'search',         'ЗАМЕР'),
     (['опыт','лет','професс','эксперт','мастер'],           'award',          'ОПЫТ'),
     (['качеств','премиум','уникальн','особен','ручн'],      'sparkles',       'КАЧЕСТВО'),
     (['подарок','бонус','бесплатн','подар'],                'gift',           'БОНУС'),
@@ -143,11 +145,17 @@ STEP_LIB = [
     # универсальные этапы услуг — общая панель с крупной иконкой
     ('КОНСУЛЬТАЦИЯ',    'msg',  '#7FF3FF', ['консультац','созвон','обсужд','бриф'],
      'РАЗБИРАЕМ ЗАДАЧУ И ЦЕЛИ', 8, None),
-    ('ЗАМЕР',           'search','#5FD4FF', ['замер','выезд','осмотр','диагностик'],
+    ('ЗАМЕР',           'search','#5FD4FF', ['замер','выезд','осмотр'],
      'ВЫЕЗД И ТОЧНЫЕ ПАРАМЕТРЫ', 8, None),
+    ('АУДИТ',           'search','#7FF3FF', ['аудит','диагностик','анализ','проверя','провер',
+                                             'разбира цифр'],
+     'РАЗБИРАЕМ ТЕКУЩЕЕ СОСТОЯНИЕ', 8, None),
+    ('РАСЧЁТ',          'calculator','#FFB020', ['расчёт','расчет','посчита','считаю','свожу',
+                                                 'экономик','расход','копейк','цифр'],
+     'СЧИТАЕМ КАЖДЫЙ РУБЛЬ', 8, None),
     ('ДОГОВОР',         'doc',  '#B58CFF', ['договор','оформ','подпис'],
      'ФИКСИРУЕМ СРОКИ И ЦЕНУ', 8, None),
-    ('ПРОИЗВОДСТВО',    'box',  '#34D399', ['производ','изготов','собира','шьём','шьем'],
+    ('ПРОИЗВОДСТВО',    'box',  '#34D399', ['производ','изготов','шьём','шьем'],
      'РАБОТА ПОД ВАШУ ЗАДАЧУ', 8, None),
     ('ДОСТАВКА',        'truck','#FFB020', ['достав','привоз','отправ','логист'],
      'ПРИВОЗИМ В СРОК', 8, None),
@@ -188,6 +196,34 @@ NOEFF_LIB = [
     (['ездит','выезжа','приезжа','ходит'],    'car',   'КУДА-ТО ЕХАТЬ',  'ВСЁ РЕШАЕМ УДАЛЁННО'),
     (['плат','переплач','вкладыв','бюджет'],  'wallet','ПЕРЕПЛАЧИВАТЬ',  'ФИКСИРОВАННАЯ ЦЕНА'),
 ]
+
+# Финальный вопрос для не-видео тем. Раньше сюда подставлялось любое длинное
+# слово из речи — и «ХОТИТЕ РАСТЁТ РАЗ И НАВСЕГДА?» ломало фразу.
+# Теперь берём готовую пару «что» + «как», подобранную по смыслу озвучки.
+CTA_LIB = [
+    (['прибыл','маржа','чистым','доход'],        'ПРИБЫЛЬ',          'А НЕ ТОЛЬКО ОБОРОТ?'),
+    (['расход','комисси','затрат','убыт','теря'],'ВЕРНУТЬ МАРЖУ',    'БЕЗ ПОТЕРИ ПРОДАЖ?'),
+    (['цифр','расчёт','расчет','отчёт','отчет','аналитик','посчита'],
+                                                 'ЧЁТКИЕ ЦИФРЫ',     'ПО КАЖДОМУ ТОВАРУ?'),
+    (['заяв','заказ','клиент','покупател'],      'БОЛЬШЕ ЗАЯВОК',    'УЖЕ НА ЭТОЙ НЕДЕЛЕ?'),
+    (['выручк','продаж','оборот','рост','раст'], 'БОЛЬШЕ ПРОДАЖ',    'УЖЕ В ЭТОМ МЕСЯЦЕ?'),
+    (['запис','брон','абонемент','визит'],       'ПОЛНУЮ ЗАПИСЬ',    'НА МЕСЯЦ ВПЕРЁД?'),
+    (['ремонт','установ','монтаж','объект'],     'СДЕЛАТЬ ПОД КЛЮЧ', 'БЕЗ ВАШЕГО УЧАСТИЯ?'),
+]
+
+
+def cta_question(words, T, g):
+    """Пара строк финального вопроса: подбираем по смыслу всей озвучки."""
+    text = ' '.join(w['w'] for w in words).lower()
+    best, best_hits = None, 0
+    for stems, q2, q3 in CTA_LIB:
+        hits = sum(1 for st in stems if re.search(r'(?:^|[^а-яё])' + re.escape(st), text))
+        if hits > best_hits:
+            best, best_hits = (q2, q3), hits
+    if best is None:
+        return g('ctaQ2Generic', 'РАЗОБРАТЬСЯ'), g('ctaQ3Generic', 'РАЗ И НАВСЕГДА?')
+    return best
+
 
 TRANSITIONS = ['glitch','whip','ramp','iris','match','streak','punch']
 
@@ -351,7 +387,7 @@ def choose_scenes(words, duration, tail):
     scenes[-1]['e'] = round(duration, 3)
 
     # 7. Затянувшиеся сцены режем на части — иначе картинка стоит десятки секунд.
-    scenes = _split_long(scenes, words)
+    scenes = _split_long(_demote_thin(scenes, words), words)
 
     # 8. Переходы — по кругу, без повторов подряд.
     prev = None; k = 0
@@ -361,6 +397,38 @@ def choose_scenes(words, duration, tail):
         if tr == prev: k += 1; tr = TRANSITIONS[k % len(TRANSITIONS)]
         s['tr'] = tr; prev = tr; k += 1
         s['seed'] = 3 + i * 7
+    return scenes
+
+
+def _demote_thin(scenes, words):
+    """Сцены, которым не из чего собраться, заранее переводим в типографику.
+
+    Раньше это решалось уже внутри fill(), после нарезки длинных сцен, —
+    и десятисекундный «конвейер» без этапов превращался в десять секунд
+    неподвижного текста. Теперь понижение происходит до нарезки, поэтому
+    такую сцену успевает разрезать _split_long.
+    """
+    for sc in scenes:
+        if sc['n'] not in ('pipe', 'offer', 'costs'): continue
+        a, b = sc['s'], sc['e']
+        W = [w for w in words if a - 0.05 <= w['s'] < b]
+        if sc['n'] == 'pipe':
+            hits = sum(1 for k, ic, c, stems, cap, art, sh in STEP_LIB
+                       if find(W, a + 0.55, b - 0.5, stems) is not None)
+        elif sc['n'] == 'costs':
+            seen = set()
+            for w in W:
+                lw = w['w'].lower()
+                for stems, icon, label, pct in COSTS_LIB:
+                    if any(lw.startswith(k.split()[0]) for k in stems): seen.add(label); break
+            hits = len(seen)
+        else:
+            seen = set()
+            for w in W:
+                hit = icon_for(w['w'])
+                if hit and hit[0] not in seen: seen.add(hit[0])
+            hits = len(seen)
+        if hits < 2: sc['n'] = 'kinetic'
     return scenes
 
 
@@ -567,11 +635,13 @@ def fill(scene, words, brand, duration, spoken=None, media=True):
         B['subtitle'] = round(min(max(sub, B['title'] + 0.5), B['chain'] - 0.25), 3)
         B['chips'] = round(min(B['title'] + 0.55, B['chain'] - 0.4), 3)
         is_media = any(x['k'] in media for x in steps)
-        P.update(chip=g('pipeChip', 'ПОЛНЫЙ ЦИКЛ ПРОИЗВОДСТВА'),
+        P.update(chip=g('pipeChip', 'ПОЛНЫЙ ЦИКЛ ПРОИЗВОДСТВА') if is_media
+                      else g('pipeChipGeneric', 'ПОЛНЫЙ ЦИКЛ РАБОТЫ'),
                  title=g('pipeTitle', 'REELS') if is_media else g('pipeTitleGeneric', 'ПОД КЛЮЧ'),
                  subtitle=g('pipeSubtitle', 'ПОД КЛЮЧ') if is_media
                           else g('pipeSubtitleGeneric', 'ОТ ЗАЯВКИ ДО РЕЗУЛЬТАТА'),
-                 header=g('pipeHeader', 'ПРОЦЕСС ПРОИЗВОДСТВА'))
+                 header=g('pipeHeader', 'ПРОЦЕСС ПРОИЗВОДСТВА') if is_media
+                        else g('pipeHeaderGeneric', 'ЭТАПЫ РАБОТЫ'))
 
     elif n == 'noeff':
         items, last = [], a + 0.35
@@ -653,17 +723,14 @@ def fill(scene, words, brand, duration, spoken=None, media=True):
         B['viralText'] = round(vir + 0.16, 3)
         B['lockup'] = round(lock, 3)
         nb = brand.get('numbers', {})
-        extra = {k.lower(): v for k, v in (brand.get('spelling') or {}).items()}
         if media:
             q1, q2, q3 = g('ctaQ1', 'ХОТИТЕ'), g('ctaQ2', 'REELS'), g('ctaQ3', 'КОТОРЫЕ ЦЕПЛЯЮТ?')
             dm = g('ctaDM', 'Хочу такие Reels для бизнеса')
             msgs = T.get('ctaMessages', ['Хочу такие Reels 🔥', 'Сколько стоит?', 'Когда начнём? 🚀'])
             sub2 = g('ctaLockSub2', 'ВИРУСНЫЙ REELS')
         else:
-            kw = [spell(w['w'], extra) for w in key_words(W, 2, 5)]
             q1 = g('ctaQ1Generic', 'ХОТИТЕ')
-            q2 = kw[0] if kw else g('ctaQ2Generic', 'РАЗОБРАТЬСЯ')
-            q3 = g('ctaQ3Generic', 'РАЗ И НАВСЕГДА?')
+            q2, q3 = cta_question(words, T, g)
             dm = g('ctaDMGeneric', 'Хочу разобраться, с чего начать')
             msgs = T.get('ctaMessagesGeneric',
                          ['Хочу разобраться 🔥', 'Сколько стоит?', 'Когда начнём? 🚀'])

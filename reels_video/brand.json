@@ -27,9 +27,11 @@
     "scrollAudience": "ПОТЕНЦИАЛЬНЫХ КЛИЕНТОВ",
     "scrollVerdict": "ЛИСТАЮТ ДАЛЬШЕ",
     "pipeChip": "ПОЛНЫЙ ЦИКЛ ПРОИЗВОДСТВА",
+    "pipeChipGeneric": "ПОЛНЫЙ ЦИКЛ РАБОТЫ",
     "pipeTitle": "REELS",
     "pipeSubtitle": "ПОД КЛЮЧ",
     "pipeHeader": "ПРОЦЕСС ПРОИЗВОДСТВА",
+    "pipeHeaderGeneric": "ЭТАПЫ РАБОТЫ",
     "pipeFinal": "ГОТОВЫЙ REELS",
     "noeffHead": "ВАМ НЕ НУЖНО",
     "noeffBadge": "0 УСИЛИЙ С ВАШЕЙ СТОРОНЫ",
@@ -108,13 +110,17 @@
   "spelling": {
     "__": "Как распознанные слова писать на экране. Сюда же — названия и бренды.",
     "риулс": "REELS",
-    "рилс": "REELS"
+    "рилс": "REELS",
+    "вайлдберриз": "WILDBERRIES",
+    "вайлберриз": "WILDBERRIES",
+    "вайлдберрис": "WILDBERRIES",
+    "валдберис": "WILDBERRIES"
   },
-  "iconStyle": "stroke",
+  "iconStyle": "duo",
   "_iconStyle": "stroke — штриховые Lucide, fill — заливные Phosphor, duo — двухцветные Phosphor",
   "fonts": {
-    "display": "Montserrat.ttf",
-    "body": "Inter.ttf",
+    "display": "Unbounded.ttf",
+    "body": "GolosText.ttf",
     "mono": "JetBrainsMono.ttf"
   },
   "_fonts": "Файлы шрифтов из папки src. Доступны: Montserrat.ttf (по умолчанию), Unbounded.ttf (характерный геометрический), Oswald.ttf (узкий, для ударных заголовков), GolosText.ttf (сделан под русский), Manrope.ttf, Inter.ttf, JetBrainsMono.ttf. Все с кириллицей, лицензия OFL."

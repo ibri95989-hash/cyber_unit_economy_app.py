@@ -1538,20 +1538,24 @@ function drawRail(t,ai,STEPS){
   STEPS.forEach((s,i)=>{
     const x=ox+i*gap;
     if(x<-160||x>W+160)return;
+    /* Гасим узел у самого края кадра: обрезанная наполовину подпись
+       читается как дефект, а не как прокрутка. */
+    const edgeA=cl(Math.min(x-60,W-60-x)/200);
+    if(edgeA<=0)return;
     const done=t>=s.t;
     const act=i===Math.round(fi)&&done;
     const pop=E.outBack(cl((t-s.t)/.35));
     const r=act?54:40;
     const sc=done?lerp(.8,1,cl(pop)):.8;
     ctx.save();ctx.translate(x,y);ctx.scale(sc,sc);
-    ctx.globalAlpha=done?1:.35;
+    ctx.globalAlpha=(done?1:.35)*edgeA;
     circle(0,0,r);ctx.fillStyle='rgba(8,12,22,.95)';ctx.fill();
     if(done){ctx.strokeStyle=s.c;ctx.lineWidth=3.5;ctx.shadowColor=s.c;ctx.shadowBlur=act?30:14;ctx.stroke();}
     else{ctx.strokeStyle='rgba(255,255,255,.18)';ctx.lineWidth=2.5;ctx.stroke();}
     ic(s.ic,0,0,r*1.05,done?s.c:'rgba(255,255,255,.35)',3.4);
     ctx.restore();
     /* tiny label */
-    if(done){ctx.save();ctx.globalAlpha=act?.95:.4;
+    if(done){ctx.save();ctx.globalAlpha=(act?.95:.4)*edgeA;
       const lbl=s.short||s.k;
       text(lbl,x,y+82,{weight:800,size:19,fam:'Inter',ls:2,fill:act?'#FFFFFF':'rgba(255,255,255,.55)'});
       ctx.restore();}

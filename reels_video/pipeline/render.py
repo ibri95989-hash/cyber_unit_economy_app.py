@@ -25,6 +25,11 @@ def _browser(pw, headed=False):
         raise
 
 
+def _apply_bg(pg, bg):
+    if bg:
+        pg.evaluate('q=>window.setBgQuality && window.setBgQuality(q)', bg)
+
+
 def _wait_ready(pg):
     """Ждёт готовности сцены и проверяет, что шрифты действительно применились."""
     try:
@@ -45,7 +50,7 @@ def _wait_ready(pg):
 
 
 def render(page_url, out_mp4, duration, fps=30, crf=16, preset='slow',
-           width=1080, height=1920, quiet=False, log=None):
+           width=1080, height=1920, quiet=False, log=None, bg='medium'):
     from playwright.sync_api import sync_playwright
     n = int(round(duration * fps))
     os.makedirs(os.path.dirname(os.path.abspath(out_mp4)), exist_ok=True)
@@ -64,6 +69,7 @@ def render(page_url, out_mp4, duration, fps=30, crf=16, preset='slow',
         pg = b.new_page(viewport={'width': width, 'height': height}, device_scale_factor=1)
         pg.on('pageerror', lambda e: errors.append(str(e)))
         pg.goto(page_url)
+        _apply_bg(pg, bg)
         _wait_ready(pg)
         for i in range(n):
             pg.evaluate('t=>window.render(t)', i / fps)
@@ -85,7 +91,7 @@ def render(page_url, out_mp4, duration, fps=30, crf=16, preset='slow',
     return out_mp4
 
 
-def preview(page_url, times, out_dir, width=1080, height=1920):
+def preview(page_url, times, out_dir, width=1080, height=1920, bg='medium'):
     from playwright.sync_api import sync_playwright
     os.makedirs(out_dir, exist_ok=True)
     made = []
@@ -95,6 +101,7 @@ def preview(page_url, times, out_dir, width=1080, height=1920):
         errors = []
         pg.on('pageerror', lambda e: errors.append(str(e)))
         pg.goto(page_url)
+        _apply_bg(pg, bg)
         _wait_ready(pg)
         for t in times:
             pg.evaluate('t=>window.render(t)', t)

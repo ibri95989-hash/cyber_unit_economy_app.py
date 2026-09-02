@@ -4,6 +4,7 @@
 const W = 1080, H = 1920;
 const cv = document.getElementById('c');
 let ctx = cv.getContext('2d', { alpha: false });
+let NOW = 0;   /* абсолютное время кадра — по нему живут Lottie-анимации */
 
 /* ---------- palette ---------- */
 const P = {
@@ -116,11 +117,25 @@ function vignette(strength=.75){
 /* ============================================================
    BACKGROUND SYSTEMS
    ============================================================ */
+/* Палитра фона под настроение сцены. */
+const BG_PALETTE={hook:'violet',boring:'night',comp:'tech',scroll:'night',pipe:'ice',
+  offer:'money',costs:'danger',noeff:'night',result:'ice',cta:'violet'};
+const BG_KINETIC=['tech','violet','ice'];
+
 function bgBase(t,c1='#0A1226',c2='#04060B'){
-  ctx.fillStyle=c2;ctx.fillRect(0,0,W,H);
-  ctx.save();
-  ctx.fillStyle=rgrad(W*.5,H*.35,0,H*.75,[[0,c1],[1,'rgba(4,6,11,0)']]);
-  ctx.fillRect(0,0,W,H);ctx.restore();
+  /* Фон считает шейдер: живой объёмный градиент вместо плоской заливки.
+     Если WebGL недоступен — тихо откатываемся на прежний градиент. */
+  const sc=(typeof CUR!=='undefined'&&CUR)?CUR:null;
+  let pal=sc?BG_PALETTE[sc.n]:'tech';
+  if(sc&&sc.n==='kinetic') pal=BG_KINETIC[(sc.p&&sc.p.variant||0)%3];
+  const drawn = (typeof BG!=='undefined') && window.__bgQuality!=='off' && BG.draw(ctx,W,H,t,
+      {palette:pal||'tech', seed:(sc&&sc.seed)||1, style:(sc&&sc.seed||1)%3, amount:1});
+  if(!drawn){
+    ctx.fillStyle=c2;ctx.fillRect(0,0,W,H);
+    ctx.save();
+    ctx.fillStyle=rgrad(W*.5,H*.35,0,H*.75,[[0,c1],[1,'rgba(4,6,11,0)']]);
+    ctx.fillRect(0,0,W,H);ctx.restore();
+  }
 }
 /* slow drifting aurora blobs */
 function aurora(t,cols=[P.violet,P.cyan,P.magenta],amp=1,speed=1){
@@ -303,6 +318,10 @@ function icv(name,x,y,size,col,lw=4,progress=1,fillA=0){
   return true;
 }
 function ic(kind,x,y,s,col,lw=4,fillA=0){
+  /* Если для темы положили анимацию Lottie — играем её вместо статичной иконки. */
+  if(typeof MOTION!=='undefined' && MOTION.has(kind)){
+    if(MOTION.draw(ctx,kind,x,y,s*1.5,NOW-(CUR?CUR.s:0))) return;
+  }
   if(icv(kind,x,y,s,col,lw,1,fillA)) return;
   icLegacy(kind,x,y,s,col,lw,fillA);
 }
@@ -667,6 +686,7 @@ function composite(kind,p,i,t,b){
 }
 
 window.render=function(t){
+  NOW=t;
   let i=0;
   for(let k=0;k<SC.length;k++){ if(t>=SC[k].s){ i=k; } }
   const b=SC[i].s, kind=i>0?(SC[i].tr||'punch'):'none', dur=TRDUR[kind]||0;

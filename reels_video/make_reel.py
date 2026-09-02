@@ -37,6 +37,18 @@ def load_json(p, dflt=None):
     return dflt if dflt is not None else {}
 
 
+def scan_motion(folder):
+    """Находит Lottie-анимации, положенные пользователем в assets/motion."""
+    out = []
+    if not os.path.isdir(folder): return out
+    for f in sorted(os.listdir(folder)):
+        if not f.lower().endswith('.json'): continue
+        name = os.path.splitext(f)[0].lower()
+        url = 'file:///' + os.path.join(folder, f).replace('\\', '/').lstrip('/')
+        out.append({'name': name, 'url': url})
+    return out
+
+
 def parse_times(s):
     out = []
     for part in s.replace(';', ',').split(','):
@@ -69,6 +81,8 @@ def main():
     ap.add_argument('--sfx-level', type=float, default=0.55,
                     help='громкость звуковых эффектов, 0 — выключить совсем')
     ap.add_argument('--no-sfx', action='store_true', help='собрать без звуковых эффектов')
+    ap.add_argument('--bg', default='medium', choices=['high', 'medium', 'fast', 'off'],
+                    help='качество фона на шейдере: off — заметно быстрее на слабой машине')
     ap.add_argument('--keep', action='store_true', help='не удалять промежуточные файлы')
     ap.add_argument('--check', action='store_true',
                     help='проверить установку и выйти (что сломано и что делать)')
@@ -133,16 +147,22 @@ def main():
         json.dump(d, open(a.dump_plan, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
         print('     план сохранён: %s' % a.dump_plan)
 
+    # анимированные иконки из assets/motion подставляются вместо статичных
+    motion = scan_motion(os.path.join(HERE, 'assets', 'motion'))
+    if motion and not a.quiet:
+        print('     анимированных иконок: %d (%s)'
+              % (len(motion), ', '.join(m['name'] for m in motion[:6])))
     with open(os.path.join(src, 'plan.js'), 'w', encoding='utf-8') as f:
         f.write('const PLAN=' + json.dumps(pl, ensure_ascii=False) + ';\n')
         f.write('const SUBS=' + json.dumps(subs, ensure_ascii=False) + ';\n')
+        f.write('const MOTION_FILES=' + json.dumps(motion, ensure_ascii=False) + ';\n')
 
     url = 'file:///' + os.path.join(src, 'index.html').replace('\\', '/').lstrip('/')
 
     # превью вместо рендера
     if a.preview:
         d = os.path.join(os.path.dirname(os.path.abspath(out)), 'preview')
-        made = renderer.preview(url, parse_times(a.preview), d)
+        made = renderer.preview(url, parse_times(a.preview), d, bg=a.bg)
         print('кадры сохранены:'); [print('  ' + m) for m in made]
         return
 
@@ -152,7 +172,7 @@ def main():
               % (int(round(pl['duration'] * a.fps)), pl['duration'], a.fps))
     raw = os.path.join(work, 'video.mp4')
     renderer.render(url, raw, pl['duration'], fps=a.fps, crf=a.crf,
-                    preset=a.preset, quiet=a.quiet)
+                    preset=a.preset, quiet=a.quiet, bg=a.bg)
 
     # 4 — звук
     lvl = 0.0 if a.no_sfx else a.sfx_level

@@ -27,7 +27,7 @@ ZIP = ('https://github.com/ibri95989-hash/cyber_unit_economy_app.py/'
 # не знала про файлы, появившиеся позже: она их не искала и сообщала
 # «у вас последняя версия», хотя половины новых файлов не было.
 KEEP_NAMES = {'brand.json', 'plan.js'}
-KEEP_DIRS = {'out', 'clients', 'preview', 'examples'}
+KEEP_DIRS = {'out', 'clients', 'preview', 'examples', 'motion'}
 KEEP_EXT = {'.ttf', '.otf', '.mp4', '.mov', '.mp3', '.wav', '.backup'}
 
 

@@ -265,7 +265,48 @@ function bars(x,y,w,h,vals,prog,o={}){
 /* number counter formatting */
 function fmt(n,sep=' '){return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,sep);}
 /* icon: stroke path in a box of size s centered at x,y */
+/* ============================================================
+   ИКОНКИ. Сначала ищем в наборе Lucide (1792 штук), и только
+   если там нет — рисуем встроенную рукописную. Набор идёт
+   в системе 24x24, поэтому масштабируем и центрируем.
+   progress<1 включает прорисовку штрихом — иконка «пишется».
+   ============================================================ */
+const _P2D = {};
+function iconPath(name){
+  const key = (typeof ICON_ALIAS!=='undefined' && ICON_ALIAS[name]) || name;
+  if(typeof ICONS==='undefined' || !ICONS[key]) return null;
+  if(!_P2D[key]){
+    /* Каждый подпуть разбирается отдельно: у Lucide они начинаются
+       с относительной команды, и склейка увела бы фигуру в сторону. */
+    const p=new Path2D();
+    for(const d of ICONS[key][0]) p.addPath(new Path2D(d));
+    _P2D[key]={p, len:ICONS[key][1]||120};
+  }
+  return _P2D[key];
+}
+function icv(name,x,y,size,col,lw=4,progress=1,fillA=0){
+  const rec = iconPath(name);
+  if(!rec) return false;
+  const k = size/24;
+  ctx.save();
+  ctx.translate(x,y);ctx.scale(k,k);ctx.translate(-12,-12);
+  ctx.strokeStyle=col;ctx.fillStyle=col;
+  ctx.lineWidth=lw/k;ctx.lineCap='round';ctx.lineJoin='round';
+  if(progress<0.999){
+    const L=rec.len;
+    ctx.setLineDash([L,L]);
+    ctx.lineDashOffset=L*(1-cl(progress));
+  }
+  ctx.stroke(rec.p);
+  if(fillA){ctx.globalAlpha*=fillA;ctx.fill(rec.p,'evenodd');}
+  ctx.restore();
+  return true;
+}
 function ic(kind,x,y,s,col,lw=4,fillA=0){
+  if(icv(kind,x,y,s,col,lw,1,fillA)) return;
+  icLegacy(kind,x,y,s,col,lw,fillA);
+}
+function icLegacy(kind,x,y,s,col,lw=4,fillA=0){
   ctx.save();ctx.translate(x,y);ctx.strokeStyle=col;ctx.fillStyle=col;
   ctx.lineWidth=lw;ctx.lineCap='round';ctx.lineJoin='round';
   const u=s/2;

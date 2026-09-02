@@ -83,6 +83,8 @@ def main():
     ap.add_argument('--no-sfx', action='store_true', help='собрать без звуковых эффектов')
     ap.add_argument('--bg', default='medium', choices=['high', 'medium', 'fast', 'off'],
                     help='качество фона на шейдере: off — заметно быстрее на слабой машине')
+    ap.add_argument('--jobs', type=int, default=0,
+                    help='сколько процессов рендерят одновременно (0 — по числу ядер, 1 — как раньше)')
     ap.add_argument('--keep', action='store_true', help='не удалять промежуточные файлы')
     ap.add_argument('--check', action='store_true',
                     help='проверить установку и выйти (что сломано и что делать)')
@@ -172,7 +174,7 @@ def main():
               % (int(round(pl['duration'] * a.fps)), pl['duration'], a.fps))
     raw = os.path.join(work, 'video.mp4')
     renderer.render(url, raw, pl['duration'], fps=a.fps, crf=a.crf,
-                    preset=a.preset, quiet=a.quiet, bg=a.bg)
+                    preset=a.preset, quiet=a.quiet, bg=a.bg, jobs=a.jobs)
 
     # 4 — звук
     lvl = 0.0 if a.no_sfx else a.sfx_level

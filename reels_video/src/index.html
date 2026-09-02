@@ -1,8 +1,5 @@
 <!doctype html><html><head><meta charset="utf-8">
 <style>
-@font-face{font-family:'Mont';src:url('Montserrat.ttf') format('truetype');font-weight:100 900;font-display:block}
-@font-face{font-family:'Inter';src:url('Inter.ttf') format('truetype');font-weight:100 900;font-display:block}
-@font-face{font-family:'Mono';src:url('JetBrainsMono.ttf') format('truetype');font-weight:100 800;font-display:block}
 html,body{margin:0;padding:0;background:#000;overflow:hidden}
 canvas{display:block;width:1080px;height:1920px}
 </style></head>
@@ -11,6 +8,7 @@ canvas{display:block;width:1080px;height:1920px}
 <script src="bg.js"></script>
 <script src="motion.js"></script>
 <script src="icons.js"></script>
+<script src="icons_fill.js"></script>
 <script src="plan.js"></script>
 <script src="reel.js"></script>
 <script>
@@ -18,18 +16,25 @@ window.__ready=false; window.__fontError=null;
 window.__bgQuality='medium';
 window.setBgQuality=q=>{ window.__bgQuality=q; if(typeof BG!=='undefined'&&BG.setQuality) BG.setQuality(q); };
 (async()=>{
-  const need=[['900 100px Mont','Mont'],['700 100px Mont','Mont'],
-              ['500 100px Inter','Inter'],['800 100px Inter','Inter'],
-              ['700 100px Mono','Mono']];
-  // Битый шрифт заставляет document.fonts.load() ждать вечно — ограничиваем время.
-  const guard=(p,ms)=>Promise.race([p,new Promise(r=>setTimeout(()=>r('timeout'),ms))]);
-  try{
-    for(const [spec] of need) await guard(document.fonts.load(spec), 8000);
-    await guard(document.fonts.ready, 8000);
-  }catch(e){}
-  try{ if(typeof MOTION!=='undefined' && typeof MOTION_FILES!=='undefined') await MOTION.load(MOTION_FILES); }catch(e){}
-  const missing=[...new Set(need.filter(([spec])=>!document.fonts.check(spec)).map(x=>x[1]))];
+  /* Шрифты выбираются в brand.json: display — заголовки, body — подписи,
+     mono — цифры. Роли внутри движка остаются прежними, меняется файл. */
+  const pick = (typeof PLAN!=='undefined' && PLAN.fonts) || {};
+  const files = { Mont:  pick.display || 'Montserrat.ttf',
+                  Inter: pick.body    || 'Inter.ttf',
+                  Mono:  pick.mono    || 'JetBrainsMono.ttf' };
+  const missing = [];
+  for(const [fam, file] of Object.entries(files)){
+    try{
+      const f = new FontFace(fam, `url(${file})`, {weight:'100 900'});
+      await Promise.race([f.load(), new Promise((_,rj)=>setTimeout(()=>rj(new Error('timeout')),8000))]);
+      document.fonts.add(f);
+    }catch(e){ missing.push(fam + ' (' + file + ')'); }
+  }
+  const need=[['900 100px Mont','Mont'],['500 100px Inter','Inter'],['700 100px Mono','Mono']];
+  for(const [spec] of need){ try{ await document.fonts.load(spec); }catch(e){} }
+  for(const [spec,fam] of need) if(!document.fonts.check(spec) && missing.indexOf(fam)<0) missing.push(fam);
   if(missing.length) window.__fontError='шрифты не загрузились: '+missing.join(', ');
+  try{ if(typeof MOTION!=='undefined' && typeof MOTION_FILES!=='undefined') await MOTION.load(MOTION_FILES); }catch(e){}
   window.__ready=true;
 })();
 </script></body></html>

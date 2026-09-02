@@ -20,10 +20,15 @@ if hasattr(sys.stdout, 'reconfigure'):        # консоль Windows по ум
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, 'src')
 
+# Все с кириллицей, лицензия OFL — свободны для коммерческого использования.
 FONTS = {
     'Montserrat.ttf':    'https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/Montserrat%5Bwght%5D.ttf',
     'Inter.ttf':         'https://raw.githubusercontent.com/google/fonts/main/ofl/inter/Inter%5Bopsz,wght%5D.ttf',
     'JetBrainsMono.ttf': 'https://raw.githubusercontent.com/google/fonts/main/ofl/jetbrainsmono/JetBrainsMono%5Bwght%5D.ttf',
+    'Unbounded.ttf':     'https://raw.githubusercontent.com/google/fonts/main/ofl/unbounded/Unbounded%5Bwght%5D.ttf',
+    'Oswald.ttf':        'https://raw.githubusercontent.com/google/fonts/main/ofl/oswald/Oswald%5Bwght%5D.ttf',
+    'GolosText.ttf':     'https://raw.githubusercontent.com/google/fonts/main/ofl/golostext/GolosText%5Bwght%5D.ttf',
+    'Manrope.ttf':       'https://raw.githubusercontent.com/google/fonts/main/ofl/manrope/Manrope%5Bwght%5D.ttf',
 }
 
 
@@ -48,7 +53,7 @@ def main():
         print('     ! Chromium не поставился. Попробуйте вручную:')
         print('       %s -m playwright install chromium' % sys.executable)
 
-    step(3, total, 'Шрифты (Montserrat, Inter, JetBrains Mono — лицензия OFL)')
+    step(3, total, 'Шрифты: 7 семейств с кириллицей, лицензия OFL')
     os.makedirs(SRC, exist_ok=True)
     sys.path.insert(0, HERE)
     from pipeline.checks import font_problem

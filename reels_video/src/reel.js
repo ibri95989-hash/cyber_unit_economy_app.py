@@ -317,10 +317,42 @@ function icv(name,x,y,size,col,lw=4,progress=1,fillA=0){
   ctx.restore();
   return true;
 }
+/* Заливные и двухцветные начертания (Phosphor, система 256x256). */
+const _P2F={};
+function iconFill(name,duo){
+  const src = duo ? (typeof ICONS_DUO!=='undefined'?ICONS_DUO:null)
+                  : (typeof ICONS_FILL!=='undefined'?ICONS_FILL:null);
+  if(!src || !src[name]) return null;
+  const key=(duo?'d:':'f:')+name;
+  if(!_P2F[key]) _P2F[key]=src[name].map(([d,op])=>[new Path2D(d),op]);
+  return _P2F[key];
+}
+function icf(name,x,y,size,col,duo){
+  const rec=iconFill(name,duo);
+  if(!rec) return false;
+  const k=size/256;
+  ctx.save();
+  ctx.translate(x,y);ctx.scale(k,k);ctx.translate(-128,-128);
+  for(const [p,op] of rec){
+    ctx.save();ctx.globalAlpha*=op;ctx.fillStyle=col;ctx.fill(p);ctx.restore();
+  }
+  ctx.restore();
+  return true;
+}
+
+/* Стиль иконок задаётся в brand.json: stroke (по умолчанию), fill или duo. */
+function iconStyle(){
+  return (typeof PLAN!=='undefined' && PLAN.iconStyle) || 'stroke';
+}
+
 function ic(kind,x,y,s,col,lw=4,fillA=0){
   /* Если для темы положили анимацию Lottie — играем её вместо статичной иконки. */
   if(typeof MOTION!=='undefined' && MOTION.has(kind)){
     if(MOTION.draw(ctx,kind,x,y,s*1.5,NOW-(CUR?CUR.s:0))) return;
+  }
+  const st=iconStyle();
+  if(st==='fill' || st==='duo'){
+    if(icf(kind,x,y,s*1.08,col,st==='duo')) return;
   }
   if(icv(kind,x,y,s,col,lw,1,fillA)) return;
   icLegacy(kind,x,y,s,col,lw,fillA);

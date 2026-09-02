@@ -832,7 +832,10 @@ def build(words, brand, tail=2.05, fps=30):
         s.pop('words', None)
         s['s'] = round(s['s'], 3); s['e'] = round(s['e'], 3)
     subs = build_subs(words, scenes, brand.get('spelling'))
-    return {'duration': duration, 'fps': fps, 'scenes': scenes,
+    return {'duration': duration, 'fps': fps,
+            'iconStyle': brand.get('iconStyle', 'stroke'),
+            'fonts': brand.get('fonts', {}),
+            'scenes': scenes,
             'subHide': sub_hide(scenes, duration),
             'spoken': {k: round(v['value'], 2) for k, v in spoken.items()}}, subs
 

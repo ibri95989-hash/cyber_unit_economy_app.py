@@ -1,18 +1,26 @@
-import {staticFile, continueRender, delayRender} from 'remotion';
-import {FONT_FACES} from './fontFaces';
+import {continueRender, delayRender} from 'remotion';
+import fontData from './fontData.json';
+
+type Face = {
+  family: string;
+  weight: number;
+  unicodeRange: string;
+  data: string;
+};
 
 let started = false;
 
 /**
- * Loads the self-hosted faces and blocks the first frame until they are ready —
- * a frame rendered with a fallback face would ship crooked type, which is
- * exactly what this reel cannot have.
+ * Loads the display faces and blocks the first frame until they are ready — a
+ * frame rendered with a fallback face would ship crooked type, which is exactly
+ * what this reel cannot have.
  *
- * Each face is constructed explicitly through the FontFace API rather than left
- * to the CSS font loader: every promise here resolves or rejects on its own, so
- * one slow face cannot leave the render waiting. (A setTimeout guard would not
- * help — Remotion drives the page clock, so timers do not advance while a
- * delayRender is outstanding.)
+ * The faces are embedded as data URIs (scripts/embed-fonts.mjs), so loading
+ * never touches the network: fetching them over the asset server intermittently
+ * stalled a freshly-opened render page, and a stalled delayRender kills the
+ * render hundreds of frames in. A setTimeout guard is not an option either —
+ * Remotion drives the page clock, so timers do not advance while a delayRender
+ * is outstanding. Removing the network is the only fix that actually holds.
  */
 export const loadFonts = () => {
   if (typeof document === 'undefined' || started) return;
@@ -20,8 +28,8 @@ export const loadFonts = () => {
 
   const handle = delayRender('Loading fonts', {timeoutInMilliseconds: 120000});
 
-  const loads = FONT_FACES.map((f) => {
-    const face = new FontFace(f.family, `url(${staticFile(`fonts/${f.file}`)})`, {
+  const loads = (fontData.faces as Face[]).map((f) => {
+    const face = new FontFace(f.family, `url(${f.data})`, {
       weight: String(f.weight),
       style: 'normal',
       unicodeRange: f.unicodeRange,

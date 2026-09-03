@@ -1,0 +1,6 @@
+node_modules/
+out/
+
+# The repo root .gitignore carries a Python-style `lib/` rule, which would
+# otherwise swallow this project's src/lib source directory.
+!src/lib/

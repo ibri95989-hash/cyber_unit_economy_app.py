@@ -166,3 +166,5 @@ cython_debug/
 ozon_audit.jsonl
 ozon_snapshot.json
 ozon_stocks.csv
+ozon_daily.txt
+ozon_daily.jsonl

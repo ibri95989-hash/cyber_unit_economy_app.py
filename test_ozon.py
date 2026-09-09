@@ -1211,5 +1211,56 @@ class InsightsTest(unittest.TestCase):
         self.assertEqual(analyse({"разделы": [{"раздел": "Остатки", "ошибка": "нет доступа"}]}), [])
 
 
+class WatchTest(unittest.TestCase):
+    """Ежедневная проверка: код возврата решает, показывать ли напоминание."""
+
+    def setUp(self) -> None:
+        from ozon import watch
+
+        self.watch = watch
+        folder = Path(tempfile.mkdtemp())
+        for name, attr in (("ozon_daily.txt", "REPORT_FILE"), ("ozon_daily.jsonl", "HISTORY_FILE")):
+            patcher = mock.patch.object(watch, attr, folder / name)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        self.folder = folder
+
+    def снимок(self, уровень: str) -> dict:
+        return {"выводы": [{"уровень": уровень, "заголовок": "Проверка",
+                            "вывод": "Так вышло.", "цифры": "42"}]}
+
+    def test_urgent_returns_code_two(self) -> None:
+        with mock.patch.object(self.watch, "collect", lambda: self.снимок("срочно")):
+            self.assertEqual(self.watch.run(quiet=True), 2)
+
+    def test_calm_returns_zero(self) -> None:
+        with mock.patch.object(self.watch, "collect", lambda: self.снимок("спокойно")):
+            self.assertEqual(self.watch.run(quiet=True), 0)
+
+    def test_report_file_is_written(self) -> None:
+        with mock.patch.object(self.watch, "collect", lambda: self.снимок("срочно")):
+            self.watch.run(quiet=True)
+        текст = (self.folder / "ozon_daily.txt").read_text(encoding="utf-8")
+        self.assertIn("Проверка", текст)
+        self.assertIn("42", текст)
+
+    def test_history_grows_with_each_run(self) -> None:
+        with mock.patch.object(self.watch, "collect", lambda: self.снимок("внимание")):
+            self.watch.run(quiet=True)
+            self.watch.run(quiet=True)
+        строки = (self.folder / "ozon_daily.jsonl").read_text(encoding="utf-8").strip().splitlines()
+        self.assertEqual(len(строки), 2)
+
+    def test_broken_keys_do_not_crash_the_schedule(self) -> None:
+        def падает():
+            raise OzonApiError("ключи не приняты")
+
+        with mock.patch.object(self.watch, "collect", падает):
+            self.assertEqual(self.watch.run(quiet=True), 1)
+
+    def test_quiet_cabinet_says_so(self) -> None:
+        self.assertIn("в порядке", self.watch.format_report([]))
+
+
 if __name__ == "__main__":
     unittest.main()

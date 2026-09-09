@@ -48,6 +48,9 @@ class SellerApi(ApiClient):
         self.guard = guard or WriteGuard.from_env()
         # Статусы заявок спрашиваются у Ozon один раз на клиента.
         self._states: Optional[List[str]] = None
+        # Рабочее сочетание «имя поля + приставка», если оно уже найдено.
+        self.filter_field: Optional[str] = None
+        self.state_prefix: str = "ORDER_STATE_"
 
     def auth_headers(self) -> Dict[str, str]:
         return {"Client-Id": self.client_id, "Api-Key": self.api_key}
@@ -183,6 +186,52 @@ class SellerApi(ApiClient):
     # Нулевое значение перечисления: валидатор Ozon такие обычно не принимает.
     UNSPECIFIED = "ORDER_STATE_UNSPECIFIED"
 
+    # Как может называться поле со статусами и как — сами статусы. Счётчик и
+    # фильтр — разные сообщения, и перечисления у них могут не совпадать;
+    # приставку поэтому пробуем во всех трёх видах.
+    FILTER_FIELDS = ("states", "state", "order_states", "orderStates", "supply_order_states", "statuses")
+    STATE_PREFIXES = ("ORDER_STATE_", "", "SUPPLY_ORDER_STATE_")
+
+    @classmethod
+    def spell_states(cls, states: List[str], prefix: str) -> List[str]:
+        """Переписать коды статусов с нужной приставкой."""
+        bare = [s[len("ORDER_STATE_"):] if s.startswith("ORDER_STATE_") else s for s in states]
+        return [prefix + name for name in bare]
+
+    def probe_supply_filter(self, *, pause: float = 0.4) -> Dict[str, Any]:
+        """Найти сочетание «имя поля + вид статуса», которое Ozon принимает.
+
+        Перебор вместо догадок: комбинаций полтора десятка, а ответ нужен один
+        раз — дальше рабочее сочетание запоминается на клиенте.
+        """
+        import time
+
+        states = self.supply_order_states()
+        attempts: List[Dict[str, str]] = []
+        for prefix in self.STATE_PREFIXES:
+            spelled = self.spell_states(states, prefix)
+            for field in self.FILTER_FIELDS:
+                body = {
+                    "filter": {field: spelled},
+                    "limit": 10,
+                    "sort_by": "ORDER_CREATION",
+                    "sort_dir": "DESC",
+                }
+                try:
+                    self.post("/v3/supply-order/list", body=body)
+                except OzonApiError as exc:
+                    attempts.append(
+                        {
+                            "поле": field,
+                            "вид": prefix or "без приставки",
+                            "ответ": str(exc).splitlines()[0][:120],
+                        }
+                    )
+                    time.sleep(pause)
+                    continue
+                return {"поле": field, "приставка": prefix, "попыток": len(attempts) + 1}
+        return {"поле": "", "приставка": "", "попыток": len(attempts), "попытки": attempts}
+
     STATE_PATTERN = re.compile(r"ORDER_STATE_[A-Z0-9_]+")
 
     def supply_order_states(self) -> List[str]:
@@ -229,10 +278,13 @@ class SellerApi(ApiClient):
         # неизвестные поля отбрасывает молча — отсюда и «список пуст» при
         # заведомо верных значениях. Отправляем все правдоподобные написания
         # сразу: лишние отсеются, нужное сработает.
-        state_filter: Dict[str, Any] = {
-            name: chosen
-            for name in ("states", "state", "order_states", "orderStates", "supply_order_states")
-        }
+        if self.filter_field:
+            # Сочетание уже подобрано перебором — отправляем ровно его.
+            state_filter: Dict[str, Any] = {
+                self.filter_field: self.spell_states(chosen, self.state_prefix)
+            }
+        else:
+            state_filter = {name: chosen for name in self.FILTER_FIELDS}
         body: Dict[str, Any] = {
             "filter": state_filter,
             "limit": limit,
@@ -246,13 +298,22 @@ class SellerApi(ApiClient):
             "filter": dict(state_filter),
             "paging": {"from_supply_order_id": 0, "limit": limit},
         }
-        return self.try_variants(
-            "POST",
-            [
-                ("/v3/supply-order/list", body),
-                ("/v2/supply-order/list", legacy),
-            ],
-        )
+        variants = [("/v3/supply-order/list", body), ("/v2/supply-order/list", legacy)]
+        try:
+            return self.try_variants("POST", variants)
+        except OzonApiError as exc:
+            # Фильтр не принят, а рабочее сочетание ещё не подобрано — самое
+            # время его найти и повторить, вместо того чтобы возвращать отказ.
+            if self.filter_field or "States" not in str(exc):
+                raise
+            found = self.probe_supply_filter()
+            if not found.get("поле"):
+                raise
+            self.filter_field = found["поле"]
+            self.state_prefix = found["приставка"]
+            return self.supply_orders(
+                states=states, limit=limit, last_id=last_id, sort_by=sort_by, sort_dir=sort_dir
+            )
 
     def supply_order(self, order_ids: Iterable[int]) -> Any:
         """Подробности по заявкам: склад, статус, таймслот, состав."""

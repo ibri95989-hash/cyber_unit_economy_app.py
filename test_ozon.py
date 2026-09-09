@@ -325,6 +325,47 @@ class SupplyOrderRequestShapeTest(unittest.TestCase):
         self.assertEqual(states, list(SellerApi.KNOWN_STATES))
         self.assertNotIn(SellerApi.UNSPECIFIED, states)
 
+    def test_unknown_filter_shape_is_found_by_probing(self) -> None:
+        """Счётчик и фильтр — разные сообщения, перечисления могут не совпадать."""
+        tried: list = []
+
+        def fake(self_, method, path, *, body=None, **kwargs):
+            if path.endswith("status/counter"):
+                return {"items": [{"order_state": "ORDER_STATE_IN_TRANSIT", "count": 4}]}
+            if path != "/v3/supply-order/list":
+                raise OzonApiError("404 page not found", status=404, path=path)
+            filters = body.get("filter") or {}
+            tried.append(sorted(filters))
+            values = filters.get("order_states") or []
+            if values and all(v.startswith("SUPPLY_ORDER_STATE_") for v in values):
+                return {"order_ids": ["7"]}
+            raise OzonApiError(
+                "invalid SupplyOrderListRequest_Filter.States: value must contain at least 1 item(s)",
+                status=400,
+                path=path,
+            )
+
+        api = self.api()
+        with mock.patch.object(SellerApi, "request", fake):
+            with mock.patch("time.sleep", lambda *_: None):
+                result = api.supply_orders(limit=10)
+        self.assertEqual(result["order_ids"], ["7"])
+        # Подобранное сочетание запомнено — следующий запрос идёт прямо в цель.
+        self.assertEqual(api.filter_field, "order_states")
+        self.assertEqual(api.state_prefix, "SUPPLY_ORDER_STATE_")
+
+    def test_probe_reports_every_attempt_when_nothing_works(self) -> None:
+        def dead(self_, method, path, *, body=None, **kwargs):
+            if path.endswith("status/counter"):
+                return {"items": [{"order_state": "ORDER_STATE_IN_TRANSIT", "count": 1}]}
+            raise OzonApiError("States: value must contain at least 1 item(s)", status=400, path=path)
+
+        with mock.patch.object(SellerApi, "request", dead):
+            found = self.api().probe_supply_filter(pause=0)
+        self.assertEqual(found["поле"], "")
+        self.assertTrue(found["попытки"])
+        self.assertIn("поле", found["попытки"][0])
+
     def test_filter_is_sent_under_every_plausible_field_name(self) -> None:
         """Имя поля неизвестно, а неизвестные поля Ozon отбрасывает молча."""
         ozon = FakeOzon()

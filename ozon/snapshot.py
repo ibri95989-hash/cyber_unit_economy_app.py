@@ -90,6 +90,7 @@ def collect(credentials: Optional[Credentials] = None, *, limit: int = 500) -> D
             _part("Товары", lambda: api.product_list(limit=min(limit, 100))),
             _part("Счётчик статусов поставок", api.supply_status_counter),
             _part("Статусы, отправленные в фильтр", api.supply_order_states),
+            _part("Подбор фильтра заявок", api.probe_supply_filter),
             _part("Заявки на поставку", lambda: api.supply_orders_detailed(limit=50)),
             _part("Аналитика продаж за 30 дней", lambda: api.analytics(limit=min(limit, 500))),
         ],

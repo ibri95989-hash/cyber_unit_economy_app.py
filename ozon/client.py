@@ -21,6 +21,9 @@ TIMEOUT = 30
 RETRIES = 3
 BACKOFF = 2.0
 RETRY_ON = {429, 500, 502, 503, 504}
+# Ozon ограничивает частоту запросов в секунду. Сообщение приходит и без кода
+# 429, поэтому узнаём его по тексту.
+RATE_LIMIT_MARKS = ("rate limit", "too many requests", "лимит запросов")
 
 
 def _error_text(payload: Any, fallback: str) -> str:
@@ -98,6 +101,16 @@ class ApiClient:
                 payload: Any = response.json() if response.content else {}
             except ValueError:
                 payload = response.text
+
+            message = _error_text(payload, "")
+            if (
+                response.status_code >= 400
+                and attempt < RETRIES - 1
+                and any(mark in message.lower() for mark in RATE_LIMIT_MARKS)
+            ):
+                log.warning("%s %s: упёрлись в лимит частоты, повтор", method, path)
+                time.sleep(1.0 + attempt)
+                continue
 
             if response.status_code in (401, 403):
                 raise OzonAuthError(

@@ -13,6 +13,8 @@
 """
 from __future__ import annotations
 
+import os
+import sys
 from typing import Any, Dict, List, Optional
 
 # В mcp 2.x класс переименовали из FastMCP в MCPServer, декораторы и запуск
@@ -235,7 +237,84 @@ def ozon_raw_call(api: str, method: str, path: str, body: Optional[Dict[str, Any
     return _safe(lambda: client.call(method, path, body))
 
 
-def main() -> None:
+def remote_server() -> Any:
+    """Тот же сервер, но доступный по сети и только по вашему ключу.
+
+    Нужен, когда спрашивать хочется с телефона: облачный Claude до домашнего
+    компьютера не дотянется, а до адреса в интернете — да. Без ключа сервер
+    не поднимается: открытый доступ к чужому кабинету недопустим.
+    """
+    import secrets as _secrets
+
+    from mcp.server.auth.provider import AccessToken
+    from mcp.server.auth.settings import AuthSettings
+
+    token = (os.environ.get("OZON_MCP_TOKEN") or "").strip()
+    if len(token) < 24:
+        raise SystemExit(
+            "Не задан OZON_MCP_TOKEN длиной хотя бы 24 символа.\n"
+            "Это пароль к вашему кабинету — нужен длинный и случайный.\n"
+            "Сгенерировать: python -m ozon.mcp_server --new-token"
+        )
+
+    url = (os.environ.get("OZON_MCP_URL") or "https://ozon.local").rstrip("/")
+
+    class OwnerToken:
+        """Пускает только по одному ключу — тому, что задан в окружении."""
+
+        async def verify_token(self, offered: str) -> Optional[AccessToken]:
+            if _secrets.compare_digest(offered, token):
+                return AccessToken(
+                    token=offered, client_id="owner", scopes=["ozon"], expires_at=None
+                )
+            return None
+
+    remote = _Server(
+        "ozon",
+        token_verifier=OwnerToken(),
+        auth=AuthSettings(
+            issuer_url=url,
+            resource_server_url=url,
+            required_scopes=["ozon"],
+            # Принадлежность токена проверяет наш собственный сверщик.
+            validate_token_resource=False,
+        ),
+    )
+    # Инструменты объявлены на локальном сервере — переносим их на сетевой,
+    # чтобы список не пришлось описывать дважды.
+    for tool in server._tool_manager.list_tools():
+        remote._tool_manager._tools[tool.name] = tool
+    return remote
+
+
+def main(argv: Optional[List[str]] = None) -> None:
+    args = list(argv if argv is not None else sys.argv[1:])
+    if "--new-token" in args:
+        import secrets as _secrets
+
+        print(_secrets.token_urlsafe(32))
+        return
+    if "--ensure-token" in args:
+        # Ключ доступа хранится там же, где ключи Ozon, и создаётся один раз.
+        import secrets as _secrets
+
+        from .config import save_env, value
+
+        token = value("OZON_MCP_TOKEN")
+        if not token or len(token) < 24:
+            token = _secrets.token_urlsafe(32)
+            save_env({"OZON_MCP_TOKEN": token})
+        os.environ["OZON_MCP_TOKEN"] = token
+        print(token)
+        return
+    if "--http" in args:
+        # Адрес и порт задаются при запуске: в конструктор их класть нельзя.
+        remote_server().run(
+            transport="streamable-http",
+            host=os.environ.get("OZON_MCP_HOST", "127.0.0.1"),
+            port=int(os.environ.get("OZON_MCP_PORT", "8765")),
+        )
+        return
     server.run()
 
 

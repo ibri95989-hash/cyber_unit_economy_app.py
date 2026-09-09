@@ -1262,5 +1262,49 @@ class WatchTest(unittest.TestCase):
         self.assertIn("в порядке", self.watch.format_report([]))
 
 
+class RemoteServerTest(unittest.TestCase):
+    """Сетевой режим: ключ обязателен, инструменты те же."""
+
+    def setUp(self) -> None:
+        try:
+            import mcp  # noqa: F401
+        except ImportError:
+            self.skipTest("пакет mcp не установлен")
+
+    def test_refuses_to_start_without_a_key(self) -> None:
+        from ozon import mcp_server
+
+        with mock.patch.dict(os.environ, {"OZON_MCP_TOKEN": ""}):
+            with self.assertRaises(SystemExit) as выход:
+                mcp_server.remote_server()
+        self.assertIn("OZON_MCP_TOKEN", str(выход.exception))
+
+    def test_refuses_a_short_key(self) -> None:
+        from ozon import mcp_server
+
+        with mock.patch.dict(os.environ, {"OZON_MCP_TOKEN": "коротко"}):
+            with self.assertRaises(SystemExit):
+                mcp_server.remote_server()
+
+    def test_tools_are_carried_over(self) -> None:
+        from ozon import mcp_server
+
+        with mock.patch.dict(os.environ, {"OZON_MCP_TOKEN": "д" * 40}):
+            remote = mcp_server.remote_server()
+        names = {tool.name for tool in remote._tool_manager.list_tools()}
+        self.assertIn("ozon_stocks", names)
+        self.assertIn("ozon_plan_supply", names)
+
+    def test_new_token_is_long_and_random(self) -> None:
+        from ozon import mcp_server
+
+        напечатано: list = []
+        with mock.patch("builtins.print", lambda value: напечатано.append(value)):
+            mcp_server.main(["--new-token"])
+            mcp_server.main(["--new-token"])
+        self.assertGreaterEqual(len(напечатано[0]), 24)
+        self.assertNotEqual(напечатано[0], напечатано[1])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -6,7 +6,9 @@
 """
 from __future__ import annotations
 
+import sys
+
 from ozon.mcp_server import main
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])

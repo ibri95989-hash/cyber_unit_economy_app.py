@@ -8,3 +8,7 @@ font = "sans serif"
 
 [server]
 headless = true
+
+[browser]
+# Панель работает с данными кабинета — телеметрия здесь лишняя.
+gatherUsageStats = false

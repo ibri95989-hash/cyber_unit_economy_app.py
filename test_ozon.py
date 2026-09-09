@@ -921,6 +921,84 @@ class SnapshotTest(unittest.TestCase):
         parts = {part["раздел"]: part for part in self.collect()["разделы"]}
         self.assertIn("Performance API", parts["Реклама"]["ошибка"])
 
+    def test_referral_campaigns_are_not_asked_for_products(self) -> None:
+        """У ссылок на блогеров нет ни товаров, ни ставок — метод бы отказал."""
+        from ozon.client import ApiClient
+        from ozon.snapshot import collect
+
+        asked: list = []
+
+        def fake(self_, method, path, *, body=None, **kwargs):
+            asked.append(path)
+            if path == "/api/client/token":
+                return {"access_token": "T", "expires_in": 1800}
+            if path == "/api/client/campaign":
+                return {"list": [
+                    {"id": "1", "advObjectType": "REF_BLOGGER", "state": "CAMPAIGN_STATE_RUNNING"},
+                    {"id": "2", "advObjectType": "SKU", "state": "CAMPAIGN_STATE_RUNNING"},
+                ]}
+            if path.endswith("/v2/products"):
+                return {"products": [{"sku": 5, "bid": 30}]}
+            if path == "/api/client/statistics":
+                return {"UUID": "u"}
+            if path.startswith("/api/client/statistics/u"):
+                return {"state": "OK"}
+            if path == "/api/client/statistics/report":
+                return {"rows": []}
+            if path.endswith("statistics/phrases"):
+                return {"rows": []}
+            raise OzonApiError("нет метода", status=404, path=path)
+
+        creds = Credentials(perf_client_id="id", perf_client_secret="secret")
+        with mock.patch.object(ApiClient, "request", fake):
+            with mock.patch.object(ApiClient, "request_raw", lambda *a, **k: b'{"rows": []}'):
+                parts = {p["раздел"]: p for p in collect(creds)["разделы"]}
+        self.assertNotIn("/api/client/campaign/1/v2/products", asked)
+        self.assertIn("/api/client/campaign/2/v2/products", asked)
+        self.assertEqual(parts["Кампании по видам"]["данные"]["реферальные_ссылки"], [1])
+
+    def test_zip_report_is_unpacked(self) -> None:
+        """Отчёт по нескольким кампаниям приходит архивом из csv."""
+        import io
+        import zipfile
+
+        from ozon.client import ApiClient
+        from ozon.performance import PerformanceApi
+
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w") as archive:
+            archive.writestr(
+                "35779355_27.08.2026-11.09.2026.csv",
+                "Дата;Показы;Расход\n01.09.2026;120;340,50\n02.09.2026;95;210,00\n",
+            )
+        api = PerformanceApi(Credentials(perf_client_id="id", perf_client_secret="secret"))
+        with mock.patch.object(ApiClient, "request_raw", lambda *a, **k: buffer.getvalue()):
+            report = api.statistics_report("u-1")
+        rows = report["кампании"]["35779355_27.08.2026-11.09.2026.csv"]
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["Показы"], "120")
+        self.assertEqual(rows[1]["Расход"], "210,00")
+
+    def test_phrases_require_campaigns(self) -> None:
+        """Без списка кампаний метод отвечает «empty campaign»."""
+        from ozon.client import ApiClient
+        from ozon.performance import PerformanceApi
+
+        sent: list = []
+
+        def fake(self_, method, path, *, body=None, **kwargs):
+            if path == "/api/client/token":
+                return {"access_token": "T", "expires_in": 1800}
+            if path == "/api/client/campaign":
+                return {"list": [{"id": "7", "advObjectType": "SEARCH_PROMO"}]}
+            sent.append(body)
+            return {"rows": []}
+
+        api = PerformanceApi(Credentials(perf_client_id="id", perf_client_secret="secret"))
+        with mock.patch.object(ApiClient, "request", fake):
+            api.phrases()
+        self.assertEqual(sent[0]["campaigns"], ["7"])
+
     def test_advertising_sections_appear_with_keys(self) -> None:
         from ozon.client import ApiClient
         from ozon.snapshot import collect
@@ -929,7 +1007,8 @@ class SnapshotTest(unittest.TestCase):
             if path == "/api/client/token":
                 return {"access_token": "T", "expires_in": 1800}
             if path == "/api/client/campaign":
-                return {"list": [{"id": "987", "title": "Трафареты"}]}
+                return {"list": [{"id": "987", "title": "Трафареты", "advObjectType": "SKU",
+                                  "state": "CAMPAIGN_STATE_RUNNING"}]}
             if path.endswith("/v2/products"):
                 return {"products": [{"sku": 1, "bid": 30}]}
             if path == "/api/client/statistics":
@@ -942,9 +1021,10 @@ class SnapshotTest(unittest.TestCase):
 
         creds = Credentials(perf_client_id="id", perf_client_secret="secret")
         with mock.patch.object(ApiClient, "request", fake):
-            parts = {p["раздел"]: p for p in collect(creds)["разделы"]}
+            with mock.patch.object(ApiClient, "request_raw", lambda *a, **k: b'{"rows": []}'):
+                parts = {p["раздел"]: p for p in collect(creds)["разделы"]}
         self.assertEqual(parts["Рекламные кампании"]["записей"], 1)
-        self.assertIn("Товары и ставки в кампаниях", parts)
+        self.assertIn("Товары и ставки в трафаретах", parts)
         self.assertIn("Отчёт по кампаниям за 14 дней", parts)
         self.assertIn("Нет ключей Seller API", parts["Кабинет продавца"]["ошибка"])
 

@@ -100,25 +100,51 @@ def _advertising(creds: Credentials) -> List[Dict[str, Any]]:
     parts = [_part("Рекламные кампании", lambda: ads.campaigns())]
 
     try:
-        ids = _campaign_ids(ads.campaigns())
+        rows = ads.campaign_rows()
     except OzonApiError:
-        ids = []
+        return parts
 
-    if ids:
+    # Реферальные кампании (блогеры, ВК) товарами и ставками не управляют —
+    # спрашивать у них состав бессмысленно, метод отвечает «не найдена».
+    sku = ads.campaigns_of_type(ads.PRODUCT_TYPES)
+    search = ads.campaigns_of_type(ads.SEARCH_TYPES)
+    referral = ads.campaigns_of_type(ads.REFERRAL_TYPES)
+
+    parts.append(
+        {
+            "раздел": "Кампании по видам",
+            "записей": len(rows),
+            "данные": {
+                "товарные": sku,
+                "продвижение_в_поиске": search,
+                "реферальные_ссылки": referral,
+                "работают": [r.get("id") for r in rows if r.get("state") == "CAMPAIGN_STATE_RUNNING"],
+            },
+        }
+    )
+
+    if sku:
         parts.append(
-            _part("Товары и ставки в кампаниях", lambda: {
-                str(cid): ads.products(cid) for cid in ids[:5]
-            })
+            _part("Товары и ставки в трафаретах", lambda: {str(c): ads.products(c) for c in sku[:5]})
+        )
+    if search:
+        parts.append(
+            _part(
+                "Товары в продвижении в поиске",
+                lambda: {str(c): ads.search_promo_products(c) for c in search[:5]},
+            )
         )
 
+    paid = sku + search
+    if paid:
         def report() -> Any:
-            task = ads.statistics(ids[:10])
+            task = ads.statistics(paid[:10])
             uuid = (task or {}).get("UUID") or (task or {}).get("uuid")
             return ads.statistics_wait(str(uuid)) if uuid else task
 
         parts.append(_part("Отчёт по кампаниям за 14 дней", report))
+        parts.append(_part("Поисковые фразы за 30 дней", lambda: ads.phrases(campaign_ids=paid)))
 
-    parts.append(_part("Поисковые фразы за 30 дней", lambda: ads.phrases()))
     return parts
 
 

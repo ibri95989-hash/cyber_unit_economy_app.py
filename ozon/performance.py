@@ -8,6 +8,10 @@ from __future__ import annotations
 
 import time
 from datetime import date, timedelta
+import csv
+import io
+import json
+import zipfile
 from typing import Any, Dict, Iterable, List, Optional
 
 from .client import ApiClient
@@ -16,6 +20,26 @@ from .errors import OzonApiError, OzonAuthError
 from .safety import WriteGuard
 
 BASE_URL = "https://api-performance.ozon.ru"
+
+
+def _unpack_report(raw: bytes) -> Dict[str, List[Dict[str, str]]]:
+    """Разобрать zip с отчётами: имя файла — номер кампании и период."""
+    out: Dict[str, List[Dict[str, str]]] = {}
+    with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+        for name in archive.namelist():
+            text = archive.read(name).decode("utf-8-sig", errors="replace")
+            # Ozon отдаёт csv с точкой с запятой; первая строка бывает служебной.
+            rows = list(csv.reader(io.StringIO(text), delimiter=";"))
+            rows = [r for r in rows if any(cell.strip() for cell in r)]
+            if not rows:
+                continue
+            header = rows[0] if len(rows[0]) > 1 else (rows[1] if len(rows) > 1 else rows[0])
+            body = rows[rows.index(header) + 1:]
+            out[name] = [
+                {header[i].strip(): cell.strip() for i, cell in enumerate(row) if i < len(header)}
+                for row in body
+            ]
+    return out
 TOKEN_PATH = "/api/client/token"
 # Обновляем токен заранее, чтобы длинный отчёт не оборвался на середине.
 TOKEN_MARGIN = 120
@@ -93,6 +117,32 @@ class PerformanceApi(ApiClient):
         if adv_object_type:
             params["advObjectType"] = adv_object_type
         return self.get("/api/client/campaign", params=params or None)
+
+    # Что за кампания, видно по advObjectType. Реферальные ссылки на блогеров
+    # и ВК товарами не управляют: ставок и SKU у них нет, спрашивать нечего.
+    PRODUCT_TYPES = ("SKU", "ALL_SKU_PROMO", "BANNER")
+    SEARCH_TYPES = ("SEARCH_PROMO",)
+    REFERRAL_TYPES = ("REF_BLOGGER", "REF_VK")
+
+    def campaign_rows(self) -> List[Dict[str, Any]]:
+        """Список кампаний в виде записей."""
+        payload = self.campaigns() or {}
+        rows = payload.get("list") or payload.get("campaigns") or []
+        return [row for row in rows if isinstance(row, dict)]
+
+    def campaigns_of_type(self, types: Iterable[str], *, running_only: bool = False) -> List[int]:
+        """Номера кампаний нужного вида."""
+        wanted = set(types)
+        found: List[int] = []
+        for row in self.campaign_rows():
+            if row.get("advObjectType") not in wanted:
+                continue
+            if running_only and row.get("state") != "CAMPAIGN_STATE_RUNNING":
+                continue
+            raw = row.get("id")
+            if str(raw).isdigit():
+                found.append(int(raw))
+        return found
 
     def campaign_objects(self, campaign_id: int) -> Any:
         """Что рекламируется в кампании."""
@@ -257,8 +307,18 @@ class PerformanceApi(ApiClient):
         return self.get(f"/api/client/statistics/{uuid}")
 
     def statistics_report(self, uuid: str) -> Any:
-        """Забрать готовый отчёт."""
-        return self.get("/api/client/statistics/report", params={"UUID": uuid})
+        """Забрать готовый отчёт.
+
+        По нескольким кампаниям Ozon отдаёт zip с отдельным csv на каждую —
+        разбираем его здесь, чтобы наружу уходили обычные записи.
+        """
+        raw = self.request_raw("GET", "/api/client/statistics/report", params={"UUID": uuid})
+        if not raw.startswith(b"PK"):
+            try:
+                return json.loads(raw.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                return {"отчёт": raw.decode("utf-8", errors="replace")[:5000]}
+        return {"кампании": _unpack_report(raw)}
 
     def statistics_wait(self, uuid: str, *, attempts: int = 20, pause: float = 3.0) -> Any:
         """Дождаться отчёта и вернуть его содержимое."""
@@ -272,12 +332,27 @@ class PerformanceApi(ApiClient):
             time.sleep(pause)
         raise OzonApiError(f"Отчёт {uuid} не готов за {int(attempts * pause)} секунд.")
 
-    def phrases(self, *, date_from: Optional[str] = None, date_to: Optional[str] = None, page_size: int = 500) -> Any:
-        """Показы и расход по поисковым фразам за период."""
+    def phrases(
+        self,
+        *,
+        campaign_ids: Optional[List[int]] = None,
+        date_from: Optional[str] = None,
+        date_to: Optional[str] = None,
+        page_size: int = 500,
+    ) -> Any:
+        """Показы и расход по поисковым фразам за период.
+
+        Без кампаний метод отвечает «empty campaign», поэтому по умолчанию
+        берём те, где фразы вообще бывают: поиск и трафареты.
+        """
         today = date.today()
+        ids = campaign_ids or self.campaigns_of_type(self.SEARCH_TYPES + self.PRODUCT_TYPES)
+        if not ids:
+            raise OzonApiError("В кабинете нет кампаний, у которых бывают поисковые фразы.")
         return self.post(
             "/api/client/statistics/phrases",
             body={
+                "campaigns": [str(c) for c in ids],
                 "dateFrom": date_from or (today - timedelta(days=30)).isoformat(),
                 "dateTo": date_to or today.isoformat(),
                 "page": 0,

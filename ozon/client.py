@@ -130,6 +130,25 @@ class ApiClient:
 
         raise OzonApiError(f"{method} {path}: не удалось достучаться до Ozon ({last})", path=path)
 
+    def request_raw(self, method: str, path: str, **kwargs: Any) -> bytes:
+        """Ответ как есть, без разбора JSON: отчёты Ozon приходят архивом."""
+        url = path if path.startswith("http") else f"{self.base_url}{path}"
+        response = self.session.request(
+            method.upper(),
+            url,
+            params=dict(kwargs.get("params") or {}) or None,
+            json=dict(kwargs["body"]) if kwargs.get("body") is not None else None,
+            headers={**self.auth_headers(), **(kwargs.get("headers") or {})},
+            timeout=self.timeout,
+        )
+        if response.status_code >= 400:
+            raise OzonApiError(
+                _error_text(response.text, f"HTTP {response.status_code}"),
+                status=response.status_code,
+                path=path,
+            )
+        return response.content
+
     def get(self, path: str, **kwargs: Any) -> Any:
         return self.request("GET", path, **kwargs)
 

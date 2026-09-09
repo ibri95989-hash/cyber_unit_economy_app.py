@@ -112,8 +112,8 @@ def plan_supply(
     api: SellerApi,
     *,
     items: List[Dict[str, Any]],
-    cluster_ids: Optional[List[int]] = None,
-    drop_off_point_warehouse_id: int = 0,
+    macrolocal_cluster_id: Optional[int] = None,
+    drop_off_warehouse_id: int = 0,
     days: int = 14,
 ) -> SupplyPlan:
     """Создать черновик поставки и собрать по нему склады и интервалы.
@@ -127,53 +127,57 @@ def plan_supply(
         if not item.get("sku") or int(item.get("quantity", 0)) <= 0:
             raise OzonApiError(f"В позиции не хватает sku или количества: {item}")
 
-    if not cluster_ids:
-        clusters = _walk(api.clusters(), ["id"])
-        cluster_ids = [int(c["id"]) for c in clusters[:1] if str(c.get("id", "")).isdigit()]
-        if not cluster_ids:
+    clusters = api.clusters()
+    if macrolocal_cluster_id is None:
+        candidates = [
+            int(c["macrolocal_cluster_id"])
+            for c in _walk(clusters, ["macrolocal_cluster_id"])
+            if str(c.get("macrolocal_cluster_id", "")).isdigit()
+        ]
+        if not candidates:
             raise OzonApiError(
-                "Не удалось определить кластер поставки — задайте cluster_ids явно."
+                "Ozon не вернул ни одного кластера — укажите macrolocal_cluster_id явно."
             )
+        macrolocal_cluster_id = candidates[0]
 
     created = api.draft_create(
-        cluster_ids=cluster_ids,
+        macrolocal_cluster_id=macrolocal_cluster_id,
         items=items,
-        drop_off_point_warehouse_id=drop_off_point_warehouse_id,
+        drop_off_warehouse_id=drop_off_warehouse_id,
         apply=True,
     )
-    operation_id = str((created or {}).get("operation_id") or "")
-    if not operation_id:
-        raise OzonApiError("Ozon не вернул operation_id черновика.", payload=created)
-
-    info = _poll(lambda: api.draft_info(operation_id), what="Расчёт черновика")
-    draft_raw = (info or {}).get("draft_id") or (info or {}).get("id")
+    draft_raw = (created or {}).get("draft_id")
     if not draft_raw:
-        raise OzonApiError("Ozon не вернул draft_id.", payload=info)
+        errors = (created or {}).get("errors")
+        raise OzonApiError(
+            f"Ozon не создал черновик: {errors or created}", payload=created
+        )
     draft_id = int(draft_raw)
 
-    warehouses = _walk(info, ["warehouse_id"]) or _walk(info, ["id", "name"])
-    warehouse_ids = []
-    for warehouse in warehouses:
-        raw = warehouse.get("warehouse_id") or warehouse.get("id")
-        if str(raw).isdigit():
-            warehouse_ids.append(int(raw))
+    # Склады берём из описания кластеров: черновик их отдельно не возвращает.
+    warehouses = [
+        w
+        for w in _walk(clusters, ["warehouse_id"])
+        if str(w.get("warehouse_id", "")).isdigit()
+    ]
+    warehouse_ids = [int(w["warehouse_id"]) for w in warehouses]
 
     timeslots: List[Dict[str, Any]] = []
     if warehouse_ids:
         try:
             slots = api.draft_timeslots(draft_id=draft_id, warehouse_ids=warehouse_ids[:10], days=days)
-            timeslots = _walk(slots, ["from_in_timezone", "to_in_timezone"])
+            timeslots = _walk(slots, ["from_in_timezone", "to_in_timezone"]) or _walk(slots, ["from", "to"])
         except OzonApiError:
             # Интервалы можно запросить и позже — план от этого не разваливается.
             timeslots = []
 
     return SupplyPlan(
         draft_id=draft_id,
-        operation_id=operation_id,
+        operation_id="",
         items=items,
         warehouses=warehouses,
         timeslots=timeslots,
-        raw_info=info,
+        raw_info=created,
     )
 
 
@@ -212,8 +216,9 @@ def create_supply(
         ]
         if not slots:
             raise OzonApiError("Не выбран интервал приёмки и подставить нечего.")
-        timeslot_from = str(slots[0]["from_in_timezone"])
-        timeslot_to = str(slots[0]["to_in_timezone"])
+        first = slots[0]
+        timeslot_from = str(first.get("from_in_timezone") or first.get("from"))
+        timeslot_to = str(first.get("to_in_timezone") or first.get("to"))
 
     created = api.supply_create(
         draft_id=plan.draft_id,

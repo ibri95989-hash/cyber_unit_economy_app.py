@@ -177,7 +177,8 @@ with supplies_tab:
         # Больше сотни за запрос Ozon не отдаёт.
         limit = st.slider("Сколько показать", 10, 100, 50, step=10, key="supply_limit")
         try:
-            payload = seller_call("supply_orders", limit=limit)
+            # v3 отдаёт только номера заявок, подробности берутся вторым запросом.
+            payload = seller_call("supply_orders_detailed", limit=limit)
             table = show(payload, "Активных заявок на поставку нет.")
         except OzonApiError as exc:
             fail(exc)
@@ -187,7 +188,7 @@ with supplies_tab:
         st.subheader("Подробности заявки")
         order_id = st.number_input(
             "Номер заявки", min_value=0, step=1, value=0, key="supply_id",
-            help="Возьмите supply_order_id из таблицы выше.",
+            help="Возьмите order_id из таблицы выше.",
         )
         if order_id:
             col_a, col_b = st.columns(2)

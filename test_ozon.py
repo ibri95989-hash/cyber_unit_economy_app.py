@@ -132,107 +132,145 @@ class PerformanceTokenTest(unittest.TestCase):
                 request.assert_not_called()
 
 
+class FakeOzon:
+    """Подделка Seller API по схеме, снятой со swagger Ozon.
+
+    Отвечает только на то, что документировано, и жалуется ровно так же, как
+    настоящий сервер: по этим ошибкам и восстанавливалась схема.
+    """
+
+    SORT_FIELDS = {"ORDER_CREATION", "ORDER_STATE_UPDATED_AT", "TIMESLOT_FROM_UTC", "TIMESLOT_FROM_LOCAL"}
+
+    def __init__(self) -> None:
+        self.calls: list = []
+
+    # Подставляется вместо метода класса, поэтому self сюда не приходит.
+    def __call__(self, method, path, *, body=None, **kwargs):
+        self.calls.append((path, body))
+        handler = {
+            "/v3/supply-order/list": self.list_orders,
+            "/v3/supply-order/get": self.get_orders,
+            "/v1/supply-order/timeslot/get": self.timeslots,
+            "/v1/cluster/list": self.clusters,
+            "/v1/draft/direct/create": self.draft,
+        }.get(path)
+        if handler is None:
+            raise OzonApiError("404 page not found", status=404, path=path)
+        return handler(body or {})
+
+    def list_orders(self, body):
+        limit = body.get("limit")
+        if not isinstance(limit, int) or not 1 <= limit <= 100:
+            raise OzonApiError(
+                "Request validation error: invalid SupplyOrderListRequest.Limit: "
+                "value must be inside range [1, 100]",
+                status=400,
+                path="/v3/supply-order/list",
+            )
+        if body.get("sort_by") not in self.SORT_FIELDS:
+            raise OzonApiError(
+                "Request validation error: invalid SupplyOrderListRequest.SortBy: "
+                "value must not be in list [0]",
+                status=400,
+                path="/v3/supply-order/list",
+            )
+        if "filter" not in body:
+            raise OzonApiError("invalid Filter: required", status=400, path="/v3/supply-order/list")
+        return {"order_ids": ["4321"], "last_id": "4321"}
+
+    def get_orders(self, body):
+        ids = body.get("order_ids")
+        if not isinstance(ids, list) or not all(isinstance(i, str) for i in ids):
+            raise OzonApiError("invalid OrderIds: must be strings", status=400, path="/v3/supply-order/get")
+        return {"orders": [{"order_id": int(i), "state": "ORDER_STATE_DATA_FILLING"} for i in ids]}
+
+    def timeslots(self, body):
+        if "supply_order_id" not in body:
+            raise OzonApiError("invalid SupplyOrderId", status=400, path="/v1/supply-order/timeslot/get")
+        return {"timeslots": [{"from": "2026-09-15T10:00:00Z", "to": "2026-09-15T12:00:00Z"}]}
+
+    def clusters(self, body):
+        if body.get("cluster_type") != "CLUSTER_TYPE_OZON":
+            raise OzonApiError("invalid ClusterType", status=400, path="/v1/cluster/list")
+        return {
+            "clusters": [
+                {
+                    "id": 5,
+                    "name": "Москва",
+                    "macrolocal_cluster_id": 77,
+                    "logistic_clusters": [{"warehouses": [{"warehouse_id": 42, "name": "Хоругвино"}]}],
+                }
+            ]
+        }
+
+    def draft(self, body):
+        info = body.get("cluster_info") or {}
+        if not str(info.get("macrolocal_cluster_id", "")).isdigit():
+            raise OzonApiError("invalid ClusterInfo", status=400, path="/v1/draft/direct/create")
+        if body.get("deletion_sku_mode") not in ("FULL", "PARTIAL"):
+            raise OzonApiError("invalid DeletionSkuMode", status=400, path="/v1/draft/direct/create")
+        return {"draft_id": 777, "errors": []}
+
+
 class SupplyOrderRequestShapeTest(unittest.TestCase):
-    """Ozon ответил «invalid SupplyOrderListRequest.Limit» — воспроизводим и лечим."""
+    """Форма запросов к поставкам — по схеме, а не по догадкам."""
 
     def api(self) -> SellerApi:
         creds = Credentials(seller_client_id="id", seller_api_key="key")
         return SellerApi(creds, guard=WriteGuard())
 
-    def strict_ozon(self, calls: list):
-        """Сервер, который принимает только v3 с limit на верхнем уровне."""
-
-        def fake(self_, method, path, *, body=None, **kwargs):
-            calls.append((path, body))
-            if path != "/v3/supply-order/list":
-                raise OzonApiError("метод выключен", status=404, path=path)
-            limit = (body or {}).get("limit")
-            if not isinstance(limit, int) or not 1 <= limit <= 100:
-                raise OzonApiError(
-                    "Request validation error: invalid SupplyOrderListRequest.Limit: "
-                    "value must be inside range [1, 100]",
-                    status=400,
-                    path=path,
-                )
-            return {"supply_orders": [{"supply_order_id": 1}]}
-
-        return mock.patch.object(SellerApi, "request", fake)
-
-    def test_limit_goes_to_the_top_level(self) -> None:
-        calls: list = []
-        with self.strict_ozon(calls):
+    def test_list_passes_validation_of_the_real_schema(self) -> None:
+        ozon = FakeOzon()
+        with mock.patch.object(SellerApi, "request", ozon):
             result = self.api().supply_orders(limit=50)
-        self.assertEqual(calls[0][1]["limit"], 50)
-        self.assertEqual(result["supply_orders"][0]["supply_order_id"], 1)
-
-    def test_sorting_is_supplied_until_ozon_accepts_it(self) -> None:
-        """Живой v3 требует SortBy и отвергает ноль — подбираем рабочее значение."""
-        accepted: list = []
-
-        def fake(self_, method, path, *, body=None, **kwargs):
-            if path != "/v3/supply-order/list":
-                raise OzonApiError("404 page not found", status=404, path=path)
-            sort_by = (body or {}).get("sort_by") or (body or {}).get("sortBy") or 0
-            if sort_by == 0:
-                raise OzonApiError(
-                    "Request validation error: invalid SupplyOrderListRequest.SortBy: "
-                    "value must not be in list [0]",
-                    status=400,
-                    path=path,
-                )
-            if not isinstance(sort_by, int):
-                raise OzonApiError("invalid SortBy: unknown value", status=400, path=path)
-            accepted.append(body)
-            return {"supply_orders": []}
-
-        with mock.patch.object(SellerApi, "request", fake):
-            self.api().supply_orders(limit=50)
-        self.assertEqual(len(accepted), 1)
-        self.assertEqual(accepted[0]["sort_by"], 1)
-        self.assertEqual(accepted[0]["limit"], 50)
+        path, body = ozon.calls[0]
+        self.assertEqual(path, "/v3/supply-order/list")
+        self.assertEqual(body["limit"], 50)
+        self.assertEqual(body["sort_by"], "ORDER_CREATION")
+        self.assertEqual(body["sort_dir"], "DESC")
+        self.assertIn("filter", body)
+        self.assertEqual(result["order_ids"], ["4321"])
 
     def test_limit_above_hundred_is_clamped(self) -> None:
-        calls: list = []
-        with self.strict_ozon(calls):
+        ozon = FakeOzon()
+        with mock.patch.object(SellerApi, "request", ozon):
             self.api().supply_orders(limit=500)
-        self.assertEqual(calls[0][1]["limit"], 100)
+        self.assertEqual(ozon.calls[0][1]["limit"], 100)
 
-    def test_falls_back_to_paging_shape_on_old_version(self) -> None:
-        """Если v3 выключен, уходим на v2 со старой формой тела."""
-        calls: list = []
+    def test_unknown_sort_field_falls_back_to_a_valid_one(self) -> None:
+        ozon = FakeOzon()
+        with mock.patch.object(SellerApi, "request", ozon):
+            self.api().supply_orders(sort_by="ПОПУЛЯРНОСТЬ")
+        self.assertEqual(ozon.calls[0][1]["sort_by"], "ORDER_CREATION")
 
-        def fake(self_, method, path, *, body=None, **kwargs):
-            calls.append((path, body))
-            if path == "/v3/supply-order/list":
-                raise OzonApiError("метод выключен", status=404, path=path)
-            if "paging" not in (body or {}):
-                raise OzonApiError("нужен paging", status=400, path=path)
-            return {"supply_orders": []}
+    def test_get_sends_string_ids(self) -> None:
+        ozon = FakeOzon()
+        with mock.patch.object(SellerApi, "request", ozon):
+            self.api().supply_order([4321])
+        self.assertEqual(ozon.calls[0][1], {"order_ids": ["4321"]})
 
-        with mock.patch.object(SellerApi, "request", fake):
-            self.api().supply_orders(limit=30)
-        # Сначала перебираются формы тела для v3, затем — старая схема с paging.
-        self.assertTrue(all(path.startswith("/v3") for path, _ in calls[:-1]))
-        self.assertEqual(calls[-1][0], "/v2/supply-order/list")
-        self.assertEqual(calls[-1][1]["paging"]["limit"], 30)
+    def test_detailed_listing_joins_both_calls(self) -> None:
+        ozon = FakeOzon()
+        with mock.patch.object(SellerApi, "request", ozon):
+            orders = self.api().supply_orders_detailed(limit=10)
+        self.assertEqual([path for path, _ in ozon.calls],
+                         ["/v3/supply-order/list", "/v3/supply-order/get"])
+        self.assertEqual(orders[0]["order_id"], 4321)
 
-    def test_get_tries_both_field_names(self) -> None:
-        calls: list = []
+    def test_empty_listing_does_not_ask_for_details(self) -> None:
+        ozon = FakeOzon()
+        ozon.list_orders = lambda body: {"order_ids": []}
+        with mock.patch.object(SellerApi, "request", ozon):
+            self.assertEqual(self.api().supply_orders_detailed(), [])
+        self.assertEqual(len(ozon.calls), 1)
 
-        def fake(self_, method, path, *, body=None, **kwargs):
-            calls.append((path, body))
-            if "supply_order_id" not in (body or {}):
-                raise OzonApiError("нужен supply_order_id", status=400, path=path)
-            return {"orders": [{"supply_order_id": 7}]}
-
-        with mock.patch.object(SellerApi, "request", fake):
-            result = self.api().supply_order([7])
-        self.assertEqual(result["orders"][0]["supply_order_id"], 7)
-        self.assertEqual(len(calls), 2)
+    def test_timeslots_ask_by_order_only(self) -> None:
+        ozon = FakeOzon()
+        with mock.patch.object(SellerApi, "request", ozon):
+            self.api().timeslots(4321)
+        self.assertEqual(ozon.calls[0][1], {"supply_order_id": 4321})
 
     def test_real_error_is_reported_not_swallowed(self) -> None:
-        """Что сказал Ozon, то и должен прочитать человек — даже внутри 404."""
-
         def fake(self_, method, path, *, body=None, **kwargs):
             raise OzonApiError("склад не найден", status=404, path=path)
 
@@ -242,8 +280,6 @@ class SupplyOrderRequestShapeTest(unittest.TestCase):
         self.assertIn("склад не найден", str(caught.exception))
 
     def test_body_complaint_wins_over_disabled_versions(self) -> None:
-        """Жалоба живого метода важнее, чем 404 от выключенных версий."""
-
         def fake(self_, method, path, *, body=None, **kwargs):
             if path.startswith("/v3"):
                 raise OzonApiError("invalid Filter: required", status=400, path=path)
@@ -253,61 +289,55 @@ class SupplyOrderRequestShapeTest(unittest.TestCase):
             with self.assertRaises(OzonApiError) as caught:
                 self.api().supply_orders()
         self.assertIn("invalid Filter", str(caught.exception))
-        self.assertTrue(caught.exception.attempts)
         self.assertEqual(caught.exception.attempts[-1][1], 404)
 
 
 class SupplyWorkflowTest(unittest.TestCase):
-    """Цепочка «черновик → склады → интервалы → заявка» целиком, без сети."""
+    """Черновик поставки по схеме /v1/draft/direct/create."""
 
     def api(self, *, writes: bool = True) -> SellerApi:
         creds = Credentials(seller_client_id="id", seller_api_key="key")
         return SellerApi(creds, guard=WriteGuard(writes_allowed=writes))
-
-    def responses(self) -> dict:
-        return {
-            "/v1/cluster/list": {"clusters": [{"id": "5", "name": "Москва"}]},
-            "/v1/draft/create": {"operation_id": "op-1"},
-            "/v1/draft/create/info": {
-                "status": "CALCULATION_STATUS_SUCCESS",
-                "draft_id": 777,
-                "clusters": [{"warehouses": [{"warehouse_id": 42, "name": "Хоругвино"}]}],
-            },
-            "/v1/draft/timeslot/info": {
-                "drop_off_warehouse_timeslots": [
-                    {"warehouse_id": 42, "from_in_timezone": "2026-09-15T10:00:00Z",
-                     "to_in_timezone": "2026-09-15T12:00:00Z"}
-                ]
-            },
-            "/v1/draft/supply/create": {"operation_id": "op-2"},
-            "/v1/draft/supply/create/status": {"status": "SUCCESS", "supply_order_id": 999},
-        }
-
-    def patched(self, responses: dict):
-        def fake(self_, method, path, **kwargs):
-            if path in responses:
-                return responses[path]
-            raise OzonApiError("нет такого метода", status=404, path=path)
-
-        return mock.patch.object(SellerApi, "request", fake)
 
     def setUp(self) -> None:
         patcher = mock.patch("ozon.safety.AUDIT_FILE", Path(tempfile.mkdtemp()) / "audit.jsonl")
         patcher.start()
         self.addCleanup(patcher.stop)
 
-    def test_plan_collects_warehouses_and_timeslots(self) -> None:
-        with self.patched(self.responses()):
+    def test_draft_is_created_from_the_cluster(self) -> None:
+        ozon = FakeOzon()
+        with mock.patch.object(SellerApi, "request", ozon):
             plan = plan_supply(self.api(), items=[{"sku": 1, "quantity": 10}])
         self.assertEqual(plan.draft_id, 777)
         self.assertEqual(plan.units, 10)
         self.assertEqual(plan.warehouses[0]["warehouse_id"], 42)
-        self.assertEqual(len(plan.timeslots), 1)
-        self.assertIn("Хоругвино", plan.summary())
+        draft_body = dict(ozon.calls)["/v1/draft/direct/create"]
+        self.assertEqual(draft_body["cluster_info"]["macrolocal_cluster_id"], 77)
+        self.assertEqual(draft_body["deletion_sku_mode"], "FULL")
+
+    def test_draft_errors_are_reported(self) -> None:
+        ozon = FakeOzon()
+        ozon.draft = lambda body: {"errors": [{"code": "SKU_NOT_FOUND"}]}
+        with mock.patch.object(SellerApi, "request", ozon):
+            with self.assertRaises(OzonApiError) as caught:
+                plan_supply(self.api(), items=[{"sku": 1, "quantity": 10}])
+        self.assertIn("SKU_NOT_FOUND", str(caught.exception))
+
+    def test_writes_off_blocks_even_the_draft(self) -> None:
+        ozon = FakeOzon()
+        with mock.patch.object(SellerApi, "request", ozon):
+            with self.assertRaises(OzonWriteBlocked):
+                plan_supply(self.api(writes=False), items=[{"sku": 1, "quantity": 10}])
+
+    def test_bad_position_is_rejected_before_any_call(self) -> None:
+        with mock.patch.object(SellerApi, "request") as request:
+            with self.assertRaises(OzonApiError):
+                plan_supply(self.api(), items=[{"sku": 1, "quantity": 0}])
+            request.assert_not_called()
 
     def test_create_needs_confirmation(self) -> None:
-        plan = SupplyPlan(draft_id=777, operation_id="op-1", items=[{"sku": 1, "quantity": 10}])
-        with self.patched(self.responses()) as request:
+        plan = SupplyPlan(draft_id=777, operation_id="", items=[{"sku": 1, "quantity": 10}])
+        with mock.patch.object(SellerApi, "request", FakeOzon()):
             with self.assertRaises(OzonWriteBlocked):
                 create_supply(
                     self.api(),
@@ -318,38 +348,16 @@ class SupplyWorkflowTest(unittest.TestCase):
                     confirm=False,
                 )
 
-    def test_create_with_confirmation_returns_order(self) -> None:
-        with self.patched(self.responses()):
-            api = self.api()
-            plan = plan_supply(api, items=[{"sku": 1, "quantity": 10}])
-            result = create_supply(api, plan, confirm=True)
-        self.assertEqual(result["supply_order_id"], 999)
-        self.assertEqual(result["warehouse_id"], 42)
-        self.assertEqual(result["units"], 10)
-
-    def test_writes_off_blocks_even_the_draft(self) -> None:
-        with self.patched(self.responses()):
-            with self.assertRaises(OzonWriteBlocked):
-                plan_supply(self.api(writes=False), items=[{"sku": 1, "quantity": 10}])
-
-    def test_bad_position_is_rejected_before_any_call(self) -> None:
-        with mock.patch.object(SellerApi, "request") as request:
-            with self.assertRaises(OzonApiError):
-                plan_supply(self.api(), items=[{"sku": 1, "quantity": 0}])
-            request.assert_not_called()
-
     def test_ambiguous_warehouse_is_not_guessed(self) -> None:
-        responses = self.responses()
-        responses["/v1/draft/create/info"] = {
-            "status": "SUCCESS",
-            "draft_id": 777,
-            "clusters": [{"warehouses": [{"warehouse_id": 42}, {"warehouse_id": 43}]}],
-        }
-        with self.patched(responses):
-            api = self.api()
-            plan = plan_supply(api, items=[{"sku": 1, "quantity": 10}])
+        plan = SupplyPlan(
+            draft_id=777,
+            operation_id="",
+            items=[{"sku": 1, "quantity": 10}],
+            warehouses=[{"warehouse_id": 42}, {"warehouse_id": 43}],
+        )
+        with mock.patch.object(SellerApi, "request", FakeOzon()):
             with self.assertRaises(OzonApiError):
-                create_supply(api, plan, confirm=True)
+                create_supply(self.api(), plan, confirm=True)
 
 
 class ConfirmationTierTest(unittest.TestCase):

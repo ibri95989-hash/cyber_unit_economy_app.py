@@ -136,113 +136,142 @@ class SellerApi(ApiClient):
     # Ozon принимает от 1 до 100 заявок за запрос.
     SUPPLY_LIMIT = 100
 
+    # Поля сортировки, которые понимает /v3/supply-order/list.
+    SORT_FIELDS = ("ORDER_CREATION", "ORDER_STATE_UPDATED_AT", "TIMESLOT_FROM_UTC", "TIMESLOT_FROM_LOCAL")
+
     def supply_orders(
         self,
         *,
         states: Optional[List[str]] = None,
         limit: int = 50,
-        from_supply_order_id: int = 0,
+        last_id: str = "",
+        sort_by: str = "ORDER_CREATION",
+        sort_dir: str = "DESC",
     ) -> Any:
-        """Список заявок на поставку.
+        """Список заявок на поставку. Возвращает номера заявок, без подробностей.
 
-        Тело запроса у версий разное: в v3 limit на верхнем уровне, в v2 и v1 —
-        внутри paging. Перебираем варианты и берём первый, который Ozon принял.
+        v3 требует сортировку и не принимает незаданное значение, поэтому
+        sort_by и sort_dir передаются всегда.
         """
         limit = max(1, min(int(limit), self.SUPPLY_LIMIT))
-        filters: Dict[str, Any] = {"states": list(states)} if states else {}
-        cursor: Dict[str, Any] = (
-            {"from_supply_order_id": from_supply_order_id} if from_supply_order_id else {}
-        )
-        base: Dict[str, Any] = {"limit": limit, "filter": filters, **cursor}
-
-        # v3 требует сортировку и не принимает незаданное значение (ноль).
-        # Какие именно значения он считает валидными, в открытой документации
-        # не сказано, поэтому перебираем: сперва числовой код, потом имена
-        # в двух принятых у Ozon стилях. Лишние поля метод игнорирует —
-        # это видно по тому, что paging из прошлой версии он молча пропустил.
-        sortings: List[Dict[str, Any]] = [
-            {"sort_by": 1, "sort_dir": 1},
-            {"sort_by": 1},
-            {"sort_by": "SUPPLY_ORDER_SORT_BY_CREATED_AT", "sort_dir": "SORT_DIR_DESC"},
-            {"sort_by": "CREATED_AT", "sort_dir": "DESC"},
-            {"sortBy": 1, "sortDir": 1},
-            {"sort_by": 2, "sort_dir": 1},
-        ]
-
-        variants: List[Any] = [("/v3/supply-order/list", {**base, **sort}) for sort in sortings]
-        # Вдруг сортировка нужна не всем кабинетам — оставляем и запрос без неё.
-        variants.append(("/v3/supply-order/list", base))
+        body: Dict[str, Any] = {
+            "filter": {"states": list(states or [])},
+            "limit": limit,
+            "sort_by": sort_by if sort_by in self.SORT_FIELDS else "ORDER_CREATION",
+            "sort_dir": "ASC" if str(sort_dir).upper() == "ASC" else "DESC",
+        }
+        if last_id:
+            body["last_id"] = last_id
 
         legacy: Dict[str, Any] = {
-            "filter": filters,
-            "paging": {"from_supply_order_id": from_supply_order_id, "limit": limit},
+            "filter": {"states": list(states or [])},
+            "paging": {"from_supply_order_id": 0, "limit": limit},
         }
-        variants += [("/v2/supply-order/list", legacy), ("/v1/supply-order/list", legacy)]
-
-        return self.try_variants("POST", variants)
-
-    def supply_order(self, order_ids: Iterable[int]) -> Any:
-        """Подробности по заявкам на поставку."""
-        ids = [int(x) for x in order_ids]
         return self.try_variants(
             "POST",
             [
-                ("/v3/supply-order/get", {"order_ids": ids}),
-                ("/v3/supply-order/get", {"supply_order_id": ids}),
-                ("/v2/supply-order/get", {"supply_order_id": ids}),
-                ("/v1/supply-order/get", {"supply_order_id": ids}),
+                ("/v3/supply-order/list", body),
+                ("/v2/supply-order/list", legacy),
             ],
         )
+
+    def supply_order(self, order_ids: Iterable[int]) -> Any:
+        """Подробности по заявкам: склад, статус, таймслот, состав."""
+        ids = [str(x) for x in order_ids]
+        variants: List[Any] = [("/v3/supply-order/get", {"order_ids": ids})]
+        if len(ids) == 1:
+            # Одиночная заявка доступна и через отдельный метод v1.
+            variants.append(("/v1/supply-order/details", {"order_id": int(ids[0])}))
+        return self.try_variants("POST", variants)
+
+    def supply_orders_detailed(self, *, limit: int = 50, states: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+        """Заявки вместе с подробностями — то, что показывается таблицей.
+
+        v3 отдаёт только номера заявок, поэтому за содержимым идём вторым
+        запросом. Пустой список означает, что активных заявок нет.
+        """
+        listing = self.supply_orders(limit=limit, states=states) or {}
+        ids = listing.get("order_ids") or listing.get("supply_order_id") or []
+        if not ids:
+            return []
+        details = self.supply_order([str(i) for i in ids]) or {}
+        orders = details.get("orders") or details.get("supply_orders") or []
+        return [order for order in orders if isinstance(order, dict)]
 
     def supply_status_counter(self) -> Any:
         """Сводка: сколько заявок в каком статусе."""
         return self.post("/v1/supply-order/status/counter", body={})
 
     def timeslots(self, supply_order_id: int, *, days: int = 14) -> Any:
-        """Свободные интервалы поставки на склад."""
-        today = date.today()
+        """Свободные интервалы приёмки для заявки.
+
+        Период не передаётся: Ozon сам решает, какие интервалы показать.
+        Параметр days сохранён для совместимости вызовов.
+        """
         return self.post(
             "/v1/supply-order/timeslot/get",
-            body={
-                "supply_order_id": supply_order_id,
-                "date_from": today.isoformat() + "T00:00:00Z",
-                "date_to": (today + timedelta(days=days)).isoformat() + "T00:00:00Z",
-            },
+            body={"supply_order_id": int(supply_order_id)},
         )
 
     def bundle(self, bundle_ids: Iterable[str], *, limit: int = 100) -> Any:
         """Состав поставки: какие товары и в каком количестве в ней едут."""
         return self.post(
             "/v1/supply-order/bundle",
-            body={"bundle_ids": [str(x) for x in bundle_ids], "limit": limit, "is_asc": True},
+            body={
+                "bundle_ids": [str(x) for x in bundle_ids],
+                "limit": max(1, min(int(limit), 100)),
+                "is_asc": True,
+            },
         )
 
     # ------------------------------------------------------ поставки: изменения
 
-    def draft_create(self, *, cluster_ids: List[int], items: List[Dict[str, Any]], drop_off_point_warehouse_id: int = 0, apply: bool = False) -> Any:
-        """Черновик поставки FBO: кластеры, товары и количество.
+    def draft_create(
+        self,
+        *,
+        macrolocal_cluster_id: int,
+        items: List[Dict[str, Any]],
+        drop_off_warehouse_id: int = 0,
+        seller_warehouse_id: int = 0,
+        apply: bool = False,
+    ) -> Any:
+        """Черновик поставки FBO: кластер, товары и количество.
 
         items — список вида [{"sku": 123456789, "quantity": 10}, ...].
+        Прямая поставка идёт через /direct/create, поставка через точку
+        отгрузки — через /crossdock/create с описанием доставки.
+        Ответ приходит сразу: {"draft_id": ..., "errors": [...]}.
         """
-        body: Dict[str, Any] = {
-            "cluster_ids": [str(c) for c in cluster_ids],
-            "items": items,
-            "type": "CREATE_TYPE_CROSSDOCK" if drop_off_point_warehouse_id else "CREATE_TYPE_DIRECT",
+        cluster_info = {"macrolocal_cluster_id": int(macrolocal_cluster_id), "items": items}
+        details = {
+            "macrolocal_cluster_id": macrolocal_cluster_id,
+            "positions": len(items),
+            "units": sum(int(i.get("quantity", 0)) for i in items),
         }
-        if drop_off_point_warehouse_id:
-            body["drop_off_point_warehouse_id"] = drop_off_point_warehouse_id
-        self.guard.check(
-            "supply.draft_create",
-            {"cluster_ids": cluster_ids, "positions": len(items), "units": sum(int(i.get("quantity", 0)) for i in items)},
-            apply=apply,
-        )
-        result = self.post("/v1/draft/create", body=body)
-        self.guard.audit("supply.draft_create", {"cluster_ids": cluster_ids, "positions": len(items)}, applied=True)
-        return result
+        self.guard.check("supply.draft_create", details, apply=apply)
 
-    def draft_info(self, operation_id: str) -> Any:
-        """Что получилось из черновика: доступные кластеры и склады."""
-        return self.post("/v1/draft/create/info", body={"operation_id": operation_id})
+        if drop_off_warehouse_id or seller_warehouse_id:
+            delivery: Dict[str, Any] = {"type": "DROPOFF" if drop_off_warehouse_id else "PICKUP"}
+            if drop_off_warehouse_id:
+                delivery["drop_off_warehouse"] = {"warehouse_id": str(drop_off_warehouse_id)}
+            if seller_warehouse_id:
+                delivery["seller_warehouse_id"] = int(seller_warehouse_id)
+            result = self.post(
+                "/v1/draft/crossdock/create",
+                body={
+                    "cluster_info": cluster_info,
+                    "delivery_info": delivery,
+                    "deletion_sku_mode": "FULL",
+                },
+            )
+        else:
+            result = self.post(
+                "/v1/draft/direct/create",
+                body={"cluster_info": cluster_info, "deletion_sku_mode": "FULL"},
+            )
+
+        self.guard.audit("supply.draft_create", details, applied=True)
+        return result
 
     def draft_timeslots(
         self,
@@ -310,8 +339,8 @@ class SellerApi(ApiClient):
         result = self.post(
             "/v1/supply-order/timeslot/update",
             body={
-                "supply_order_id": supply_order_id,
-                "timeslot": {"from_in_timezone": timeslot_from, "to_in_timezone": timeslot_to},
+                "supply_order_id": int(supply_order_id),
+                "timeslot": {"from": timeslot_from, "to": timeslot_to},
             },
         )
         self.guard.audit("supply.timeslot_update", details, applied=True)
@@ -321,7 +350,7 @@ class SellerApi(ApiClient):
         """Отменить заявку на поставку."""
         details = {"supply_order_id": supply_order_id}
         self.guard.check("supply.cancel", details, apply=apply, confirm=confirm)
-        result = self.post("/v1/supply-order/cancel", body={"supply_order_id": supply_order_id})
+        result = self.post("/v1/supply-order/cancel", body={"order_id": int(supply_order_id)})
         self.guard.audit("supply.cancel", details, applied=True)
         return result
 

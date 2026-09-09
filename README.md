@@ -293,3 +293,12 @@ claude mcp add ozon -- python -m ozon.mcp_server
 Версии методов поставок Ozon периодически меняет (v1 → v2 → v3); клиент
 пробует свежую версию и откатывается на предыдущую, но при массовом обновлении
 сверяйтесь с [документацией](https://docs.ozon.ru/api/seller).
+
+Схема запросов к поставкам снята со swagger Ozon: `/v3/supply-order/list`
+требует `filter`, `limit` (1..100) и сортировку — `sort_by` из набора
+`ORDER_CREATION`, `ORDER_STATE_UPDATED_AT`, `TIMESLOT_FROM_UTC`,
+`TIMESLOT_FROM_LOCAL` плюс `sort_dir` (`ASC`/`DESC`), а в ответе отдаёт только
+номера заявок: подробности берутся вторым запросом `/v3/supply-order/get` с
+`order_ids` строками. Черновик поставки создаётся не одним методом, а
+`/v1/draft/direct/create` (или `/crossdock/create`) и возвращает `draft_id`
+сразу, без ожидания операции. Эти формы закреплены тестами в `test_ozon.py`.

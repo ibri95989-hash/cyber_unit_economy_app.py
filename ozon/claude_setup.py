@@ -18,15 +18,23 @@ ROOT = Path(__file__).resolve().parent.parent
 SERVER_NAME = "ozon"
 
 
-def _meaningful(raw: str) -> str:
-    """Содержимое файла настроек без мусора.
+def read_config_text(path: Path) -> str:
+    """Прочитать файл настроек, что бы в нём ни лежало.
 
-    Windows после аварийного завершения дописывает файлы нулевыми байтами:
-    формально файл не пустой, но разбирать в нём нечего. Такой файл считаем
-    отсутствующим — терять в нём нечего, а отказ трогать его блокировал
-    настройку на ровном месте.
+    Встречается всякое: нулевые байты после аварийного завершения Windows,
+    UTF-16 вместо UTF-8, метка порядка байтов в начале. Всё это не поломка
+    настроек, а особенность записи, и разбирать её должны мы, а не человек.
+    Возвращается осмысленный текст; пустая строка означает «содержимого нет».
     """
-    return raw.replace("\x00", "").strip().lstrip("\ufeff")
+    raw = path.read_bytes()
+    for bom, encoding in ((b"\xff\xfe", "utf-16-le"), (b"\xfe\xff", "utf-16-be")):
+        if raw.startswith(bom):
+            text = raw[len(bom):].decode(encoding, errors="replace")
+            break
+    else:
+        text = raw.decode("utf-8-sig", errors="replace")
+
+    return text.replace("\x00", "").replace("\ufffd", "").strip().lstrip("\ufeff")
 
 
 def config_candidates() -> List[Path]:
@@ -67,7 +75,7 @@ def install(config_path: Optional[Path] = None, *, force: bool = False) -> Path:
     if config_path.exists():
         # Копия рядом: настройки чужие, ошибиться в них нельзя.
         shutil.copy2(config_path, config_path.with_suffix(".json.backup"))
-        text = _meaningful(config_path.read_text(encoding="utf-8-sig", errors="replace"))
+        text = read_config_text(config_path)
         if not text:
             # Пустой файл — не поломка: приложение так и оставляет его до
             # первой настройки. Терять там нечего, пишем с нуля.
@@ -111,8 +119,7 @@ def report() -> List[str]:
         if not path.exists():
             lines.append(f"Настройки Claude: {path} — файла нет")
             continue
-        raw = path.read_text(encoding="utf-8-sig", errors="replace")
-        text = _meaningful(raw)
+        text = read_config_text(path)
         if not text:
             size = path.stat().st_size
             lines.append(

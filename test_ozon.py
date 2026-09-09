@@ -722,6 +722,15 @@ class ClaudeSetupTest(unittest.TestCase):
         data = json.loads(self.config.read_text(encoding="utf-8"))
         self.assertIn("ozon", data["mcpServers"])
 
+    def test_utf16_config_is_read_not_rejected(self) -> None:
+        """Файл мог быть записан в UTF-16 — для JSON это по-прежнему валидно."""
+        self.config.write_bytes('{"theme": "dark"}'.encode("utf-16-le"))
+        self.config.write_bytes(b"\xff\xfe" + '{"theme": "dark"}'.encode("utf-16-le"))
+        self.setup.install(self.config)
+        data = json.loads(self.config.read_text(encoding="utf-8"))
+        self.assertEqual(data["theme"], "dark")
+        self.assertIn("ozon", data["mcpServers"])
+
     def test_report_names_the_null_byte_case(self) -> None:
         self.config.write_bytes(b"\x00" * 512)
         with mock.patch.object(self.setup, "config_candidates", lambda: [self.config]):

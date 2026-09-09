@@ -22,6 +22,9 @@ if not exist ".venv\Scripts\python.exe" (
   exit /b 1
 )
 
+echo   Проверяю обновления...
+".venv\Scripts\python.exe" -m ozon.update --keep-launchers --quiet
+
 REM --- Путь первый: командная строка Claude Code ----------------------------
 where claude >nul 2>nul
 if not errorlevel 1 (
@@ -41,7 +44,15 @@ if not errorlevel 1 (
 REM --- Путь второй: настройки приложения Claude -----------------------------
 echo   Прописываю сервер в настройки приложения Claude...
 ".venv\Scripts\python.exe" -m ozon.claude_setup
+if not errorlevel 1 goto :done
+
+echo.
+echo   Файл настроек не читается. Копия уже сохранена рядом (.backup),
+echo   переписываю его начисто...
+".venv\Scripts\python.exe" -m ozon.claude_setup --force
 if errorlevel 1 goto :manual
+
+:done
 
 echo.
 echo   Готово. ЗАКРОЙТЕ приложение Claude полностью и откройте заново -

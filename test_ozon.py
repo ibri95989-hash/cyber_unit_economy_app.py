@@ -715,6 +715,20 @@ class ClaudeSetupTest(unittest.TestCase):
         data = json.loads(self.config.read_text(encoding="utf-8"))
         self.assertIn("ozon", data["mcpServers"])
 
+    def test_config_full_of_null_bytes_is_treated_as_empty(self) -> None:
+        """Так Windows оставляет файл после аварийного завершения."""
+        self.config.write_bytes(b"\x00" * 512)
+        self.setup.install(self.config)
+        data = json.loads(self.config.read_text(encoding="utf-8"))
+        self.assertIn("ozon", data["mcpServers"])
+
+    def test_report_names_the_null_byte_case(self) -> None:
+        self.config.write_bytes(b"\x00" * 512)
+        with mock.patch.object(self.setup, "config_candidates", lambda: [self.config]):
+            lines = "\n".join(self.setup.report())
+        self.assertIn("ПУСТОЙ", lines)
+        self.assertIn("только нули", lines)
+
     def test_whitespace_only_config_is_filled_in(self) -> None:
         self.config.write_text("\n  \n", encoding="utf-8")
         self.setup.install(self.config)

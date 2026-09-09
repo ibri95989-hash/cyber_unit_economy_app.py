@@ -18,6 +18,17 @@ ROOT = Path(__file__).resolve().parent.parent
 SERVER_NAME = "ozon"
 
 
+def _meaningful(raw: str) -> str:
+    """Содержимое файла настроек без мусора.
+
+    Windows после аварийного завершения дописывает файлы нулевыми байтами:
+    формально файл не пустой, но разбирать в нём нечего. Такой файл считаем
+    отсутствующим — терять в нём нечего, а отказ трогать его блокировал
+    настройку на ровном месте.
+    """
+    return raw.replace("\x00", "").strip().lstrip("\ufeff")
+
+
 def config_candidates() -> List[Path]:
     """Где приложение Claude хранит настройки на разных системах."""
     system = platform.system()
@@ -56,7 +67,7 @@ def install(config_path: Optional[Path] = None, *, force: bool = False) -> Path:
     if config_path.exists():
         # Копия рядом: настройки чужие, ошибиться в них нельзя.
         shutil.copy2(config_path, config_path.with_suffix(".json.backup"))
-        text = config_path.read_text(encoding="utf-8-sig").strip()
+        text = _meaningful(config_path.read_text(encoding="utf-8-sig", errors="replace"))
         if not text:
             # Пустой файл — не поломка: приложение так и оставляет его до
             # первой настройки. Терять там нечего, пишем с нуля.
@@ -100,9 +111,14 @@ def report() -> List[str]:
         if not path.exists():
             lines.append(f"Настройки Claude: {path} — файла нет")
             continue
-        text = path.read_text(encoding="utf-8-sig").strip()
+        raw = path.read_text(encoding="utf-8-sig", errors="replace")
+        text = _meaningful(raw)
         if not text:
-            lines.append(f"Настройки Claude: {path} — файл ПУСТОЙ (0 байт)")
+            size = path.stat().st_size
+            lines.append(
+                f"Настройки Claude: {path} — файл ПУСТОЙ"
+                + (f" ({size} байт, но внутри только нули)" if size else " (0 байт)")
+            )
             lines.append("  Запустите setup_claude.bat — он заполнит его.")
             continue
         try:

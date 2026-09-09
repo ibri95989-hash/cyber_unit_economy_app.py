@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 import streamlit as st
 
-from ozon.config import load_credentials, mask, save_env, value
+from ozon.config import ENV_FILE, ROOT, load_credentials, mask, save_env, value
 from ozon.diagnostics import run_checks, summary
 from ozon.version import VERSION
 from ozon.errors import OzonApiError, OzonWriteBlocked
@@ -176,6 +176,9 @@ with st.sidebar:
         st.cache_data.clear()
         st.rerun()
     st.caption(f"Версия панели: {VERSION}")
+    # Копий папки может оказаться несколько — пусть всегда видно рабочую.
+    st.caption(f"Папка: {ROOT}")
+    st.caption(f"Ключи: {'.env на месте' if ENV_FILE.exists() else '.env ещё не создан'}")
 
 
 # ------------------------------------------------------------------------ шапка

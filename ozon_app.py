@@ -18,6 +18,8 @@ import pandas as pd
 import streamlit as st
 
 from ozon.config import load_credentials, mask, save_env
+from ozon.diagnostics import run_checks, summary
+from ozon.version import VERSION
 from ozon.errors import OzonApiError, OzonWriteBlocked
 from ozon.performance import PerformanceApi
 from ozon.safety import WriteGuard
@@ -143,6 +145,7 @@ with st.sidebar:
     if st.button("Обновить данные", width="stretch"):
         st.cache_data.clear()
         st.rerun()
+    st.caption(f"Версия панели: {VERSION}")
 
 
 # ------------------------------------------------------------------------ шапка
@@ -162,8 +165,8 @@ if not creds.has_seller and not creds.has_performance:
     )
     st.stop()
 
-supplies_tab, new_supply_tab, stocks_tab, ads_tab, bids_tab = st.tabs(
-    ["Поставки", "Новая поставка", "Остатки", "Реклама", "Ставки"]
+supplies_tab, new_supply_tab, stocks_tab, ads_tab, bids_tab, check_tab = st.tabs(
+    ["Поставки", "Новая поставка", "Остатки", "Реклама", "Ставки", "Проверка"]
 )
 
 
@@ -334,6 +337,25 @@ with ads_tab:
                 show(perf_call("phrases"), "Статистики по фразам пока нет.")
             except OzonApiError as exc:
                 fail(exc)
+
+
+# ----------------------------------------------------------------------- проверка
+
+with check_tab:
+    st.subheader("Самопроверка")
+    st.caption(
+        "Прогон по всем методам, которыми пользуется панель. Показывает, что "
+        "отвечает, что закрыто правами ключа, а где ошибка в самом запросе."
+    )
+    if st.button("Проверить всё", type="primary", width="stretch"):
+        with st.spinner("Опрашиваю Ozon…"):
+            rows = run_checks()
+        st.success(summary(rows))
+        st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
+        st.caption(
+            "Если что-то в колонке «результат» показывает ошибку — пришлите эту "
+            "таблицу целиком, по ней видно всё сразу."
+        )
 
 
 # ------------------------------------------------------------------------ ставки

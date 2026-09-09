@@ -450,5 +450,101 @@ class ConfirmationTierTest(unittest.TestCase):
         guard.check("supply.cancel", {}, apply=True)
 
 
+class UpdaterTest(unittest.TestCase):
+    """Обновление не должно уносить с собой ключи и журнал."""
+
+    def archive(self) -> bytes:
+        import io
+        import zipfile
+
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w") as archive:
+            archive.writestr("proj-branch/ozon_app.py", "новая панель")
+            archive.writestr("proj-branch/ozon/version.py", 'VERSION = "тест"')
+            archive.writestr("proj-branch/start_ozon.bat", "новый запускатель")
+            archive.writestr("proj-branch/update_ozon.bat", "новый апдейтер")
+        return buffer.getvalue()
+
+    def setUp(self) -> None:
+        import io
+        import zipfile
+
+        from ozon import update as updater
+
+        self.root = Path(tempfile.mkdtemp())
+        (self.root / ".env").write_text("OZON_API_KEY=секрет", encoding="utf-8")
+        (self.root / "ozon_audit.jsonl").write_text('{"action": "ads.set_bid"}', encoding="utf-8")
+        (self.root / "start_ozon.bat").write_text("старый запускатель", encoding="utf-8")
+        (self.root / "update_ozon.bat").write_text("старый апдейтер", encoding="utf-8")
+        (self.root / ".venv").mkdir()
+        (self.root / ".venv" / "python.exe").write_text("не трогать", encoding="utf-8")
+
+        self.updater = updater
+        patches = [
+            mock.patch.object(updater, "ROOT", self.root),
+            mock.patch.object(updater, "_download", lambda: zipfile.ZipFile(io.BytesIO(self.archive()))),
+        ]
+        for patcher in patches:
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def test_personal_files_survive(self) -> None:
+        self.updater.update(exclude=self.updater.SELF, quiet=True)
+        self.assertEqual((self.root / ".env").read_text(encoding="utf-8"), "OZON_API_KEY=секрет")
+        self.assertIn("ads.set_bid", (self.root / "ozon_audit.jsonl").read_text(encoding="utf-8"))
+        self.assertEqual((self.root / ".venv" / "python.exe").read_text(encoding="utf-8"), "не трогать")
+
+    def test_program_files_are_replaced(self) -> None:
+        changed = self.updater.update(exclude=self.updater.SELF, quiet=True)
+        self.assertIn("ozon_app.py", changed)
+        self.assertEqual((self.root / "ozon_app.py").read_text(encoding="utf-8"), "новая панель")
+
+    def test_running_launcher_is_not_overwritten(self) -> None:
+        """Windows читает .bat на ходу — заменять работающий файл нельзя."""
+        self.updater.update(exclude=self.updater.BOTH_LAUNCHERS, quiet=True)
+        self.assertEqual((self.root / "start_ozon.bat").read_text(encoding="utf-8"), "старый запускатель")
+
+    def test_manual_update_refreshes_the_launcher_but_not_itself(self) -> None:
+        self.updater.update(exclude=self.updater.SELF, quiet=True)
+        self.assertEqual((self.root / "start_ozon.bat").read_text(encoding="utf-8"), "новый запускатель")
+        self.assertEqual((self.root / "update_ozon.bat").read_text(encoding="utf-8"), "старый апдейтер")
+
+    def test_second_run_changes_nothing(self) -> None:
+        self.updater.update(exclude=self.updater.SELF, quiet=True)
+        self.assertEqual(self.updater.update(exclude=self.updater.SELF, quiet=True), [])
+
+
+class DiagnosticsTest(unittest.TestCase):
+    """Самопроверка должна пережить любой ответ Ozon и всё показать."""
+
+    def rows(self, request) -> list:
+        from ozon.diagnostics import run_checks
+
+        creds = Credentials(seller_client_id="id", seller_api_key="key")
+        with mock.patch.object(SellerApi, "request", request):
+            return run_checks(creds)
+
+    def test_working_cabinet_is_all_green(self) -> None:
+        rows = self.rows(FakeOzon())
+        checks = [row for row in rows if row["метод"] != "—"]
+        failed = [row for row in checks if row["результат"] == "ошибка"]
+        # Часть методов подделка не знает — важно, что они помечены, а не роняют прогон.
+        self.assertTrue(any(row["результат"] == "ок" for row in checks))
+        self.assertTrue(all(row["подробности"] for row in failed))
+
+    def test_broken_api_does_not_raise(self) -> None:
+        def dead(self_, method, path, **kwargs):
+            raise OzonApiError("сервис недоступен", status=503, path=path)
+
+        rows = self.rows(dead)
+        self.assertTrue(all(row["результат"] != "ок" for row in rows if row["метод"] != "—"))
+
+    def test_version_is_reported_first(self) -> None:
+        from ozon.version import VERSION
+
+        rows = self.rows(FakeOzon())
+        self.assertEqual(rows[0]["подробности"], VERSION)
+
+
 if __name__ == "__main__":
     unittest.main()

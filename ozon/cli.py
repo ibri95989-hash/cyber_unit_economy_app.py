@@ -19,6 +19,7 @@ import sys
 from typing import Any
 
 from .config import load_credentials
+from .diagnostics import run_checks, summary
 from .errors import OzonApiError, OzonWriteBlocked
 from .performance import PerformanceApi
 from .safety import WriteGuard
@@ -55,6 +56,16 @@ def cmd_check(args: argparse.Namespace) -> int:
     else:
         print("Performance API: ключей нет.")
     return 0 if ok else 1
+
+
+def cmd_doctor(args: argparse.Namespace) -> int:
+    """Прогнать все методы и показать, что работает."""
+    rows = run_checks()
+    width = max(len(row["проверка"]) for row in rows)
+    for row in rows:
+        print(f"{row['проверка']:<{width}}  {row['результат']:<9} {row['подробности']}")
+    print("\n" + summary(rows))
+    return 0 if all(row["результат"] != "ошибка" for row in rows) else 1
 
 
 def cmd_supplies(args: argparse.Namespace) -> int:
@@ -189,6 +200,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
 
     sub.add_parser("check", help="проверить ключи и доступ").set_defaults(func=cmd_check)
+    sub.add_parser("doctor", help="прогнать все методы и показать, что работает").set_defaults(func=cmd_doctor)
 
     p = sub.add_parser("supplies", help="список заявок на поставку")
     p.add_argument("--limit", type=int, default=50)

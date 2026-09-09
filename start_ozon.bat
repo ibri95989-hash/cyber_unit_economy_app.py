@@ -60,6 +60,7 @@ if not exist "%USERPROFILE%\.streamlit\credentials.toml" (
 )
 
 echo   Проверяю обновления...
+"%VPY%" -m ozon.update --keep-launchers --quiet
 "%VPY%" -m pip install --quiet --upgrade pip
 "%VPY%" -m pip install --quiet -r requirements-ozon.txt
 if errorlevel 1 goto :error

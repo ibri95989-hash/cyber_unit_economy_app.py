@@ -146,6 +146,26 @@ def report() -> List[str]:
             lines.append(f"  команда: {entry.get('command')}")
             lines.append(f"  аргумент: {(entry.get('args') or [''])[0]}")
 
+        # Соседи по файлу: у человека могут быть свои серверы, и важно видеть,
+        # что они на месте — особенно если файл когда-то переписывался начисто.
+        neighbours = [name for name in (data.get("mcpServers") or {}) if name != SERVER_NAME]
+        lines.append(
+            "  другие серверы в файле: " + (", ".join(neighbours) if neighbours else "нет")
+        )
+
+        backup = path.with_suffix(".json.backup")
+        if backup.exists():
+            try:
+                прежние = list((json.loads(read_config_text(backup) or "{}").get("mcpServers") or {}))
+            except json.JSONDecodeError:
+                прежние = []
+            потеряны = [name for name in прежние if name not in (data.get("mcpServers") or {})]
+            if потеряны:
+                lines.append(
+                    "  [!] в прежней копии были и пропали: " + ", ".join(потеряны)
+                )
+                lines.append(f"      копия лежит рядом: {backup}")
+
     # 2. Может ли этот питон вообще запустить сервер.
     if python.exists() and launcher.exists():
         probe = subprocess.run(

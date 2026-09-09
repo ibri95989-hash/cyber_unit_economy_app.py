@@ -758,6 +758,27 @@ class ClaudeSetupTest(unittest.TestCase):
         self.assertIn("не разбирается", broken)
         self.assertIn("--force", broken)
 
+    def test_report_lists_other_servers(self) -> None:
+        """У человека могут быть свои серверы — их видно в отчёте."""
+        self.config.write_text(
+            json.dumps({"mcpServers": {"ozon": {}, "mcp-server-ozon-seller": {"command": "x"}}}),
+            encoding="utf-8",
+        )
+        with mock.patch.object(self.setup, "config_candidates", lambda: [self.config]):
+            lines = "\n".join(self.setup.report())
+        self.assertIn("mcp-server-ozon-seller", lines)
+
+    def test_report_notices_servers_lost_after_a_rewrite(self) -> None:
+        """Переписывание начисто могло унести чужие серверы — скажем об этом."""
+        self.config.with_suffix(".json.backup").write_text(
+            json.dumps({"mcpServers": {"mcp-server-ozon-seller": {"command": "x"}}}),
+            encoding="utf-8",
+        )
+        self.config.write_text(json.dumps({"mcpServers": {"ozon": {}}}), encoding="utf-8")
+        with mock.patch.object(self.setup, "config_candidates", lambda: [self.config]):
+            lines = "\n".join(self.setup.report())
+        self.assertIn("пропали: mcp-server-ozon-seller", lines)
+
     def test_report_notices_a_stale_path(self) -> None:
         """Папку могли перенести — тогда в настройках остаётся старый путь."""
         self.config.write_text(

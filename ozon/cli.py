@@ -23,6 +23,7 @@ from .errors import OzonApiError, OzonWriteBlocked
 from .performance import PerformanceApi
 from .safety import WriteGuard
 from .seller import SellerApi
+from .workflows import create_supply, plan_supply
 
 
 def show(data: Any) -> None:
@@ -69,6 +70,50 @@ def cmd_supply(args: argparse.Namespace) -> int:
 
 def cmd_timeslots(args: argparse.Namespace) -> int:
     show(SellerApi().timeslots(args.supply_order_id, days=args.days))
+    return 0
+
+
+def _items(raw: list[str]) -> list[dict]:
+    """Разобрать «sku:количество» в позиции поставки."""
+    items = []
+    for pair in raw:
+        sku, _, qty = pair.partition(":")
+        if not sku.strip().isdigit() or not qty.strip().isdigit():
+            raise SystemExit(f"Не понял позицию «{pair}» — нужно в виде 123456789:10")
+        items.append({"sku": int(sku), "quantity": int(qty)})
+    return items
+
+
+def cmd_new_supply(args: argparse.Namespace) -> int:
+    """Черновик поставки, а с --confirm — и сама заявка."""
+    api = SellerApi()
+    plan = plan_supply(
+        api,
+        items=_items(args.sku),
+        cluster_ids=args.cluster or None,
+        days=args.days,
+    )
+    print(plan.summary())
+    if not args.confirm:
+        print(
+            "\nЭто черновик — в Ozon пока ничего не создано. "
+            "Чтобы создать заявку, повторите с --confirm и --warehouse-id."
+        )
+        return 0
+    try:
+        result = create_supply(
+            api,
+            plan,
+            warehouse_id=args.warehouse_id,
+            timeslot_from=args.timeslot_from or "",
+            timeslot_to=args.timeslot_to or "",
+            confirm=True,
+        )
+    except OzonWriteBlocked as exc:
+        print(str(exc))
+        return 2
+    print(f"\nЗаявка создана: №{result['supply_order_id']}")
+    show(result)
     return 0
 
 
@@ -158,6 +203,17 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("supply_order_id", type=int)
     p.add_argument("--days", type=int, default=14)
     p.set_defaults(func=cmd_timeslots)
+
+    p = sub.add_parser("new-supply", help="создать поставку: черновик, а с --confirm — заявку")
+    p.add_argument("--sku", action="append", required=True, metavar="SKU:КОЛ-ВО",
+                   help="позиция поставки, например 123456789:10; можно несколько раз")
+    p.add_argument("--cluster", type=int, action="append", help="id кластера, если знаете")
+    p.add_argument("--warehouse-id", dest="warehouse_id", type=int)
+    p.add_argument("--timeslot-from", dest="timeslot_from")
+    p.add_argument("--timeslot-to", dest="timeslot_to")
+    p.add_argument("--days", type=int, default=14)
+    p.add_argument("--confirm", action="store_true", help="создать заявку, а не только черновик")
+    p.set_defaults(func=cmd_new_supply)
 
     p = sub.add_parser("stocks", help="остатки товаров")
     p.add_argument("--warehouses", action="store_true", help="в разрезе складов FBO")

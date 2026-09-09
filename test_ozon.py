@@ -15,6 +15,8 @@ from ozon.config import Credentials, mask
 from ozon.errors import OzonApiError, OzonWriteBlocked
 from ozon.performance import PerformanceApi
 from ozon.safety import WriteGuard
+from ozon.seller import SellerApi
+from ozon.workflows import SupplyPlan, create_supply, plan_supply
 
 
 class MaskTest(unittest.TestCase):
@@ -128,6 +130,124 @@ class PerformanceTokenTest(unittest.TestCase):
                 with self.assertRaises(OzonWriteBlocked):
                     api.set_bids(7, {1: 22.0}, apply=False)
                 request.assert_not_called()
+
+
+class SupplyWorkflowTest(unittest.TestCase):
+    """Цепочка «черновик → склады → интервалы → заявка» целиком, без сети."""
+
+    def api(self, *, writes: bool = True) -> SellerApi:
+        creds = Credentials(seller_client_id="id", seller_api_key="key")
+        return SellerApi(creds, guard=WriteGuard(writes_allowed=writes))
+
+    def responses(self) -> dict:
+        return {
+            "/v1/cluster/list": {"clusters": [{"id": "5", "name": "Москва"}]},
+            "/v1/draft/create": {"operation_id": "op-1"},
+            "/v1/draft/create/info": {
+                "status": "CALCULATION_STATUS_SUCCESS",
+                "draft_id": 777,
+                "clusters": [{"warehouses": [{"warehouse_id": 42, "name": "Хоругвино"}]}],
+            },
+            "/v1/draft/timeslot/info": {
+                "drop_off_warehouse_timeslots": [
+                    {"warehouse_id": 42, "from_in_timezone": "2026-09-15T10:00:00Z",
+                     "to_in_timezone": "2026-09-15T12:00:00Z"}
+                ]
+            },
+            "/v1/draft/supply/create": {"operation_id": "op-2"},
+            "/v1/draft/supply/create/status": {"status": "SUCCESS", "supply_order_id": 999},
+        }
+
+    def patched(self, responses: dict):
+        def fake(self_, method, path, **kwargs):
+            if path in responses:
+                return responses[path]
+            raise OzonApiError("нет такого метода", status=404, path=path)
+
+        return mock.patch.object(SellerApi, "request", fake)
+
+    def setUp(self) -> None:
+        patcher = mock.patch("ozon.safety.AUDIT_FILE", Path(tempfile.mkdtemp()) / "audit.jsonl")
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_plan_collects_warehouses_and_timeslots(self) -> None:
+        with self.patched(self.responses()):
+            plan = plan_supply(self.api(), items=[{"sku": 1, "quantity": 10}])
+        self.assertEqual(plan.draft_id, 777)
+        self.assertEqual(plan.units, 10)
+        self.assertEqual(plan.warehouses[0]["warehouse_id"], 42)
+        self.assertEqual(len(plan.timeslots), 1)
+        self.assertIn("Хоругвино", plan.summary())
+
+    def test_create_needs_confirmation(self) -> None:
+        plan = SupplyPlan(draft_id=777, operation_id="op-1", items=[{"sku": 1, "quantity": 10}])
+        with self.patched(self.responses()) as request:
+            with self.assertRaises(OzonWriteBlocked):
+                create_supply(
+                    self.api(),
+                    plan,
+                    warehouse_id=42,
+                    timeslot_from="2026-09-15T10:00:00Z",
+                    timeslot_to="2026-09-15T12:00:00Z",
+                    confirm=False,
+                )
+
+    def test_create_with_confirmation_returns_order(self) -> None:
+        with self.patched(self.responses()):
+            api = self.api()
+            plan = plan_supply(api, items=[{"sku": 1, "quantity": 10}])
+            result = create_supply(api, plan, confirm=True)
+        self.assertEqual(result["supply_order_id"], 999)
+        self.assertEqual(result["warehouse_id"], 42)
+        self.assertEqual(result["units"], 10)
+
+    def test_writes_off_blocks_even_the_draft(self) -> None:
+        with self.patched(self.responses()):
+            with self.assertRaises(OzonWriteBlocked):
+                plan_supply(self.api(writes=False), items=[{"sku": 1, "quantity": 10}])
+
+    def test_bad_position_is_rejected_before_any_call(self) -> None:
+        with mock.patch.object(SellerApi, "request") as request:
+            with self.assertRaises(OzonApiError):
+                plan_supply(self.api(), items=[{"sku": 1, "quantity": 0}])
+            request.assert_not_called()
+
+    def test_ambiguous_warehouse_is_not_guessed(self) -> None:
+        responses = self.responses()
+        responses["/v1/draft/create/info"] = {
+            "status": "SUCCESS",
+            "draft_id": 777,
+            "clusters": [{"warehouses": [{"warehouse_id": 42}, {"warehouse_id": 43}]}],
+        }
+        with self.patched(responses):
+            api = self.api()
+            plan = plan_supply(api, items=[{"sku": 1, "quantity": 10}])
+            with self.assertRaises(OzonApiError):
+                create_supply(api, plan, confirm=True)
+
+
+class ConfirmationTierTest(unittest.TestCase):
+    def setUp(self) -> None:
+        patcher = mock.patch("ozon.safety.AUDIT_FILE", Path(tempfile.mkdtemp()) / "audit.jsonl")
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_reversible_action_needs_no_confirmation(self) -> None:
+        WriteGuard(writes_allowed=True).check("ads.set_bid", {"bid": 30}, apply=True)
+
+    def test_irreversible_action_needs_confirmation(self) -> None:
+        guard = WriteGuard(writes_allowed=True)
+        with self.assertRaises(OzonWriteBlocked):
+            guard.check("supply.cancel", {}, apply=True)
+        guard.check("supply.cancel", {}, apply=True, confirm=True)
+
+    def test_list_is_configurable(self) -> None:
+        with mock.patch.dict(os.environ, {"OZON_ALLOW_WRITES": "1", "OZON_CONFIRM_ACTIONS": "ads.set_bid"}):
+            guard = WriteGuard.from_env()
+        with self.assertRaises(OzonWriteBlocked):
+            guard.check("ads.set_bid", {"bid": 30}, apply=True)
+        guard.check("supply.cancel", {}, apply=True)
 
 
 if __name__ == "__main__":

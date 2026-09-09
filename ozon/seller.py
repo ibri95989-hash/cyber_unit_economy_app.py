@@ -123,6 +123,10 @@ class SellerApi(ApiClient):
         """Склады продавца (FBS)."""
         return self.post("/v1/warehouse/list", body={})
 
+    def clusters(self) -> Any:
+        """Кластеры Ozon — крупные регионы, между которыми делится поставка."""
+        return self.post("/v1/cluster/list", body={"cluster_type": "CLUSTER_TYPE_OZON"})
+
     def supply_warehouses(self, search: str = "") -> Any:
         """Склады Ozon, куда можно везти поставку FBO."""
         return self.post("/v1/warehouse/fbo/list", body={"search": search, "filter_by_supply_type": []})
@@ -205,17 +209,49 @@ class SellerApi(ApiClient):
         return result
 
     def draft_info(self, operation_id: str) -> Any:
-        """Что получилось из черновика: доступные склады и таймслоты."""
+        """Что получилось из черновика: доступные кластеры и склады."""
         return self.post("/v1/draft/create/info", body={"operation_id": operation_id})
 
-    def supply_create(self, *, draft_id: int, warehouse_id: int, timeslot_from: str, timeslot_to: str, apply: bool = False) -> Any:
+    def draft_timeslots(
+        self,
+        *,
+        draft_id: int,
+        warehouse_ids: List[int],
+        days: int = 14,
+    ) -> Any:
+        """Интервалы приёмки, доступные черновику на выбранных складах."""
+        today = date.today()
+        return self.post(
+            "/v1/draft/timeslot/info",
+            body={
+                "draft_id": draft_id,
+                "warehouse_ids": [str(w) for w in warehouse_ids],
+                "date_from": today.isoformat() + "T00:00:00Z",
+                "date_to": (today + timedelta(days=days)).isoformat() + "T00:00:00Z",
+            },
+        )
+
+    def supply_create_status(self, operation_id: str) -> Any:
+        """Создалась ли заявка из черновика и какой у неё номер."""
+        return self.post("/v1/draft/supply/create/status", body={"operation_id": operation_id})
+
+    def supply_create(
+        self,
+        *,
+        draft_id: int,
+        warehouse_id: int,
+        timeslot_from: str,
+        timeslot_to: str,
+        apply: bool = False,
+        confirm: bool = False,
+    ) -> Any:
         """Превратить черновик в заявку на поставку с выбранным таймслотом."""
         details = {
             "draft_id": draft_id,
             "warehouse_id": warehouse_id,
             "timeslot": [timeslot_from, timeslot_to],
         }
-        self.guard.check("supply.create", details, apply=apply)
+        self.guard.check("supply.create", details, apply=apply, confirm=confirm)
         result = self.post(
             "/v1/draft/supply/create",
             body={
@@ -227,10 +263,18 @@ class SellerApi(ApiClient):
         self.guard.audit("supply.create", details, applied=True)
         return result
 
-    def timeslot_update(self, *, supply_order_id: int, timeslot_from: str, timeslot_to: str, apply: bool = False) -> Any:
+    def timeslot_update(
+        self,
+        *,
+        supply_order_id: int,
+        timeslot_from: str,
+        timeslot_to: str,
+        apply: bool = False,
+        confirm: bool = False,
+    ) -> Any:
         """Перенести поставку на другой интервал."""
         details = {"supply_order_id": supply_order_id, "timeslot": [timeslot_from, timeslot_to]}
-        self.guard.check("supply.timeslot_update", details, apply=apply)
+        self.guard.check("supply.timeslot_update", details, apply=apply, confirm=confirm)
         result = self.post(
             "/v1/supply-order/timeslot/update",
             body={
@@ -241,10 +285,10 @@ class SellerApi(ApiClient):
         self.guard.audit("supply.timeslot_update", details, applied=True)
         return result
 
-    def cancel_supply(self, supply_order_id: int, *, apply: bool = False) -> Any:
+    def cancel_supply(self, supply_order_id: int, *, apply: bool = False, confirm: bool = False) -> Any:
         """Отменить заявку на поставку."""
         details = {"supply_order_id": supply_order_id}
-        self.guard.check("supply.cancel", details, apply=apply)
+        self.guard.check("supply.cancel", details, apply=apply, confirm=confirm)
         result = self.post("/v1/supply-order/cancel", body={"supply_order_id": supply_order_id})
         self.guard.audit("supply.cancel", details, applied=True)
         return result

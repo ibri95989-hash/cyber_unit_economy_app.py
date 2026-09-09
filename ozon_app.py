@@ -22,6 +22,7 @@ from ozon.errors import OzonApiError, OzonWriteBlocked
 from ozon.performance import PerformanceApi
 from ozon.safety import WriteGuard
 from ozon.seller import SellerApi
+from ozon.workflows import SupplyPlan, create_supply, plan_supply
 
 st.set_page_config(page_title="Ozon — поставки и реклама", page_icon=":package:", layout="wide")
 
@@ -151,8 +152,8 @@ if not creds.has_seller and not creds.has_performance:
     )
     st.stop()
 
-supplies_tab, stocks_tab, ads_tab, bids_tab = st.tabs(
-    ["Поставки", "Остатки", "Реклама", "Ставки"]
+supplies_tab, new_supply_tab, stocks_tab, ads_tab, bids_tab = st.tabs(
+    ["Поставки", "Новая поставка", "Остатки", "Реклама", "Ставки"]
 )
 
 
@@ -190,6 +191,95 @@ with supplies_tab:
                 try:
                     show(seller_call("timeslots", supply_order_id=int(order_id)),
                          "Свободных интервалов Ozon не предложил.")
+                except OzonApiError as exc:
+                    fail(exc)
+
+
+# ------------------------------------------------------------------ новая поставка
+
+with new_supply_tab:
+    if not creds.has_seller:
+        st.info("Нужен ключ Seller API — введите его слева.")
+    elif not allow:
+        st.info(
+            "Черновик поставки — это уже изменение в кабинете (хоть и безобидное: "
+            "ничего не едет и денег не стоит). Включите тумблер «Разрешить менять "
+            "кабинет» слева, чтобы посчитать поставку."
+        )
+    else:
+        st.subheader("Собрать поставку FBO")
+        st.caption(
+            "Шаг 1 — черновик: Ozon посчитает, на какие склады можно везти и когда. "
+            "Шаг 2 — заявка: только после вашего подтверждения."
+        )
+        positions = st.text_area(
+            "Что везём — по строке на позицию, «SKU количество»",
+            placeholder="123456789 10\n987654321 5",
+            height=120,
+        )
+        items: List[Dict[str, Any]] = []
+        for line in positions.splitlines():
+            parts = line.replace(":", " ").replace(",", " ").split()
+            if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+                items.append({"sku": int(parts[0]), "quantity": int(parts[1])})
+
+        if positions.strip() and not items:
+            st.warning("Не разобрал строки. Формат: номер SKU, пробел, количество.")
+
+        if st.button("Посчитать черновик", width="stretch", disabled=not items):
+            try:
+                plan = plan_supply(SellerApi(), items=items)
+                st.session_state["supply_plan"] = plan
+                st.session_state["supply_summary"] = plan.summary()
+            except (OzonApiError, OzonWriteBlocked) as exc:
+                fail(exc)
+
+        plan: Optional[SupplyPlan] = st.session_state.get("supply_plan")
+        if plan is not None:
+            st.success(f"Черновик №{plan.draft_id} готов. В Ozon заявки ещё нет.")
+            st.code(st.session_state.get("supply_summary", ""))
+
+            warehouses = {
+                str(w.get("name") or w.get("warehouse_name") or w.get("warehouse_id")):
+                    int(w.get("warehouse_id") or w.get("id"))
+                for w in plan.warehouses
+                if str(w.get("warehouse_id") or w.get("id", "")).isdigit()
+            }
+            slots = {
+                f"{s.get('from_in_timezone')} — {s.get('to_in_timezone')}": s
+                for s in plan.timeslots
+            }
+
+            col_w, col_t = st.columns(2)
+            with col_w:
+                warehouse_name = st.selectbox("Склад", list(warehouses) or ["—"])
+            with col_t:
+                slot_name = st.selectbox("Интервал приёмки", list(slots) or ["—"])
+
+            agreed = st.checkbox("Проверил состав, склад и интервал — создаём заявку")
+            if st.button(
+                "Создать заявку на поставку",
+                type="primary",
+                width="stretch",
+                disabled=not (warehouses and slots and agreed),
+            ):
+                slot = slots[slot_name]
+                try:
+                    result = create_supply(
+                        SellerApi(),
+                        plan,
+                        warehouse_id=warehouses[warehouse_name],
+                        timeslot_from=str(slot["from_in_timezone"]),
+                        timeslot_to=str(slot["to_in_timezone"]),
+                        confirm=True,
+                    )
+                    st.success(f"Заявка создана: №{result['supply_order_id']}")
+                    st.json(result)
+                    st.session_state.pop("supply_plan", None)
+                    st.session_state.pop("supply_summary", None)
+                    st.cache_data.clear()
+                except OzonWriteBlocked as exc:
+                    st.warning(str(exc))
                 except OzonApiError as exc:
                     fail(exc)
 

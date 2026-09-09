@@ -27,6 +27,7 @@ from .errors import OzonApiError, OzonWriteBlocked
 from .performance import PerformanceApi
 from .safety import WriteGuard
 from .seller import SellerApi
+from .workflows import SupplyPlan, create_supply, plan_supply
 
 mcp = FastMCP("ozon")
 
@@ -93,17 +94,81 @@ def ozon_analytics(date_from: str = "", date_to: str = "", metrics: Optional[Lis
 
 @mcp.tool()
 def ozon_supply_timeslot_update(
-    supply_order_id: int, timeslot_from: str, timeslot_to: str, apply: bool = False
+    supply_order_id: int,
+    timeslot_from: str,
+    timeslot_to: str,
+    apply: bool = False,
+    confirm: bool = False,
 ) -> Any:
-    """Перенести поставку на другой интервал. Без apply=true — только предпросмотр."""
+    """Перенести поставку на другой интервал. Требует confirm=true."""
     return _safe(
         lambda: SellerApi().timeslot_update(
             supply_order_id=supply_order_id,
             timeslot_from=timeslot_from,
             timeslot_to=timeslot_to,
             apply=apply,
+            confirm=confirm,
         )
     )
+
+
+@mcp.tool()
+def ozon_plan_supply(
+    items: List[Dict[str, Any]],
+    cluster_ids: Optional[List[int]] = None,
+    days: int = 14,
+) -> Any:
+    """Подготовить поставку FBO: черновик, доступные склады и интервалы приёмки.
+
+    items — [{"sku": 123456789, "quantity": 10}, ...]. Черновик ничего не
+    отгружает и денег не стоит: это расчёт, который можно показать человеку
+    и бросить. Заявку создаёт только ozon_create_supply.
+    """
+
+    def run() -> Any:
+        plan = plan_supply(SellerApi(), items=items, cluster_ids=cluster_ids, days=days)
+        return {
+            "draft_id": plan.draft_id,
+            "units": plan.units,
+            "warehouses": plan.warehouses[:20],
+            "timeslots": plan.timeslots[:20],
+            "summary": plan.summary(),
+        }
+
+    return _safe(run)
+
+
+@mcp.tool()
+def ozon_create_supply(
+    draft_id: int,
+    warehouse_id: int,
+    timeslot_from: str,
+    timeslot_to: str,
+    confirm: bool = False,
+) -> Any:
+    """Создать заявку на поставку из черновика ozon_plan_supply.
+
+    Единственный шаг цепочки, который создаёт обязательство перед Ozon.
+    Требует confirm=true — не ставьте его, пока человек не подтвердил
+    склад, интервал и состав поставки.
+    """
+    plan = SupplyPlan(draft_id=draft_id, operation_id="", items=[])
+    return _safe(
+        lambda: create_supply(
+            SellerApi(),
+            plan,
+            warehouse_id=warehouse_id,
+            timeslot_from=timeslot_from,
+            timeslot_to=timeslot_to,
+            confirm=confirm,
+        )
+    )
+
+
+@mcp.tool()
+def ozon_cancel_supply(supply_order_id: int, confirm: bool = False) -> Any:
+    """Отменить заявку на поставку. Требует confirm=true — действие необратимо."""
+    return _safe(lambda: SellerApi().cancel_supply(supply_order_id, apply=True, confirm=confirm))
 
 
 # ---------------------------------------------------------- Performance API

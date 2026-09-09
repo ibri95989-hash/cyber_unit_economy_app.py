@@ -199,10 +199,12 @@ class PerformanceApi(ApiClient):
         self.guard.audit("ads.set_search_promo_bid", {"campaign_id": campaign_id}, applied=True)
         return result
 
-    def set_daily_budget(self, campaign_id: int, budget: float, *, apply: bool = False) -> Any:
+    def set_daily_budget(
+        self, campaign_id: int, budget: float, *, apply: bool = False, confirm: bool = False
+    ) -> Any:
         """Дневной бюджет кампании (в рублях)."""
         details = {"campaign_id": campaign_id, "daily_budget": float(budget)}
-        self.guard.check("ads.set_daily_budget", details, apply=apply)
+        self.guard.check("ads.set_daily_budget", details, apply=apply, confirm=confirm)
         # Ozon принимает бюджет в копейках-микро: рубли * 1 000 000.
         result = self.patch_campaign(campaign_id, {"dailyBudget": str(int(budget * 1_000_000))})
         self.guard.audit("ads.set_daily_budget", details, applied=True)

@@ -8,10 +8,10 @@ from __future__ import annotations
 
 import json
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Set
 
 from .errors import OzonWriteBlocked
 
@@ -19,6 +19,15 @@ ROOT = Path(__file__).resolve().parent.parent
 AUDIT_FILE = Path(os.environ.get("OZON_AUDIT_FILE") or ROOT / "ozon_audit.jsonl")
 
 TRUE = {"1", "true", "yes", "on", "да"}
+
+# Действия, которые нельзя отменить кнопкой «назад» или которые стоят денег.
+# Для них мало разрешения на запись — нужно ещё явное подтверждение вызова.
+CONFIRM_REQUIRED = {
+    "supply.create",
+    "supply.cancel",
+    "supply.timeslot_update",
+    "ads.set_daily_budget",
+}
 
 
 def _flag(name: str, default: bool = False) -> bool:
@@ -52,20 +61,36 @@ class WriteGuard:
     max_bid: Optional[float] = None
     max_change_pct: Optional[float] = None
     max_daily_budget: Optional[float] = None
+    confirm_required: Set[str] = field(default_factory=lambda: set(CONFIRM_REQUIRED))
 
     @classmethod
     def from_env(cls) -> "WriteGuard":
+        raw = os.environ.get("OZON_CONFIRM_ACTIONS")
+        confirm = (
+            {item.strip() for item in raw.split(",") if item.strip()}
+            if raw is not None
+            else set(CONFIRM_REQUIRED)
+        )
         return cls(
             writes_allowed=_flag("OZON_ALLOW_WRITES"),
             max_bid=_number("OZON_MAX_BID", 500.0),
             max_change_pct=_number("OZON_MAX_BID_CHANGE_PCT", 50.0),
             max_daily_budget=_number("OZON_MAX_DAILY_BUDGET", None),
+            confirm_required=confirm,
         )
 
-    def check(self, action: str, details: Dict[str, Any], *, apply: bool) -> None:
+    def check(
+        self,
+        action: str,
+        details: Dict[str, Any],
+        *,
+        apply: bool,
+        confirm: bool = False,
+    ) -> None:
         """Пропустить изменение или объяснить, почему нет.
 
         apply=False — сухой прогон: вызов не уйдёт в Ozon, но попадёт в журнал.
+        confirm — отдельное «да» для необратимых действий из confirm_required.
         """
         self.audit(action, details, applied=False, note="dry-run" if not apply else "requested")
         if not apply:
@@ -76,6 +101,12 @@ class WriteGuard:
             raise OzonWriteBlocked(
                 f"Запись запрещена: {action}. Включите тумблер «Разрешить менять кабинет» "
                 "в панели или задайте OZON_ALLOW_WRITES=1 в окружении."
+            )
+
+        if action in self.confirm_required and not confirm:
+            raise OzonWriteBlocked(
+                f"«{action}» отменить нельзя, поэтому нужно отдельное подтверждение. "
+                "Проверьте параметры и повторите с confirm=true."
             )
 
         bid = details.get("bid")

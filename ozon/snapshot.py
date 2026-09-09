@@ -170,11 +170,16 @@ def collect(credentials: Optional[Credentials] = None, *, limit: int = 500) -> D
 
     sections += _advertising(creds)
 
-    return {
+    snapshot = {
         "снято": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "версия_панели": VERSION,
         "разделы": sections,
     }
+    # Выводы считаются здесь же: они нужны и в панели, и в файле.
+    from .insights import analyse
+
+    snapshot["выводы"] = analyse(snapshot)
+    return snapshot
 
 
 def stocks_table(snapshot: Dict[str, Any]) -> List[Dict[str, Any]]:

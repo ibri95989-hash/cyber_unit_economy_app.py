@@ -24,6 +24,7 @@ from ozon.diagnostics import run_checks, summary
 from ozon.version import VERSION
 from ozon.errors import OzonApiError, OzonWriteBlocked
 from ozon.import_keys import import_file
+from ozon.insights import ВНИМАНИЕ, СПОКОЙНО, СРОЧНО
 from ozon.snapshot import collect, save as save_snapshot, stocks_table
 from ozon.performance import PerformanceApi
 from ozon.safety import WriteGuard
@@ -220,9 +221,55 @@ if not creds.has_seller and not creds.has_performance:
     )
     st.stop()
 
-supplies_tab, new_supply_tab, stocks_tab, ads_tab, bids_tab, check_tab = st.tabs(
-    ["Поставки", "Новая поставка", "Остатки", "Реклама", "Ставки", "Проверка"]
+(
+    insights_tab,
+    supplies_tab,
+    new_supply_tab,
+    stocks_tab,
+    ads_tab,
+    bids_tab,
+    check_tab,
+) = st.tabs(
+    ["Что делать", "Поставки", "Новая поставка", "Остатки", "Реклама", "Ставки", "Проверка"]
 )
+
+
+# --------------------------------------------------------------------- выводы
+
+with insights_tab:
+    st.subheader("Что происходит с кабинетом")
+    st.caption(
+        "Панель опрашивает Ozon и считает выводы сама: сколько дней хватит "
+        "запаса, что горит, окупается ли реклама."
+    )
+
+    if st.button("Посчитать", type="primary", width="stretch"):
+        with st.spinner("Собираю данные и считаю…"):
+            try:
+                st.session_state["выводы"] = collect()
+            except OzonApiError as exc:
+                fail(exc)
+
+    снимок = st.session_state.get("выводы")
+    if снимок:
+        выводы = снимок.get("выводы") or []
+        st.caption(f"Данные на {снимок.get('снято', '')}")
+        краски = {СРОЧНО: st.error, ВНИМАНИЕ: st.warning, СПОКОЙНО: st.info}
+        for вывод in выводы:
+            показать = краски.get(вывод["уровень"], st.info)
+            текст = f"**{вывод['заголовок']}.** {вывод['вывод']}"
+            if вывод["цифры"]:
+                текст += f"\n\n{вывод['цифры']}"
+            показать(текст)
+        if not выводы:
+            st.info("Ничего требующего внимания не нашлось.")
+
+        with st.expander("Данные, на которых построены выводы"):
+            for part in снимок.get("разделы", []):
+                st.markdown(f"**{part['раздел']}** — " + (
+                    part.get("ошибка") or f"записей: {part.get('записей', 0)}"
+                ))
+
 
 
 # ---------------------------------------------------------------------- поставки

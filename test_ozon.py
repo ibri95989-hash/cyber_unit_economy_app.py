@@ -1088,5 +1088,128 @@ class SnapshotTest(unittest.TestCase):
         self.assertIn("free_to_sell_amount", written[1].read_text(encoding="utf-8-sig"))
 
 
+class InsightsTest(unittest.TestCase):
+    """Выводы считаются в панели — ради них всё и затевалось."""
+
+    def snapshot(self, **разделы) -> dict:
+        return {"разделы": [{"раздел": k, "записей": 1, "данные": v} for k, v in разделы.items()]}
+
+    def analyse(self, **разделы) -> dict:
+        from ozon.insights import analyse
+
+        return {f["заголовок"]: f for f in analyse(self.snapshot(**разделы))}
+
+    def склад(self, свободно: int, едет: int = 0, имя: str = "СОФЬИНО_РФЦ") -> dict:
+        return {"warehouse_name": имя, "free_to_sell_amount": свободно, "promised_amount": едет}
+
+    def продажи(self, за30дней: int) -> list:
+        return [{"dimensions": [{"id": "1"}], "metrics": [за30дней, за30дней * 200]}]
+
+    def test_running_out_is_urgent(self) -> None:
+        found = self.analyse(**{
+            "Остатки по складам FBO": [self.склад(60)],
+            "Аналитика продаж за 30 дней": self.продажи(300),
+        })
+        self.assertEqual(found["Запас кончается"]["уровень"], "срочно")
+
+    def test_overstock_is_flagged(self) -> None:
+        # Цифры настоящего кабинета: 397 на руках, 520 в пути, 199 продаж в месяц.
+        found = self.analyse(**{
+            "Остатки по складам FBO": [self.склад(397, едет=520)],
+            "Аналитика продаж за 30 дней": self.продажи(199),
+        })
+        self.assertIn("Затоваривание", found)
+        self.assertIn("138 дней", found["Затоваривание"]["вывод"])
+        self.assertIn("6.6 шт/день", found["Затоваривание"]["цифры"])
+
+    def test_healthy_stock_is_calm(self) -> None:
+        found = self.analyse(**{
+            "Остатки по складам FBO": [self.склад(200)],
+            "Аналитика продаж за 30 дней": self.продажи(199),
+        })
+        self.assertEqual(found["Запас в норме"]["уровень"], "спокойно")
+
+    def test_empty_warehouses_are_named(self) -> None:
+        found = self.analyse(**{
+            "Остатки по складам FBO": [self.склад(0, имя="УФА_РФЦ"), self.склад(50)],
+            "Аналитика продаж за 30 дней": self.продажи(199),
+        })
+        self.assertIn("УФА_РФЦ", found["Склады в нуле"]["цифры"])
+
+    def test_supply_awaiting_shipment_is_urgent(self) -> None:
+        from datetime import datetime, timedelta, timezone
+
+        завтра = (datetime.now(timezone.utc) + timedelta(days=1)).isoformat().replace("+00:00", "Z")
+        found = self.analyse(**{
+            "Заявки на поставку": [{
+                "order_number": "2000066083528",
+                "state": "READY_TO_SUPPLY",
+                "drop_off_warehouse": {"name": "ТЕМРЮК_25"},
+                "timeslot": {"timeslot": {"from": завтра}},
+            }]
+        })
+        карточка = found["Поставка ждёт отгрузки"]
+        self.assertEqual(карточка["уровень"], "срочно")
+        self.assertIn("ТЕМРЮК_25", карточка["вывод"])
+        self.assertIn("через", карточка["цифры"])
+
+    def test_delivery_time_is_measured_from_completed_orders(self) -> None:
+        found = self.analyse(**{
+            "Заявки на поставку": [
+                {"state": "COMPLETED", "created_date": "2026-08-31T00:00:00Z",
+                 "state_updated_date": "2026-09-05T00:00:00Z"},
+                {"state": "COMPLETED", "created_date": "2026-08-04T00:00:00Z",
+                 "state_updated_date": "2026-08-13T00:00:00Z"},
+            ]
+        })
+        self.assertIn("7 дней", found["Срок доставки"]["вывод"])
+
+    def test_dead_cards_are_counted(self) -> None:
+        found = self.analyse(**{
+            "Товары": [
+                {"offer_id": "живой", "has_fbo_stocks": True, "has_fbs_stocks": False},
+                {"offer_id": "пустой", "has_fbo_stocks": False, "has_fbs_stocks": False},
+            ]
+        })
+        self.assertIn("пустой", found["Карточки без товара"]["цифры"])
+
+    def test_high_drr_is_urgent(self) -> None:
+        found = self.analyse(**{
+            "Отчёт по кампаниям за 14 дней": {"кампании": {"35779355.csv": [
+                {"Дата": "01.09.2026", "Расход": "10 000,00", "Выручка": "20 000,00"},
+            ]}}
+        })
+        карточка = found["Реклама за 14 дней"]
+        self.assertEqual(карточка["уровень"], "срочно")
+        self.assertIn("ДРР 50%", карточка["цифры"])
+
+    def test_low_drr_is_calm(self) -> None:
+        found = self.analyse(**{
+            "Отчёт по кампаниям за 14 дней": {"кампании": {"c.csv": [
+                {"Расход": "1000", "Выручка": "20000"},
+            ]}}
+        })
+        self.assertEqual(found["Реклама за 14 дней"]["уровень"], "спокойно")
+
+    def test_urgent_comes_first(self) -> None:
+        from ozon.insights import analyse
+
+        снимок = self.snapshot(**{
+            "Остатки по складам FBO": [self.склад(1000)],
+            "Аналитика продаж за 30 дней": self.продажи(199),
+            "Заявки на поставку": [{
+                "order_number": "1", "state": "READY_TO_SUPPLY",
+                "drop_off_warehouse": {"name": "ТЕМРЮК_25"},
+                "timeslot": {"timeslot": {"from": "2026-09-11T08:00:00Z"}},
+            }],
+        })
+        self.assertEqual(analyse(снимок)[0]["уровень"], "срочно")
+
+    def test_broken_sections_do_not_break_the_analysis(self) -> None:
+        from ozon.insights import analyse
+
+        self.assertEqual(analyse({"разделы": [{"раздел": "Остатки", "ошибка": "нет доступа"}]}), [])
+
+
 if __name__ == "__main__":
     unittest.main()

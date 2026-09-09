@@ -11,6 +11,7 @@
 """
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -23,6 +24,7 @@ from ozon.diagnostics import run_checks, summary
 from ozon.version import VERSION
 from ozon.errors import OzonApiError, OzonWriteBlocked
 from ozon.import_keys import import_file
+from ozon.snapshot import collect, save as save_snapshot, stocks_table
 from ozon.performance import PerformanceApi
 from ozon.safety import WriteGuard
 from ozon.seller import SellerApi
@@ -409,6 +411,34 @@ with check_tab:
             "Если что-то в колонке «результат» показывает ошибку — пришлите эту "
             "таблицу целиком, по ней видно всё сразу."
         )
+
+    st.divider()
+    st.subheader("Снимок кабинета для Claude")
+    st.caption(
+        "Собирает остатки, товары, поставки и аналитику в один файл. Приложите "
+        "его к переписке — и Claude увидит ваши данные в любом чате, без "
+        "настройки серверов. Ключи в файл не попадают."
+    )
+    if st.button("Собрать снимок", width="stretch"):
+        try:
+            snapshot = collect()
+        except OzonApiError as exc:
+            fail(exc)
+        else:
+            files = save_snapshot(snapshot)
+            st.success("Готово. Файлы лежат рядом с панелью:")
+            for path in files:
+                st.code(str(path))
+            st.download_button(
+                "Скачать снимок",
+                data=json.dumps(snapshot, ensure_ascii=False, indent=2, default=str),
+                file_name="ozon_snapshot.json",
+                mime="application/json",
+                width="stretch",
+            )
+            table = stocks_table(snapshot)
+            if table:
+                st.dataframe(pd.DataFrame(table), width="stretch", hide_index=True)
 
 
 # ------------------------------------------------------------------------ ставки

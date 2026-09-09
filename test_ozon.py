@@ -780,5 +780,51 @@ class ImportKeysTest(unittest.TestCase):
         self.assertEqual(saved["OZON_CLIENT_ID"], "42")
 
 
+class SnapshotTest(unittest.TestCase):
+    """Снимок кабинета: он уходит наружу, поэтому секретов в нём быть не должно."""
+
+    def collect(self) -> dict:
+        from ozon.snapshot import collect
+
+        with mock.patch.object(SellerApi, "request", FakeOzon()):
+            return collect(Credentials(seller_client_id="id", seller_api_key="key"))
+
+    def test_every_section_is_present(self) -> None:
+        sections = [part["раздел"] for part in self.collect()["разделы"]]
+        self.assertIn("Остатки по складам FBO", sections)
+        self.assertIn("Заявки на поставку", sections)
+
+    def test_failing_section_is_noted_not_fatal(self) -> None:
+        parts = {part["раздел"]: part for part in self.collect()["разделы"]}
+        # Подделка не знает метод остатков — раздел должен объяснить это словами.
+        self.assertIn("ошибка", parts["Остатки по товарам"])
+        self.assertIn("записей", parts["Заявки на поставку"])
+
+    def test_secrets_are_stripped(self) -> None:
+        from ozon.snapshot import _clean
+
+        cleaned = _clean(
+            {"sku": 1, "api_key": "секрет", "вложено": {"client_secret": "секрет", "цена": 10}}
+        )
+        self.assertEqual(cleaned, {"sku": 1, "вложено": {"цена": 10}})
+
+    def test_snapshot_carries_no_key_material(self) -> None:
+        text = json.dumps(self.collect(), ensure_ascii=False)
+        for mark in ("api_key", "client_secret", "Api-Key"):
+            self.assertNotIn(mark, text)
+
+    def test_files_are_written_next_to_the_panel(self) -> None:
+        from ozon import snapshot as snap
+
+        folder = Path(tempfile.mkdtemp())
+        with mock.patch.object(snap, "SNAPSHOT_FILE", folder / "ozon_snapshot.json"), \
+             mock.patch.object(snap, "STOCKS_CSV", folder / "ozon_stocks.csv"):
+            written = snap.save({"разделы": [
+                {"раздел": "Остатки по складам FBO", "данные": [{"sku": 1, "free_to_sell_amount": 5}]}
+            ]})
+        self.assertTrue(written[0].exists())
+        self.assertIn("free_to_sell_amount", written[1].read_text(encoding="utf-8-sig"))
+
+
 if __name__ == "__main__":
     unittest.main()

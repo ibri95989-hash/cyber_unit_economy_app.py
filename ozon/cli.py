@@ -75,6 +75,13 @@ def cmd_import_keys(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_snapshot(args: argparse.Namespace) -> int:
+    """Собрать снимок кабинета в файл, который можно показать Claude."""
+    from .snapshot import main as snapshot_main
+
+    return snapshot_main()
+
+
 def cmd_doctor(args: argparse.Namespace) -> int:
     """Прогнать все методы и показать, что работает."""
     rows = run_checks()
@@ -218,6 +225,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("check", help="проверить ключи и доступ").set_defaults(func=cmd_check)
     sub.add_parser("doctor", help="прогнать все методы и показать, что работает").set_defaults(func=cmd_doctor)
+
+    sub.add_parser("snapshot", help="собрать снимок кабинета одним файлом").set_defaults(func=cmd_snapshot)
 
     p = sub.add_parser("import-keys", help="перенести ключи из файла в .env")
     p.add_argument("path", help="путь к файлу с ключами, например keys.txt")

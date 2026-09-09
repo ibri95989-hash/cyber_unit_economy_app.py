@@ -1,0 +1,132 @@
+"""Снимок кабинета одним файлом — чтобы показать его Claude в любом чате.
+
+MCP-сервер даёт живой доступ, но требует настройки. Снимок работает всегда:
+панель собирает остатки, поставки и аналитику в один файл, файл прикладывается
+к переписке. Ключи в него не попадают — только данные из кабинета.
+"""
+from __future__ import annotations
+
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
+
+from .config import Credentials, load_credentials
+from .errors import OzonApiError
+from .seller import SellerApi
+from .version import VERSION
+
+ROOT = Path(__file__).resolve().parent.parent
+SNAPSHOT_FILE = ROOT / "ozon_snapshot.json"
+STOCKS_CSV = ROOT / "ozon_stocks.csv"
+
+# Ничего похожего на ключи в снимок попасть не должно, даже случайно.
+FORBIDDEN = ("api_key", "api-key", "client_secret", "client-secret", "authorization", "access_token")
+
+
+def _rows(payload: Any) -> List[Dict[str, Any]]:
+    """Достать список записей из ответа Ozon, какой бы ни была вложенность."""
+    if isinstance(payload, list):
+        return [item for item in payload if isinstance(item, dict)]
+    if isinstance(payload, dict):
+        for value in payload.values():
+            if isinstance(value, list) and value and isinstance(value[0], dict):
+                return value
+            if isinstance(value, dict):
+                nested = _rows(value)
+                if nested:
+                    return nested
+    return []
+
+
+def _clean(value: Any) -> Any:
+    """Выбросить всё, что похоже на секрет. Снимок уходит наружу."""
+    if isinstance(value, dict):
+        return {
+            key: _clean(item)
+            for key, item in value.items()
+            if not any(mark in str(key).lower() for mark in FORBIDDEN)
+        }
+    if isinstance(value, list):
+        return [_clean(item) for item in value]
+    return value
+
+
+def _part(name: str, call: Callable[[], Any]) -> Dict[str, Any]:
+    try:
+        payload = call()
+    except OzonApiError as exc:
+        return {"раздел": name, "ошибка": str(exc).splitlines()[0]}
+    rows = _rows(payload)
+    return {"раздел": name, "записей": len(rows), "данные": _clean(rows or payload)}
+
+
+def collect(credentials: Optional[Credentials] = None, *, limit: int = 500) -> Dict[str, Any]:
+    """Собрать снимок кабинета."""
+    creds = credentials or load_credentials()
+    if not creds.has_seller:
+        raise OzonApiError("Нет ключей Seller API — собирать нечего.")
+    api = SellerApi(creds)
+
+    return {
+        "снято": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "версия_панели": VERSION,
+        "разделы": [
+            _part("Остатки по складам FBO", lambda: api.stocks_on_warehouses(limit=limit)),
+            _part("Остатки по товарам", lambda: api.stocks(limit=min(limit, 100))),
+            _part("Товары", lambda: api.product_list(limit=min(limit, 100))),
+            _part("Заявки на поставку", lambda: api.supply_orders_detailed(limit=50)),
+            _part("Аналитика продаж за 30 дней", lambda: api.analytics(limit=min(limit, 500))),
+        ],
+    }
+
+
+def stocks_table(snapshot: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Остатки отдельной таблицей — её удобнее читать и человеку, и Claude."""
+    for part in snapshot.get("разделы", []):
+        if part.get("раздел", "").startswith("Остатки по складам") and part.get("данные"):
+            data = part["данные"]
+            return data if isinstance(data, list) else []
+    return []
+
+
+def save(snapshot: Optional[Dict[str, Any]] = None) -> List[Path]:
+    """Записать снимок рядом с панелью. Возвращает созданные файлы."""
+    import csv
+
+    snapshot = snapshot or collect()
+    SNAPSHOT_FILE.write_text(
+        json.dumps(snapshot, ensure_ascii=False, indent=2, default=str), encoding="utf-8"
+    )
+    written = [SNAPSHOT_FILE]
+
+    table = stocks_table(snapshot)
+    if table:
+        columns: List[str] = []
+        for row in table:
+            for key in row:
+                if key not in columns:
+                    columns.append(key)
+        with STOCKS_CSV.open("w", encoding="utf-8-sig", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=columns, extrasaction="ignore")
+            writer.writeheader()
+            writer.writerows(table)
+        written.append(STOCKS_CSV)
+    return written
+
+
+def main() -> int:
+    try:
+        files = save()
+    except OzonApiError as exc:
+        print(f"[!] {exc}")
+        return 1
+    print("Снимок собран:")
+    for path in files:
+        print(f"  {path}")
+    print("\nПриложите эти файлы к переписке с Claude — ключей в них нет.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

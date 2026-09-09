@@ -666,5 +666,83 @@ class ClaudeSetupTest(unittest.TestCase):
         self.assertEqual(self.config.read_text(encoding="utf-8"), "{это не json")
 
 
+class ImportKeysTest(unittest.TestCase):
+    """Разбор заметки с ключами: форматы у всех разные."""
+
+    def parse(self, text: str) -> dict:
+        from ozon.import_keys import parse
+
+        return parse(text)
+
+    def test_sections_separate_the_two_cabinets(self) -> None:
+        keys = self.parse(
+            "Seller API\n"
+            "Client-Id: 1234567\n"
+            "Api-Key: 8f2b1c9a-7d3e-4f10-9b2c-5a6d7e8f9012\n"
+            "\n"
+            "Performance API (реклама)\n"
+            "Client ID: 55-175000-abc@advertising.performance.ozon.ru\n"
+            "Client Secret: qZ7XmK0kL9vB2nT4wS6yH8jF\n"
+        )
+        self.assertEqual(keys["OZON_CLIENT_ID"], "1234567")
+        self.assertEqual(keys["OZON_API_KEY"], "8f2b1c9a-7d3e-4f10-9b2c-5a6d7e8f9012")
+        self.assertTrue(keys["OZON_PERF_CLIENT_ID"].endswith("ozon.ru"))
+        self.assertEqual(keys["OZON_PERF_CLIENT_SECRET"], "qZ7XmK0kL9vB2nT4wS6yH8jF")
+
+    def test_advertising_id_is_recognised_without_a_section(self) -> None:
+        """Почтовый вид Client ID рекламы важнее любых заголовков."""
+        keys = self.parse(
+            "client_id=1234567\n"
+            "api_key=8f2b1c9a-7d3e\n"
+            "client_id=55-175000-abc@advertising.performance.ozon.ru\n"
+            "client_secret=секретсекрет\n"
+        )
+        self.assertEqual(keys["OZON_CLIENT_ID"], "1234567")
+        self.assertIn("@advertising", keys["OZON_PERF_CLIENT_ID"])
+
+    def test_json_note_is_understood(self) -> None:
+        keys = self.parse(
+            '{\n  "client_id": "1234567",\n  "api_key": "8f2b1c9a",\n'
+            '  "client_secret": "секрет"\n}\n'
+        )
+        self.assertEqual(keys["OZON_CLIENT_ID"], "1234567")
+        self.assertEqual(keys["OZON_API_KEY"], "8f2b1c9a")
+
+    def test_comments_and_empty_values_are_skipped(self) -> None:
+        keys = self.parse("# заметка\nClient-Id:\nApi-Key: живой-ключ\n")
+        self.assertEqual(keys, {"OZON_API_KEY": "живой-ключ"})
+
+    def test_first_value_wins_over_later_duplicates(self) -> None:
+        keys = self.parse("Api-Key: первый\nApi-Key: второй\n")
+        self.assertEqual(keys["OZON_API_KEY"], "первый")
+
+    def test_meaningless_file_is_reported(self) -> None:
+        from ozon.import_keys import import_file
+
+        path = Path(tempfile.mkdtemp()) / "keys.txt"
+        path.write_text("просто заметка без ключей", encoding="utf-8")
+        with self.assertRaises(ValueError):
+            import_file(path)
+
+    def test_missing_file_is_reported(self) -> None:
+        from ozon.import_keys import import_file
+
+        with self.assertRaises(FileNotFoundError):
+            import_file(Path(tempfile.mkdtemp()) / "нет-такого.txt")
+
+    def test_import_writes_env_and_returns_what_it_found(self) -> None:
+        import ozon.config as config
+        from ozon.import_keys import import_file
+
+        folder = Path(tempfile.mkdtemp())
+        note = folder / "keys.txt"
+        note.write_text("Client-Id: 42\nApi-Key: ключ\n", encoding="utf-8")
+        with mock.patch.object(config, "ENV_FILE", folder / ".env"):
+            found = import_file(note)
+            saved = config._read_env_file(folder / ".env")
+        self.assertEqual(set(found), {"OZON_CLIENT_ID", "OZON_API_KEY"})
+        self.assertEqual(saved["OZON_CLIENT_ID"], "42")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
@@ -21,6 +22,7 @@ from ozon.config import ENV_FILE, ROOT, load_credentials, mask, save_env, value
 from ozon.diagnostics import run_checks, summary
 from ozon.version import VERSION
 from ozon.errors import OzonApiError, OzonWriteBlocked
+from ozon.import_keys import import_file
 from ozon.performance import PerformanceApi
 from ozon.safety import WriteGuard
 from ozon.seller import SellerApi
@@ -125,6 +127,24 @@ with st.sidebar:
             st.cache_data.clear()
             st.success(f"Записал в {path.name}. Пустые поля оставил как было.")
             st.rerun()
+
+    with st.expander("Ключи лежат в файле?"):
+        st.caption(
+            "Если ключи записаны в заметке — укажите путь, и они перенесутся "
+            "в .env сами. Перепечатывать не нужно."
+        )
+        keys_path = st.text_input(
+            "Путь к файлу", placeholder=r"C:\Users\...\Desktop\Marketplace-AI\keys.txt"
+        )
+        if st.button("Перенести ключи", width="stretch", disabled=not keys_path.strip()):
+            try:
+                found = import_file(Path(keys_path.strip().strip('"')))
+            except (OSError, ValueError) as exc:
+                st.error(str(exc))
+            else:
+                st.cache_data.clear()
+                st.success("Перенесено: " + ", ".join(sorted(found)))
+                st.rerun()
 
     st.divider()
     st.header("Изменения")

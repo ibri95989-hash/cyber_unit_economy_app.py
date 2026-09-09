@@ -16,11 +16,13 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
 from typing import Any
 
 from .config import load_credentials
 from .diagnostics import run_checks, summary
 from .errors import OzonApiError, OzonWriteBlocked
+from .import_keys import import_file
 from .performance import PerformanceApi
 from .safety import WriteGuard
 from .seller import SellerApi
@@ -56,6 +58,21 @@ def cmd_check(args: argparse.Namespace) -> int:
     else:
         print("Performance API: ключей нет.")
     return 0 if ok else 1
+
+
+def cmd_import_keys(args: argparse.Namespace) -> int:
+    """Перенести ключи из файла-заметки в .env."""
+    from .config import mask
+
+    try:
+        keys = import_file(Path(args.path))
+    except (OSError, ValueError) as exc:
+        print(f"[!] {exc}")
+        return 1
+    print("Перенесено в .env:")
+    for name, value in keys.items():
+        print(f"  {name} = {mask(value)}")
+    return 0
 
 
 def cmd_doctor(args: argparse.Namespace) -> int:
@@ -201,6 +218,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("check", help="проверить ключи и доступ").set_defaults(func=cmd_check)
     sub.add_parser("doctor", help="прогнать все методы и показать, что работает").set_defaults(func=cmd_doctor)
+
+    p = sub.add_parser("import-keys", help="перенести ключи из файла в .env")
+    p.add_argument("path", help="путь к файлу с ключами, например keys.txt")
+    p.set_defaults(func=cmd_import_keys)
 
     p = sub.add_parser("supplies", help="список заявок на поставку")
     p.add_argument("--limit", type=int, default=50)

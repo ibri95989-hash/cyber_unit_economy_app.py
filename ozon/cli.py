@@ -99,7 +99,7 @@ def cmd_set_bid(args: argparse.Namespace) -> int:
     try:
         show(api.set_bids(args.campaign_id, bids, apply=args.apply))
     except OzonWriteBlocked as exc:
-        print(str(exc))
+        print(f"{exc}\nЧтобы отправить: повторите команду с --apply.")
         return 2
     return 0
 

@@ -103,6 +103,44 @@ class Credentials:
         return "\n".join(lines)
 
 
+def save_env(values: Dict[str, str], path: Path = ENV_FILE) -> Path:
+    """Записать ключи в .env, сохранив остальные строки файла.
+
+    Файл создаётся с правами 600 — читать его сможет только владелец. Пустые
+    значения не затирают то, что уже сохранено: так форма не требует вводить
+    все четыре ключа заново ради правки одного.
+    """
+    existing: Dict[str, str] = {}
+    order: list[str] = []
+    if path.exists():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if "=" in line and not line.strip().startswith("#"):
+                key, _, raw = line.partition("=")
+                key = key.strip()
+                if key not in existing:
+                    order.append(key)
+                existing[key] = raw.strip()
+
+    for key, value in values.items():
+        value = (value or "").strip()
+        if not value:
+            continue
+        if key not in existing:
+            order.append(key)
+        existing[key] = value
+
+    body = "\n".join(f"{key}={existing[key]}" for key in order)
+    path.write_text(
+        "# Ключи Ozon. Файл не попадает в git и никуда не отправляется.\n" + body + "\n",
+        encoding="utf-8",
+    )
+    try:
+        path.chmod(0o600)
+    except OSError:  # noqa: PERF203 - на Windows прав может не быть
+        pass
+    return path
+
+
 def load_credentials() -> Credentials:
     """Собрать ключи из окружения, .env и секретов Streamlit."""
     return Credentials(

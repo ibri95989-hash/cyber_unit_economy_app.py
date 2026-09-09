@@ -70,11 +70,12 @@ class WriteGuard:
         self.audit(action, details, applied=False, note="dry-run" if not apply else "requested")
         if not apply:
             raise OzonWriteBlocked(
-                f"Сухой прогон: {action} не отправлен. Добавьте --apply, когда проверите параметры."
+                f"Сухой прогон: {action} не отправлен — так и задумано, пока изменение не подтверждено."
             )
         if not self.writes_allowed:
             raise OzonWriteBlocked(
-                f"Запись запрещена: {action}. Разрешите её в окружении: OZON_ALLOW_WRITES=1."
+                f"Запись запрещена: {action}. Включите тумблер «Разрешить менять кабинет» "
+                "в панели или задайте OZON_ALLOW_WRITES=1 в окружении."
             )
 
         bid = details.get("bid")

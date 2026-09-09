@@ -1,4 +1,7 @@
 # Зависимости интеграции с Ozon. Основное приложение их не требует.
 requests>=2.31
+# Нужен для панели ozon_app.py.
+streamlit>=1.49
+pandas>=2.0
 # Нужен только для MCP-сервера (python -m ozon.mcp_server).
 mcp>=1.2

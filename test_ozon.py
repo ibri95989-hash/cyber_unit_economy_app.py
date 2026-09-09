@@ -679,6 +679,19 @@ class ClaudeSetupTest(unittest.TestCase):
             lines = "\n".join(self.setup.report())
         self.assertIn("записи «ozon» НЕТ", lines)
 
+    def test_report_tells_empty_from_broken(self) -> None:
+        """Пустой файл лечится одной кнопкой, испорченный — другой командой."""
+        self.config.write_text("", encoding="utf-8")
+        with mock.patch.object(self.setup, "config_candidates", lambda: [self.config]):
+            empty = "\n".join(self.setup.report())
+        self.config.write_text("{это не json", encoding="utf-8")
+        with mock.patch.object(self.setup, "config_candidates", lambda: [self.config]):
+            broken = "\n".join(self.setup.report())
+        self.assertIn("ПУСТОЙ", empty)
+        self.assertIn("setup_claude.bat", empty)
+        self.assertIn("не разбирается", broken)
+        self.assertIn("--force", broken)
+
     def test_report_notices_a_stale_path(self) -> None:
         """Папку могли перенести — тогда в настройках остаётся старый путь."""
         self.config.write_text(

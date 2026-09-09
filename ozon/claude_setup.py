@@ -100,10 +100,16 @@ def report() -> List[str]:
         if not path.exists():
             lines.append(f"Настройки Claude: {path} — файла нет")
             continue
+        text = path.read_text(encoding="utf-8-sig").strip()
+        if not text:
+            lines.append(f"Настройки Claude: {path} — файл ПУСТОЙ (0 байт)")
+            lines.append("  Запустите setup_claude.bat — он заполнит его.")
+            continue
         try:
-            data = json.loads(path.read_text(encoding="utf-8"))
+            data = json.loads(text)
         except json.JSONDecodeError as exc:
-            lines.append(f"Настройки Claude: {path} — файл повреждён ({exc})")
+            lines.append(f"Настройки Claude: {path} — файл не разбирается ({exc})")
+            lines.append("  Переписать начисто: python -m ozon.claude_setup --force")
             continue
         entry = (data.get("mcpServers") or {}).get(SERVER_NAME)
         if not entry:
@@ -151,7 +157,16 @@ def _install_and_report(force: bool = False) -> int:
     except Exception as exc:  # noqa: BLE001 - пользователю нужен текст, а не трейсбек
         print(f"  [!] {exc}")
         return 1
+    # Сразу перечитываем: если приложение управляет этим файлом само, запись
+    # может не пережить его запуск, и об этом лучше узнать сейчас.
+    try:
+        written = json.loads(path.read_text(encoding="utf-8-sig") or "{}")
+        confirmed = (written.get("mcpServers") or {}).get(SERVER_NAME) == server_entry()
+    except (OSError, json.JSONDecodeError):
+        confirmed = False
+
     print(f"  Сервер добавлен в настройки Claude: {path}")
+    print(f"  Проверка записи: {'запись на месте' if confirmed else 'ЗАПИСЬ НЕ СОХРАНИЛАСЬ'}")
     print(f"  Запуск: {python_path()}")
     print("  Перезапустите приложение Claude, чтобы оно увидело сервер.")
     return 0

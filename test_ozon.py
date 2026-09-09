@@ -706,7 +706,7 @@ class ClaudeSetupTest(unittest.TestCase):
         self.config.write_text("{это не json", encoding="utf-8")
         with mock.patch.object(self.setup, "config_candidates", lambda: [self.config]):
             lines = "\n".join(self.setup.report())
-        self.assertIn("повреждён", lines)
+        self.assertIn("не разбирается", lines)
 
     def test_empty_config_is_filled_in(self) -> None:
         """Приложение оставляет файл пустым до первой настройки — это не поломка."""

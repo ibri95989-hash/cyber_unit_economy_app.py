@@ -21,6 +21,11 @@ SKIPPED = "пропущено"
 def _size(payload: Any) -> str:
     """Коротко описать ответ, не вываливая его целиком."""
     if isinstance(payload, list):
+        # Короткие строки показываем как есть: по ним видно, что именно ушло
+        # в запрос, — на догадках об этом мы уже обожглись.
+        if payload and all(isinstance(x, str) and len(x) < 60 for x in payload):
+            joined = ", ".join(payload[:6])
+            return joined + (f" … и ещё {len(payload) - 6}" if len(payload) > 6 else "")
         return f"записей: {len(payload)}"
     if isinstance(payload, dict):
         for key, value in payload.items():
@@ -48,6 +53,13 @@ def _check(rows: List[Dict[str, str]], name: str, method: str, call: Callable[[]
         rows.append({"проверка": name, "метод": method, "результат": OK, "подробности": _size(payload)})
 
 
+def _preview(payload: Any) -> str:
+    """Кусок ответа как есть — чтобы не гадать, что внутри."""
+    import json
+
+    return json.dumps(payload, ensure_ascii=False)[:300]
+
+
 def _states(api: SellerApi) -> List[str]:
     """Статусы для фильтра заявок. Пустой список — уже повод сказать об этом."""
     found = api.supply_order_states()
@@ -70,6 +82,7 @@ def run_checks(credentials: Credentials | None = None) -> List[Dict[str, str]]:
     else:
         api = SellerApi(creds)
         _check(rows, "Ключ принят", "/v1/supply-order/status/counter", api.supply_status_counter)
+        _check(rows, "Ответ счётчика", "сырые данные", lambda: _preview(api.supply_status_counter()))
         _check(rows, "Статусы поставок", "разбор счётчика", lambda: _states(api))
         _check(rows, "Заявки на поставку", "/v3/supply-order/list", lambda: api.supply_orders(limit=10))
         _check(rows, "Заявки с подробностями", "/v3/supply-order/get", lambda: api.supply_orders_detailed(limit=10))

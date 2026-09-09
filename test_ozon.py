@@ -175,11 +175,14 @@ class FakeOzon:
         return handler(body or {})
 
     def counter(self, body):
+        # Так отвечает настоящий кабинет: рядом с кодом статуса лежат его
+        # человеческое название и сокращение, не принадлежащее перечислению.
         return {
             "items": [
-                {"state": "ORDER_STATE_DATA_FILLING", "count": 2},
-                {"state": "ORDER_STATE_IN_TRANSIT", "count": 1},
-                {"state": "ORDER_STATE_DATA_FILLING", "count": 9},
+                {"state": "ORDER_STATE_DATA_FILLING", "status": "DATA_FILLING",
+                 "title": "Заполнение данных", "count": 2},
+                {"state": "ORDER_STATE_IN_TRANSIT", "status": "IN_TRANSIT",
+                 "title": "В пути", "count": 1},
             ]
         }
 
@@ -269,8 +272,11 @@ class SupplyOrderRequestShapeTest(unittest.TestCase):
             self.api().supply_orders(limit=10)
         self.assertEqual(ozon.calls[0][0], "/v1/supply-order/status/counter")
         states = ozon.body("/v3/supply-order/list")["filter"]["states"]
-        # Порядок сохранён, повторы убраны.
-        self.assertEqual(states, ["ORDER_STATE_DATA_FILLING", "ORDER_STATE_IN_TRANSIT"])
+        # Из счётчика берутся только коды перечисления: «DATA_FILLING» без
+        # префикса и русские названия туда попасть не должны.
+        self.assertEqual(states[:2], ["ORDER_STATE_DATA_FILLING", "ORDER_STATE_IN_TRANSIT"])
+        self.assertTrue(all(state.startswith("ORDER_STATE_") for state in states))
+        self.assertEqual(len(states), len(set(states)))
 
     def test_states_are_asked_once_per_client(self) -> None:
         ozon = FakeOzon()
@@ -290,14 +296,43 @@ class SupplyOrderRequestShapeTest(unittest.TestCase):
             ozon.body("/v3/supply-order/list")["filter"]["states"], ["ORDER_STATE_IN_TRANSIT"]
         )
 
-    def test_known_state_is_used_when_the_counter_is_silent(self) -> None:
+    def test_known_states_are_used_when_the_counter_is_silent(self) -> None:
         ozon = FakeOzon()
         ozon.counter = lambda body: {"items": []}
         with mock.patch.object(SellerApi, "request", ozon):
             self.api().supply_orders()
-        self.assertEqual(
-            ozon.body("/v3/supply-order/list")["filter"]["states"], ["ORDER_STATE_DATA_FILLING"]
-        )
+        states = ozon.body("/v3/supply-order/list")["filter"]["states"]
+        self.assertEqual(states, list(SellerApi.KNOWN_STATES))
+
+    def test_counter_without_enum_codes_does_not_poison_the_filter(self) -> None:
+        """Ozon отбрасывает неизвестные значения — фильтр остался бы пустым."""
+        ozon = FakeOzon()
+        ozon.counter = lambda body: {"items": [{"status": "DATA_FILLING", "title": "Заполнение"}]}
+        with mock.patch.object(SellerApi, "request", ozon):
+            self.api().supply_orders()
+        states = ozon.body("/v3/supply-order/list")["filter"]["states"]
+        self.assertNotIn("DATA_FILLING", states)
+        self.assertIn("ORDER_STATE_DATA_FILLING", states)
+
+    def test_fbo_warehouses_send_supply_types(self) -> None:
+        """Метод не принимает пустой список типов поставки."""
+        ozon = FakeOzon()
+        ozon.calls.clear()
+
+        def fake(self_, method, path, *, body=None, **kwargs):
+            ozon.calls.append((path, body))
+            if not (body or {}).get("filter_by_supply_type"):
+                raise OzonApiError(
+                    "invalid DraftGetWarehouseFboListRequest.FilterBySupplyType: "
+                    "value must contain at least 1 item(s)",
+                    status=400,
+                    path=path,
+                )
+            return {"warehouses": []}
+
+        with mock.patch.object(SellerApi, "request", fake):
+            self.api().supply_warehouses()
+        self.assertTrue(ozon.calls[0][1]["filter_by_supply_type"])
 
     def test_limit_above_hundred_is_clamped(self) -> None:
         ozon = FakeOzon()
@@ -537,7 +572,13 @@ class DiagnosticsTest(unittest.TestCase):
             raise OzonApiError("сервис недоступен", status=503, path=path)
 
         rows = self.rows(dead)
-        self.assertTrue(all(row["результат"] != "ок" for row in rows if row["метод"] != "—"))
+        by_name = {row["проверка"]: row for row in rows}
+        # Всё, что ходит в сеть, помечено ошибкой — и с объяснением.
+        for name in ("Ключ принят", "Заявки на поставку", "Остатки", "Кластеры"):
+            self.assertEqual(by_name[name]["результат"], "ошибка", name)
+            self.assertIn("сервис недоступен", by_name[name]["подробности"])
+        # А статусы есть и без счётчика: иначе фильтр заявок вообще не собрать.
+        self.assertEqual(by_name["Статусы поставок"]["результат"], "ок")
 
     def test_version_is_reported_first(self) -> None:
         from ozon.version import VERSION

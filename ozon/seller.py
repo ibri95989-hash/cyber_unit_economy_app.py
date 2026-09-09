@@ -11,6 +11,7 @@ Ozon постепенно выключает старые версии мето�
 """
 from __future__ import annotations
 
+import json
 import re
 from datetime import date, timedelta
 from typing import Any, Dict, Iterable, List, Optional
@@ -134,9 +135,25 @@ class SellerApi(ApiClient):
             body={"cluster_type": "CLUSTER_TYPE_OZON"},
         )
 
-    def supply_warehouses(self, search: str = "") -> Any:
+    # Метод не принимает пустой список типов поставки. Точные значения Ozon не
+    # публикует, поэтому перечисляем оба известных написания: неизвестные он
+    # отбросит, как делает это со статусами заявок.
+    SUPPLY_TYPES = (
+        "CREATE_TYPE_DIRECT",
+        "CREATE_TYPE_CROSSDOCK",
+        "SUPPLY_TYPE_DIRECT",
+        "SUPPLY_TYPE_CROSSDOCK",
+    )
+
+    def supply_warehouses(self, search: str = "", *, supply_types: Optional[List[str]] = None) -> Any:
         """Склады Ozon, куда можно везти поставку FBO."""
-        return self.post("/v1/warehouse/fbo/list", body={"search": search, "filter_by_supply_type": []})
+        return self.post(
+            "/v1/warehouse/fbo/list",
+            body={
+                "search": search,
+                "filter_by_supply_type": list(supply_types or self.SUPPLY_TYPES),
+            },
+        )
 
     # ------------------------------------------------------------------ поставки
 
@@ -146,44 +163,42 @@ class SellerApi(ApiClient):
     # Поля сортировки, которые понимает /v3/supply-order/list.
     SORT_FIELDS = ("ORDER_CREATION", "ORDER_STATE_UPDATED_AT", "TIMESLOT_FROM_UTC", "TIMESLOT_FROM_LOCAL")
 
-    # Единственный статус, подтверждённый примером запроса. Используется, только
-    # если счётчик статусов почему-то не ответил: пустой фильтр Ozon отвергает.
-    FALLBACK_STATE = "ORDER_STATE_DATA_FILLING"
+    # Статусы заявок. Ozon молча отбрасывает неизвестные значения перечисления,
+    # поэтому лишние варианты безопасны: неверные отсеются, верные останутся.
+    # Именно это и сбило нас раньше — из счётчика приходили строки, которые
+    # выглядели статусами, но перечислению не принадлежали, и фильтр оказывался
+    # пустым. Первый в списке подтверждён примером запроса.
+    KNOWN_STATES = (
+        "ORDER_STATE_DATA_FILLING",
+        "ORDER_STATE_READY_TO_SUPPLY",
+        "ORDER_STATE_ACCEPTED_AT_SUPPLY_WAREHOUSE",
+        "ORDER_STATE_IN_TRANSIT",
+        "ORDER_STATE_COMPLETED",
+        "ORDER_STATE_CANCELLED",
+        "ORDER_STATE_OVERDUE",
+        "ORDER_STATE_REPORTS_CONFIRMATION_AWAITING",
+    )
+    STATE_PATTERN = re.compile(r"ORDER_STATE_[A-Z0-9_]+")
 
     def supply_order_states(self) -> List[str]:
-        """Статусы заявок, которые Ozon знает для этого кабинета.
+        """Статусы для фильтра заявок: найденные у кабинета плюс известные.
 
-        Список состояний в документации не опубликован, а фильтр без единого
-        статуса метод не принимает. Счётчик статусов отдаёт их ровно те, что
-        существуют у кабинета, — берём оттуда, а не угадываем.
+        Счётчик статусов показывает те, что есть именно у этого продавца, —
+        оттуда и берём, вылавливая коды по их виду, а не по имени поля.
+        К ним добавляем известные: перечисление шире, чем то, что сейчас
+        встречается в кабинете, а лишнее Ozon отбросит сам.
         """
         if self._states is not None:
             return self._states
 
         found: List[str] = []
-
-        def walk(node: Any) -> None:
-            if isinstance(node, dict):
-                for key, value in node.items():
-                    if (
-                        isinstance(value, str)
-                        and ("state" in key.lower() or "status" in key.lower())
-                        and re.fullmatch(r"[A-Z][A-Z0-9_]{4,}", value)
-                    ):
-                        found.append(value)
-                    else:
-                        walk(value)
-            elif isinstance(node, list):
-                for value in node:
-                    walk(value)
-
         try:
-            walk(self.supply_status_counter())
+            payload = self.supply_status_counter()
+            found = self.STATE_PATTERN.findall(json.dumps(payload, ensure_ascii=False))
         except OzonApiError:
             found = []
 
-        # Порядок сохраняем, дубли убираем.
-        self._states = list(dict.fromkeys(found))
+        self._states = list(dict.fromkeys(found + list(self.KNOWN_STATES)))
         return self._states
 
     def supply_orders(
@@ -201,7 +216,7 @@ class SellerApi(ApiClient):
         sort_by и sort_dir передаются всегда.
         """
         limit = max(1, min(int(limit), self.SUPPLY_LIMIT))
-        chosen = list(states) if states else (self.supply_order_states() or [self.FALLBACK_STATE])
+        chosen = list(states) if states else self.supply_order_states()
         body: Dict[str, Any] = {
             "filter": {"states": chosen},
             "limit": limit,

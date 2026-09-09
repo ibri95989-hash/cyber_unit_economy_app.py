@@ -546,5 +546,40 @@ class DiagnosticsTest(unittest.TestCase):
         self.assertEqual(rows[0]["подробности"], VERSION)
 
 
+class McpServerTest(unittest.TestCase):
+    """Сервер для Claude должен собираться на любой версии пакета mcp."""
+
+    def setUp(self) -> None:
+        try:
+            import mcp  # noqa: F401
+        except ImportError:
+            self.skipTest("пакет mcp не установлен")
+
+    def test_tools_are_registered(self) -> None:
+        from ozon import mcp_server
+
+        tools = [name for name in dir(mcp_server) if name.startswith("ozon_")]
+        self.assertIn("ozon_stocks", tools)
+        self.assertIn("ozon_supply_orders", tools)
+        self.assertIn("ozon_plan_supply", tools)
+        self.assertGreaterEqual(len(tools), 15)
+
+    def test_launcher_imports_the_server(self) -> None:
+        source = Path("mcp_launch.py").read_text(encoding="utf-8")
+        self.assertIn("from ozon.mcp_server import main", source)
+
+    def test_read_tools_survive_a_dead_api(self) -> None:
+        """Ошибка Ozon должна вернуться Claude текстом, а не уронить сервер."""
+        from ozon import mcp_server
+
+        def dead(self_, method, path, **kwargs):
+            raise OzonApiError("сервис недоступен", status=503, path=path)
+
+        with mock.patch.dict(os.environ, {"OZON_CLIENT_ID": "id", "OZON_API_KEY": "key"}):
+            with mock.patch.object(SellerApi, "request", dead):
+                result = mcp_server._safe(lambda: SellerApi().stocks())
+        self.assertIn("сервис недоступен", result["error"])
+
+
 if __name__ == "__main__":
     unittest.main()

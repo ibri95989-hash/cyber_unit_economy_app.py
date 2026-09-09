@@ -282,8 +282,14 @@ python -m ozon.cli new-supply --sku 123456789:10 --warehouse-id 42 --confirm
 MCP-сервер — он живёт в этом же репозитории:
 
 ```bash
-claude mcp add ozon -- python -m ozon.mcp_server
+claude mcp add --scope user ozon -- .venv/bin/python mcp_launch.py
 ```
+
+На Windows это делает `setup_claude.bat`. Запуск идёт через `mcp_launch.py`,
+а не `python -m`: Python добавляет папку скрипта в пути импорта, поэтому
+сервер стартует из любой рабочей директории — Claude запускает его из своей.
+Поддерживаются обе версии пакета: в mcp 2.x класс `FastMCP` переименован в
+`MCPServer`, сервер выбирает нужный сам.
 
 После этого у Claude появляются инструменты `ozon_supply_orders`,
 `ozon_campaigns`, `ozon_campaign_bids`, `ozon_ad_statistics`, `ozon_set_bid`,

@@ -13,6 +13,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from .config import Credentials, load_credentials
 from .errors import OzonApiError
+from .performance import PerformanceApi
 from .seller import SellerApi
 from .version import VERSION
 
@@ -74,26 +75,79 @@ def _part(name: str, call: Callable[[], Any]) -> Dict[str, Any]:
     return {"раздел": name, "записей": len(rows), "данные": _clean(rows or payload)}
 
 
-def collect(credentials: Optional[Credentials] = None, *, limit: int = 500) -> Dict[str, Any]:
-    """Собрать снимок кабинета."""
-    creds = credentials or load_credentials()
-    if not creds.has_seller:
-        raise OzonApiError("Нет ключей Seller API — собирать нечего.")
-    api = SellerApi(creds)
+def _campaign_ids(payload: Any) -> List[int]:
+    """Номера кампаний из ответа рекламного кабинета."""
+    ids: List[int] = []
+    for row in _rows(payload):
+        raw = row.get("id") or row.get("campaignId") or row.get("campaign_id")
+        if str(raw).isdigit():
+            ids.append(int(raw))
+    return ids
 
-    return {
-        "снято": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "версия_панели": VERSION,
-        "разделы": [
+
+def _advertising(creds: Credentials) -> List[Dict[str, Any]]:
+    """Разделы рекламного кабинета. Без ключей — один поясняющий раздел."""
+    if not creds.has_performance:
+        return [
+            {
+                "раздел": "Реклама",
+                "ошибка": "Нет ключей Performance API — введите их в панели, "
+                "раздел «Ключи Ozon», нижние два поля.",
+            }
+        ]
+
+    ads = PerformanceApi(creds)
+    parts = [_part("Рекламные кампании", lambda: ads.campaigns())]
+
+    try:
+        ids = _campaign_ids(ads.campaigns())
+    except OzonApiError:
+        ids = []
+
+    if ids:
+        parts.append(
+            _part("Товары и ставки в кампаниях", lambda: {
+                str(cid): ads.products(cid) for cid in ids[:5]
+            })
+        )
+
+        def report() -> Any:
+            task = ads.statistics(ids[:10])
+            uuid = (task or {}).get("UUID") or (task or {}).get("uuid")
+            return ads.statistics_wait(str(uuid)) if uuid else task
+
+        parts.append(_part("Отчёт по кампаниям за 14 дней", report))
+
+    parts.append(_part("Поисковые фразы за 30 дней", lambda: ads.phrases()))
+    return parts
+
+
+def collect(credentials: Optional[Credentials] = None, *, limit: int = 500) -> Dict[str, Any]:
+    """Собрать снимок кабинета: товары, поставки и реклама."""
+    creds = credentials or load_credentials()
+    if not creds.has_seller and not creds.has_performance:
+        raise OzonApiError("Ключей нет — собирать нечего.")
+
+    sections: List[Dict[str, Any]] = []
+    if creds.has_seller:
+        api = SellerApi(creds)
+        sections += [
             _part("Остатки по складам FBO", lambda: api.stocks_on_warehouses(limit=limit)),
             _part("Остатки по товарам", lambda: api.stocks(limit=min(limit, 100))),
             _part("Товары", lambda: api.product_list(limit=min(limit, 100))),
             _part("Счётчик статусов поставок", api.supply_status_counter),
-            _part("Статусы, отправленные в фильтр", api.supply_order_states),
-            _part("Подбор фильтра заявок", api.probe_supply_filter),
             _part("Заявки на поставку", lambda: api.supply_orders_detailed(limit=50)),
             _part("Аналитика продаж за 30 дней", lambda: api.analytics(limit=min(limit, 500))),
-        ],
+        ]
+    else:
+        sections.append({"раздел": "Кабинет продавца", "ошибка": "Нет ключей Seller API."})
+
+    sections += _advertising(creds)
+
+    return {
+        "снято": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "версия_панели": VERSION,
+        "разделы": sections,
     }
 
 

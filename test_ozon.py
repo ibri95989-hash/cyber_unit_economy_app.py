@@ -917,6 +917,37 @@ class SnapshotTest(unittest.TestCase):
         with mock.patch.object(SellerApi, "request", FakeOzon()):
             return collect(Credentials(seller_client_id="id", seller_api_key="key"))
 
+    def test_advertising_is_explained_when_keys_are_missing(self) -> None:
+        parts = {part["раздел"]: part for part in self.collect()["разделы"]}
+        self.assertIn("Performance API", parts["Реклама"]["ошибка"])
+
+    def test_advertising_sections_appear_with_keys(self) -> None:
+        from ozon.client import ApiClient
+        from ozon.snapshot import collect
+
+        def fake(self_, method, path, *, body=None, **kwargs):
+            if path == "/api/client/token":
+                return {"access_token": "T", "expires_in": 1800}
+            if path == "/api/client/campaign":
+                return {"list": [{"id": "987", "title": "Трафареты"}]}
+            if path.endswith("/v2/products"):
+                return {"products": [{"sku": 1, "bid": 30}]}
+            if path == "/api/client/statistics":
+                return {"UUID": "u-1"}
+            if path.startswith("/api/client/statistics/"):
+                return {"state": "OK"}
+            if path == "/api/client/statistics/report":
+                return {"rows": [{"campaign": "987", "spend": 100}]}
+            raise OzonApiError("нет метода", status=404, path=path)
+
+        creds = Credentials(perf_client_id="id", perf_client_secret="secret")
+        with mock.patch.object(ApiClient, "request", fake):
+            parts = {p["раздел"]: p for p in collect(creds)["разделы"]}
+        self.assertEqual(parts["Рекламные кампании"]["записей"], 1)
+        self.assertIn("Товары и ставки в кампаниях", parts)
+        self.assertIn("Отчёт по кампаниям за 14 дней", parts)
+        self.assertIn("Нет ключей Seller API", parts["Кабинет продавца"]["ошибка"])
+
     def test_every_section_is_present(self) -> None:
         sections = [part["раздел"] for part in self.collect()["разделы"]]
         self.assertIn("Остатки по складам FBO", sections)

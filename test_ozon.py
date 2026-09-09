@@ -191,16 +191,19 @@ class FakeOzon:
         return handler(body or {})
 
     def counter(self, body):
-        # Так отвечает настоящий кабинет: рядом с кодом статуса лежат его
-        # человеческое название и сокращение, не принадлежащее перечислению.
+        # Так отвечает настоящий кабинет: ключ order_state и полные коды,
+        # включая нулевое значение перечисления.
         return {
             "items": [
-                {"state": "ORDER_STATE_DATA_FILLING", "status": "DATA_FILLING",
-                 "title": "Заполнение данных", "count": 2},
-                {"state": "ORDER_STATE_IN_TRANSIT", "status": "IN_TRANSIT",
-                 "title": "В пути", "count": 1},
+                {"order_state": "ORDER_STATE_IN_TRANSIT", "count": 4},
+                {"order_state": "ORDER_STATE_COMPLETED", "count": 4},
+                {"order_state": "ORDER_STATE_UNSPECIFIED", "count": 0},
             ]
         }
+
+    # Настоящее имя поля со статусами неизвестно, поэтому подделка принимает
+    # только одно из отправляемых написаний — как это делает Ozon.
+    STATE_FIELD = "states"
 
     def list_orders(self, body):
         limit = body.get("limit")
@@ -218,7 +221,7 @@ class FakeOzon:
                 status=400,
                 path="/v3/supply-order/list",
             )
-        states = (body.get("filter") or {}).get("states")
+        states = (body.get("filter") or {}).get(self.STATE_FIELD)
         if not states:
             raise OzonApiError(
                 "Request validation error: invalid SupplyOrderListRequest.Filter: embedded "
@@ -288,13 +291,12 @@ class SupplyOrderRequestShapeTest(unittest.TestCase):
             self.api().supply_orders(limit=10)
         self.assertEqual(ozon.calls[0][0], "/v1/supply-order/status/counter")
         states = ozon.body("/v3/supply-order/list")["filter"]["states"]
-        # Коды из счётчика идут первыми, повторов нет, русские названия не
-        # попадают. Короткие формы отправляются вместе с приставкой: какая из
-        # двух верна, решает Ozon — лишнее он отбрасывает молча.
-        self.assertEqual(states[0], "ORDER_STATE_DATA_FILLING")
-        self.assertIn("ORDER_STATE_IN_TRANSIT", states)
+        # Коды из счётчика идут первыми, повторов нет, нулевое значение
+        # перечисления не отправляется.
+        self.assertEqual(states[0], "ORDER_STATE_IN_TRANSIT")
+        self.assertNotIn("ORDER_STATE_UNSPECIFIED", states)
         self.assertEqual(len(states), len(set(states)))
-        self.assertFalse([s for s in states if not re.fullmatch(r"[A-Z][A-Z0-9_]+", s)])
+        self.assertFalse([s for s in states if not re.fullmatch(r"ORDER_STATE_[A-Z_]+", s)])
 
     def test_states_are_asked_once_per_client(self) -> None:
         ozon = FakeOzon()
@@ -321,17 +323,27 @@ class SupplyOrderRequestShapeTest(unittest.TestCase):
             self.api().supply_orders()
         states = ozon.body("/v3/supply-order/list")["filter"]["states"]
         self.assertEqual(states, list(SellerApi.KNOWN_STATES))
+        self.assertNotIn(SellerApi.UNSPECIFIED, states)
 
-    def test_short_codes_are_sent_in_both_spellings(self) -> None:
-        """Счётчик может отдавать короткую форму — верную знает только Ozon."""
+    def test_filter_is_sent_under_every_plausible_field_name(self) -> None:
+        """Имя поля неизвестно, а неизвестные поля Ozon отбрасывает молча."""
         ozon = FakeOzon()
-        ozon.counter = lambda body: {"items": [{"status": "DATA_FILLING", "title": "Заполнение"}]}
         with mock.patch.object(SellerApi, "request", ozon):
             self.api().supply_orders()
-        states = ozon.body("/v3/supply-order/list")["filter"]["states"]
-        self.assertIn("DATA_FILLING", states)
-        self.assertIn("ORDER_STATE_DATA_FILLING", states)
-        self.assertNotIn("Заполнение", states)
+        sent = ozon.body("/v3/supply-order/list")["filter"]
+        self.assertIn("states", sent)
+        self.assertIn("order_states", sent)
+        # Во всех написаниях лежит один и тот же список.
+        self.assertEqual({tuple(v) for v in sent.values()}, {tuple(sent["states"])})
+
+    def test_listing_works_whichever_field_name_ozon_expects(self) -> None:
+        for field in ("states", "order_states", "orderStates"):
+            with self.subTest(поле=field):
+                ozon = FakeOzon()
+                ozon.STATE_FIELD = field
+                with mock.patch.object(SellerApi, "request", ozon):
+                    result = self.api().supply_orders()
+                self.assertEqual(result["order_ids"], ["4321"])
 
     def test_fbo_warehouses_send_supply_types(self) -> None:
         """Метод не принимает пустой список типов поставки."""

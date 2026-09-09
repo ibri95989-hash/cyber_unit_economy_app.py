@@ -172,12 +172,17 @@ class SellerApi(ApiClient):
         "ORDER_STATE_DATA_FILLING",
         "ORDER_STATE_READY_TO_SUPPLY",
         "ORDER_STATE_ACCEPTED_AT_SUPPLY_WAREHOUSE",
+        "ORDER_STATE_ACCEPTANCE_AT_STORAGE_WAREHOUSE",
         "ORDER_STATE_IN_TRANSIT",
         "ORDER_STATE_COMPLETED",
         "ORDER_STATE_CANCELLED",
-        "ORDER_STATE_OVERDUE",
         "ORDER_STATE_REPORTS_CONFIRMATION_AWAITING",
+        "ORDER_STATE_REPORT_REJECTED",
+        "ORDER_STATE_REJECTED_AT_SUPPLY_WAREHOUSE",
     )
+    # Нулевое значение перечисления: валидатор Ozon такие обычно не принимает.
+    UNSPECIFIED = "ORDER_STATE_UNSPECIFIED"
+
     STATE_PATTERN = re.compile(r"ORDER_STATE_[A-Z0-9_]+")
 
     def supply_order_states(self) -> List[str]:
@@ -198,19 +203,10 @@ class SellerApi(ApiClient):
             payload = ""
 
         if payload:
-            # Полные коды берём как есть.
             found += self.STATE_PATTERN.findall(payload)
-            # Счётчик может отдавать короткую форму («DATA_FILLING») — тогда
-            # правильное значение получается добавлением приставки. Что из двух
-            # верно, знает только Ozon, а лишнее он отбрасывает молча,
-            # поэтому отправляем оба написания.
-            for token in re.findall(r"\b[A-Z][A-Z0-9_]{3,}\b", payload):
-                if token.startswith("ORDER_STATE_"):
-                    continue
-                found.append(token)
-                found.append("ORDER_STATE_" + token)
 
-        self._states = list(dict.fromkeys(found + list(self.KNOWN_STATES)))
+        states = [s for s in dict.fromkeys(found + list(self.KNOWN_STATES)) if s != self.UNSPECIFIED]
+        self._states = states
         return self._states
 
     def supply_orders(
@@ -229,8 +225,16 @@ class SellerApi(ApiClient):
         """
         limit = max(1, min(int(limit), self.SUPPLY_LIMIT))
         chosen = list(states) if states else self.supply_order_states()
+        # Имя поля со статусами Ozon в открытых источниках не показывает, а
+        # неизвестные поля отбрасывает молча — отсюда и «список пуст» при
+        # заведомо верных значениях. Отправляем все правдоподобные написания
+        # сразу: лишние отсеются, нужное сработает.
+        state_filter: Dict[str, Any] = {
+            name: chosen
+            for name in ("states", "state", "order_states", "orderStates", "supply_order_states")
+        }
         body: Dict[str, Any] = {
-            "filter": {"states": chosen},
+            "filter": state_filter,
             "limit": limit,
             "sort_by": sort_by if sort_by in self.SORT_FIELDS else "ORDER_CREATION",
             "sort_dir": "ASC" if str(sort_dir).upper() == "ASC" else "DESC",
@@ -239,7 +243,7 @@ class SellerApi(ApiClient):
             body["last_id"] = last_id
 
         legacy: Dict[str, Any] = {
-            "filter": {"states": chosen},
+            "filter": dict(state_filter),
             "paging": {"from_supply_order_id": 0, "limit": limit},
         }
         return self.try_variants(

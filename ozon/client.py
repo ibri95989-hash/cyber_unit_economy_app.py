@@ -117,6 +117,28 @@ class ApiClient:
     def post(self, path: str, **kwargs: Any) -> Any:
         return self.request("POST", path, **kwargs)
 
+    def try_variants(self, method: str, variants: list[tuple[str, Optional[Mapping[str, Any]]]]) -> Any:
+        """Пройти по парам «путь + тело» и вернуть ответ первого подошедшего.
+
+        Между версиями Ozon меняет не только адрес метода, но и форму тела:
+        в /v3/supply-order/list limit лежит на верхнем уровне, а в /v2 — внутри
+        paging. Поэтому откатываемся не только на 404, но и на 400: для чужой
+        формы тела это тот же случай «здесь ждут не это».
+        """
+        last: Optional[OzonApiError] = None
+        for path, body in variants:
+            try:
+                return self.request(method, path, body=body)
+            except OzonAuthError:
+                raise
+            except OzonApiError as exc:
+                if exc.status not in (400, 404, 410):
+                    raise
+                last = exc
+        raise last or OzonApiError(
+            "Ни один вариант запроса не подошёл: " + ", ".join(p for p, _ in variants)
+        )
+
     def try_versions(self, method: str, paths: list[str], **kwargs: Any) -> Any:
         """Пройти по вариантам пути и вернуть ответ первого живого.
 

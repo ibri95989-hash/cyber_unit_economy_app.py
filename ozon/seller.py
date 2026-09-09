@@ -133,6 +133,9 @@ class SellerApi(ApiClient):
 
     # ------------------------------------------------------------------ поставки
 
+    # Ozon принимает от 1 до 100 заявок за запрос.
+    SUPPLY_LIMIT = 100
+
     def supply_orders(
         self,
         *,
@@ -140,26 +143,45 @@ class SellerApi(ApiClient):
         limit: int = 50,
         from_supply_order_id: int = 0,
     ) -> Any:
-        """Список заявок на поставку. Версии v3 → v2 перебираются автоматически."""
-        body: Dict[str, Any] = {
+        """Список заявок на поставку.
+
+        Тело запроса у версий разное: в v3 limit на верхнем уровне, в v2 и v1 —
+        внутри paging. Перебираем варианты и берём первый, который Ozon принял.
+        """
+        limit = max(1, min(int(limit), self.SUPPLY_LIMIT))
+        filters: Dict[str, Any] = {"states": list(states)} if states else {}
+
+        modern: Dict[str, Any] = {"limit": limit}
+        if filters:
+            modern["filter"] = filters
+        if from_supply_order_id:
+            modern["from_supply_order_id"] = from_supply_order_id
+
+        legacy: Dict[str, Any] = {
+            "filter": filters,
             "paging": {"from_supply_order_id": from_supply_order_id, "limit": limit},
-            "filter": {},
         }
-        if states:
-            body["filter"]["states"] = states
-        return self.try_versions(
+
+        return self.try_variants(
             "POST",
-            ["/v3/supply-order/list", "/v2/supply-order/list", "/v1/supply-order/list"],
-            body=body,
+            [
+                ("/v3/supply-order/list", modern),
+                ("/v2/supply-order/list", legacy),
+                ("/v1/supply-order/list", legacy),
+            ],
         )
 
     def supply_order(self, order_ids: Iterable[int]) -> Any:
         """Подробности по заявкам на поставку."""
         ids = [int(x) for x in order_ids]
-        return self.try_versions(
+        return self.try_variants(
             "POST",
-            ["/v3/supply-order/get", "/v2/supply-order/get", "/v1/supply-order/get"],
-            body={"supply_order_id": ids, "order_ids": ids},
+            [
+                ("/v3/supply-order/get", {"order_ids": ids}),
+                ("/v3/supply-order/get", {"supply_order_id": ids}),
+                ("/v2/supply-order/get", {"supply_order_id": ids}),
+                ("/v1/supply-order/get", {"supply_order_id": ids}),
+            ],
         )
 
     def supply_status_counter(self) -> Any:

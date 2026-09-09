@@ -164,7 +164,8 @@ with supplies_tab:
         st.info("Нужен ключ Seller API — введите его слева.")
     else:
         st.subheader("Заявки на поставку")
-        limit = st.slider("Сколько показать", 10, 200, 50, step=10, key="supply_limit")
+        # Больше сотни за запрос Ozon не отдаёт.
+        limit = st.slider("Сколько показать", 10, 100, 50, step=10, key="supply_limit")
         try:
             payload = seller_call("supply_orders", limit=limit)
             table = show(payload, "Активных заявок на поставку нет.")

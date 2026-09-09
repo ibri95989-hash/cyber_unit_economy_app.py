@@ -132,6 +132,88 @@ class PerformanceTokenTest(unittest.TestCase):
                 request.assert_not_called()
 
 
+class SupplyOrderRequestShapeTest(unittest.TestCase):
+    """Ozon ответил «invalid SupplyOrderListRequest.Limit» — воспроизводим и лечим."""
+
+    def api(self) -> SellerApi:
+        creds = Credentials(seller_client_id="id", seller_api_key="key")
+        return SellerApi(creds, guard=WriteGuard())
+
+    def strict_ozon(self, calls: list):
+        """Сервер, который принимает только v3 с limit на верхнем уровне."""
+
+        def fake(self_, method, path, *, body=None, **kwargs):
+            calls.append((path, body))
+            if path != "/v3/supply-order/list":
+                raise OzonApiError("метод выключен", status=404, path=path)
+            limit = (body or {}).get("limit")
+            if not isinstance(limit, int) or not 1 <= limit <= 100:
+                raise OzonApiError(
+                    "Request validation error: invalid SupplyOrderListRequest.Limit: "
+                    "value must be inside range [1, 100]",
+                    status=400,
+                    path=path,
+                )
+            return {"supply_orders": [{"supply_order_id": 1}]}
+
+        return mock.patch.object(SellerApi, "request", fake)
+
+    def test_limit_goes_to_the_top_level(self) -> None:
+        calls: list = []
+        with self.strict_ozon(calls):
+            result = self.api().supply_orders(limit=50)
+        self.assertEqual(calls[0][1]["limit"], 50)
+        self.assertEqual(result["supply_orders"][0]["supply_order_id"], 1)
+
+    def test_limit_above_hundred_is_clamped(self) -> None:
+        calls: list = []
+        with self.strict_ozon(calls):
+            self.api().supply_orders(limit=500)
+        self.assertEqual(calls[0][1]["limit"], 100)
+
+    def test_falls_back_to_paging_shape_on_old_version(self) -> None:
+        """Если v3 выключен, уходим на v2 со старой формой тела."""
+        calls: list = []
+
+        def fake(self_, method, path, *, body=None, **kwargs):
+            calls.append((path, body))
+            if path == "/v3/supply-order/list":
+                raise OzonApiError("метод выключен", status=404, path=path)
+            if "paging" not in (body or {}):
+                raise OzonApiError("нужен paging", status=400, path=path)
+            return {"supply_orders": []}
+
+        with mock.patch.object(SellerApi, "request", fake):
+            self.api().supply_orders(limit=30)
+        self.assertEqual([path for path, _ in calls], ["/v3/supply-order/list", "/v2/supply-order/list"])
+        self.assertEqual(calls[1][1]["paging"]["limit"], 30)
+
+    def test_get_tries_both_field_names(self) -> None:
+        calls: list = []
+
+        def fake(self_, method, path, *, body=None, **kwargs):
+            calls.append((path, body))
+            if "supply_order_id" not in (body or {}):
+                raise OzonApiError("нужен supply_order_id", status=400, path=path)
+            return {"orders": [{"supply_order_id": 7}]}
+
+        with mock.patch.object(SellerApi, "request", fake):
+            result = self.api().supply_order([7])
+        self.assertEqual(result["orders"][0]["supply_order_id"], 7)
+        self.assertEqual(len(calls), 2)
+
+    def test_real_error_is_reported_not_swallowed(self) -> None:
+        """Если дело не в форме тела, ошибка должна дойти до человека."""
+
+        def fake(self_, method, path, *, body=None, **kwargs):
+            raise OzonApiError("склад не найден", status=404, path=path)
+
+        with mock.patch.object(SellerApi, "request", fake):
+            with self.assertRaises(OzonApiError) as caught:
+                self.api().supply_orders()
+        self.assertIn("склад не найден", str(caught.exception))
+
+
 class SupplyWorkflowTest(unittest.TestCase):
     """Цепочка «черновик → склады → интервалы → заявка» целиком, без сети."""
 

@@ -22,38 +22,43 @@ if not exist ".venv\Scripts\python.exe" (
   exit /b 1
 )
 
+REM --- Путь первый: командная строка Claude Code ----------------------------
 where claude >nul 2>nul
-if errorlevel 1 (
-  echo   [!] Claude Code на компьютере не найден.
-  echo.
-  echo   Установите его со страницы https://claude.com/claude-code
-  echo   затем запустите этот файл заново.
-  echo.
-  echo   Если Claude Code уже стоит, но не находится - откройте его
-  echo   и выполните там команду вручную:
-  echo.
-  echo     claude mcp add --scope user ozon -- "%CD%\.venv\Scripts\python.exe" "%CD%\mcp_launch.py"
-  echo.
-  pause
-  exit /b 1
+if not errorlevel 1 (
+  echo   Нашёл Claude Code, регистрирую сервер...
+  call claude mcp add --scope user ozon -- "%CD%\.venv\Scripts\python.exe" "%CD%\mcp_launch.py"
+  if not errorlevel 1 (
+    echo.
+    echo   Готово. Откройте Claude и спросите: "какой у меня остаток".
+    echo   Проверить: claude mcp list     Отключить: claude mcp remove ozon
+    echo.
+    pause
+    exit /b 0
+  )
+  echo   Через командную строку не вышло, пробую настройки приложения...
 )
 
-echo   Регистрирую сервер...
-call claude mcp add --scope user ozon -- "%CD%\.venv\Scripts\python.exe" "%CD%\mcp_launch.py"
-if errorlevel 1 goto :error
+REM --- Путь второй: настройки приложения Claude -----------------------------
+echo   Прописываю сервер в настройки приложения Claude...
+".venv\Scripts\python.exe" -m ozon.claude_setup
+if errorlevel 1 goto :manual
 
 echo.
-echo   Готово. Откройте Claude Code и спросите: "какой у меня остаток".
+echo   Готово. ЗАКРОЙТЕ приложение Claude полностью и откройте заново -
+echo   только тогда оно увидит новый сервер.
 echo.
-echo   Проверить, что сервер на месте:  claude mcp list
-echo   Отключить:                       claude mcp remove ozon
+echo   Потом спросите: "какой у меня остаток".
 echo.
 pause
 exit /b 0
 
-:error
+:manual
 echo.
-echo   [!] Зарегистрировать не удалось. Скопируйте текст выше и покажите Claude.
+echo   [!] Автоматически не получилось.
+echo.
+echo   Похоже, приложения Claude на компьютере тоже нет.
+echo   Установите его со страницы https://claude.com/claude-code
+echo   и запустите этот файл заново.
 echo.
 pause
 exit /b 1

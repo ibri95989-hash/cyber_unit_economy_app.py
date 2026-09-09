@@ -4,6 +4,7 @@
 """
 from __future__ import annotations
 
+import json
 import os
 import tempfile
 import unittest
@@ -620,6 +621,49 @@ class McpServerTest(unittest.TestCase):
             with mock.patch.object(SellerApi, "request", dead):
                 result = mcp_server._safe(lambda: SellerApi().stocks())
         self.assertIn("сервис недоступен", result["error"])
+
+
+class ClaudeSetupTest(unittest.TestCase):
+    """Регистрация сервера в настройках приложения Claude."""
+
+    def setUp(self) -> None:
+        from ozon import claude_setup
+
+        self.setup = claude_setup
+        self.config = Path(tempfile.mkdtemp()) / "claude_desktop_config.json"
+
+    def test_creates_config_from_scratch(self) -> None:
+        self.setup.install(self.config)
+        data = json.loads(self.config.read_text(encoding="utf-8"))
+        self.assertIn("mcp_launch.py", data["mcpServers"]["ozon"]["args"][0])
+
+    def test_other_servers_and_settings_survive(self) -> None:
+        self.config.write_text(
+            json.dumps({"mcpServers": {"чужой": {"command": "x"}}, "theme": "dark"}),
+            encoding="utf-8",
+        )
+        self.setup.install(self.config)
+        data = json.loads(self.config.read_text(encoding="utf-8"))
+        self.assertIn("чужой", data["mcpServers"])
+        self.assertEqual(data["theme"], "dark")
+
+    def test_previous_config_is_backed_up(self) -> None:
+        self.config.write_text(json.dumps({"theme": "dark"}), encoding="utf-8")
+        self.setup.install(self.config)
+        backup = self.config.with_suffix(".json.backup")
+        self.assertEqual(json.loads(backup.read_text(encoding="utf-8")), {"theme": "dark"})
+
+    def test_repeated_run_does_not_duplicate(self) -> None:
+        self.setup.install(self.config)
+        self.setup.install(self.config)
+        data = json.loads(self.config.read_text(encoding="utf-8"))
+        self.assertEqual(list(data["mcpServers"]), ["ozon"])
+
+    def test_broken_config_is_not_overwritten(self) -> None:
+        self.config.write_text("{это не json", encoding="utf-8")
+        with self.assertRaises(RuntimeError):
+            self.setup.install(self.config)
+        self.assertEqual(self.config.read_text(encoding="utf-8"), "{это не json")
 
 
 if __name__ == "__main__":

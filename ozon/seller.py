@@ -150,26 +150,30 @@ class SellerApi(ApiClient):
         """
         limit = max(1, min(int(limit), self.SUPPLY_LIMIT))
         filters: Dict[str, Any] = {"states": list(states)} if states else {}
+        cursor: Dict[str, Any] = (
+            {"from_supply_order_id": from_supply_order_id} if from_supply_order_id else {}
+        )
 
-        modern: Dict[str, Any] = {"limit": limit}
-        if filters:
-            modern["filter"] = filters
-        if from_supply_order_id:
-            modern["from_supply_order_id"] = from_supply_order_id
-
+        # Какой формы тело ждёт живая версия метода, Ozon в открытой документации
+        # не показывает, поэтому пробуем от самой скупой к самой полной: лишнее
+        # поле чаще ломает валидацию, чем отсутствующее.
+        bodies: List[Dict[str, Any]] = [
+            {"limit": limit, **cursor},
+            {"limit": limit, "filter": filters, **cursor},
+            {"limit": limit, "filter": {"states": list(states or [])}, **cursor},
+        ]
         legacy: Dict[str, Any] = {
             "filter": filters,
             "paging": {"from_supply_order_id": from_supply_order_id, "limit": limit},
         }
 
-        return self.try_variants(
-            "POST",
-            [
-                ("/v3/supply-order/list", modern),
-                ("/v2/supply-order/list", legacy),
-                ("/v1/supply-order/list", legacy),
-            ],
-        )
+        variants: List[Any] = []
+        for body in bodies:
+            if body not in [existing for _, existing in variants]:
+                variants.append(("/v3/supply-order/list", body))
+        variants += [("/v2/supply-order/list", legacy), ("/v1/supply-order/list", legacy)]
+
+        return self.try_variants("POST", variants)
 
     def supply_order(self, order_ids: Iterable[int]) -> Any:
         """Подробности по заявкам на поставку."""

@@ -122,10 +122,14 @@ class ApiClient:
 
         Между версиями Ozon меняет не только адрес метода, но и форму тела:
         в /v3/supply-order/list limit лежит на верхнем уровне, а в /v2 — внутри
-        paging. Поэтому откатываемся не только на 404, но и на 400: для чужой
-        формы тела это тот же случай «здесь ждут не это».
+        paging. Поэтому откатываемся не только на 404, но и на 400.
+
+        Когда не подошло ничего, наверх уходит самая содержательная ошибка:
+        жалоба живого метода на тело запроса полезнее, чем «404» от версии,
+        которую Ozon отключил год назад. Полный список попыток остаётся в
+        attempts — по нему видно, что именно спрашивали и что ответили.
         """
-        last: Optional[OzonApiError] = None
+        failures: list[OzonApiError] = []
         for path, body in variants:
             try:
                 return self.request(method, path, body=body)
@@ -134,10 +138,23 @@ class ApiClient:
             except OzonApiError as exc:
                 if exc.status not in (400, 404, 410):
                     raise
-                last = exc
-        raise last or OzonApiError(
-            "Ни один вариант запроса не подошёл: " + ", ".join(p for p, _ in variants)
-        )
+                failures.append(exc)
+
+        # 404 и 410 означают «метода больше нет» — это шум. Остальное по делу.
+        speaking = [exc for exc in failures if exc.status not in (404, 410)]
+        best = (speaking or failures)[0]
+        best.attempts = [(exc.path, exc.status, str(exc)) for exc in failures]
+        if len(failures) > 1:
+            # Дописываем контекст, но не подменяем то, что сказал Ozon: даже
+            # в 404 бывает объяснение полезнее, чем «страница не найдена».
+            paths = ", ".join(dict.fromkeys(exc.path for exc in failures))
+            tail = (
+                f"(отвечает {best.path}; остальные версии метода Ozon отключил)"
+                if speaking
+                else f"(ни одна версия метода не ответила: {paths})"
+            )
+            best.args = (f"{best}\n{tail}",)
+        raise best
 
     def try_versions(self, method: str, paths: list[str], **kwargs: Any) -> Any:
         """Пройти по вариантам пути и вернуть ответ первого живого.

@@ -65,6 +65,16 @@ def show(payload: Any, empty: str = "Ozon вернул пустой ответ."
 
 def fail(exc: Exception) -> None:
     st.error(str(exc))
+    attempts = getattr(exc, "attempts", None)
+    if attempts:
+        # Ozon меняет форму запросов между версиями. Если не подошло ничего,
+        # показываем все попытки: по ним сразу видно, чего именно он хочет.
+        with st.expander("Что именно спрашивали у Ozon"):
+            st.dataframe(
+                pd.DataFrame(attempts, columns=["метод", "код", "ответ Ozon"]),
+                width="stretch",
+                hide_index=True,
+            )
 
 
 @st.cache_data(ttl=CACHE_TTL, show_spinner="Спрашиваю Ozon…")

@@ -1,7 +1,7 @@
 """Ошибки интеграции."""
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, List, Optional, Tuple
 
 
 class OzonApiError(RuntimeError):
@@ -19,6 +19,9 @@ class OzonApiError(RuntimeError):
         self.status = status
         self.path = path
         self.payload = payload
+        # Если до ответа было несколько попыток с разной формой запроса —
+        # здесь лежат все: (путь, код, что ответил Ozon).
+        self.attempts: List[Tuple[str, Optional[int], str]] = []
 
 
 class OzonAuthError(OzonApiError):

@@ -185,8 +185,10 @@ class SupplyOrderRequestShapeTest(unittest.TestCase):
 
         with mock.patch.object(SellerApi, "request", fake):
             self.api().supply_orders(limit=30)
-        self.assertEqual([path for path, _ in calls], ["/v3/supply-order/list", "/v2/supply-order/list"])
-        self.assertEqual(calls[1][1]["paging"]["limit"], 30)
+        # Сначала перебираются формы тела для v3, затем — старая схема с paging.
+        self.assertTrue(all(path.startswith("/v3") for path, _ in calls[:-1]))
+        self.assertEqual(calls[-1][0], "/v2/supply-order/list")
+        self.assertEqual(calls[-1][1]["paging"]["limit"], 30)
 
     def test_get_tries_both_field_names(self) -> None:
         calls: list = []
@@ -203,7 +205,7 @@ class SupplyOrderRequestShapeTest(unittest.TestCase):
         self.assertEqual(len(calls), 2)
 
     def test_real_error_is_reported_not_swallowed(self) -> None:
-        """Если дело не в форме тела, ошибка должна дойти до человека."""
+        """Что сказал Ozon, то и должен прочитать человек — даже внутри 404."""
 
         def fake(self_, method, path, *, body=None, **kwargs):
             raise OzonApiError("склад не найден", status=404, path=path)
@@ -212,6 +214,21 @@ class SupplyOrderRequestShapeTest(unittest.TestCase):
             with self.assertRaises(OzonApiError) as caught:
                 self.api().supply_orders()
         self.assertIn("склад не найден", str(caught.exception))
+
+    def test_body_complaint_wins_over_disabled_versions(self) -> None:
+        """Жалоба живого метода важнее, чем 404 от выключенных версий."""
+
+        def fake(self_, method, path, *, body=None, **kwargs):
+            if path.startswith("/v3"):
+                raise OzonApiError("invalid Filter: required", status=400, path=path)
+            raise OzonApiError("404 page not found", status=404, path=path)
+
+        with mock.patch.object(SellerApi, "request", fake):
+            with self.assertRaises(OzonApiError) as caught:
+                self.api().supply_orders()
+        self.assertIn("invalid Filter", str(caught.exception))
+        self.assertTrue(caught.exception.attempts)
+        self.assertEqual(caught.exception.attempts[-1][1], 404)
 
 
 class SupplyWorkflowTest(unittest.TestCase):

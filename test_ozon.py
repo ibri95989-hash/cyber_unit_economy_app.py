@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -287,11 +288,13 @@ class SupplyOrderRequestShapeTest(unittest.TestCase):
             self.api().supply_orders(limit=10)
         self.assertEqual(ozon.calls[0][0], "/v1/supply-order/status/counter")
         states = ozon.body("/v3/supply-order/list")["filter"]["states"]
-        # Из счётчика берутся только коды перечисления: «DATA_FILLING» без
-        # префикса и русские названия туда попасть не должны.
-        self.assertEqual(states[:2], ["ORDER_STATE_DATA_FILLING", "ORDER_STATE_IN_TRANSIT"])
-        self.assertTrue(all(state.startswith("ORDER_STATE_") for state in states))
+        # Коды из счётчика идут первыми, повторов нет, русские названия не
+        # попадают. Короткие формы отправляются вместе с приставкой: какая из
+        # двух верна, решает Ozon — лишнее он отбрасывает молча.
+        self.assertEqual(states[0], "ORDER_STATE_DATA_FILLING")
+        self.assertIn("ORDER_STATE_IN_TRANSIT", states)
         self.assertEqual(len(states), len(set(states)))
+        self.assertFalse([s for s in states if not re.fullmatch(r"[A-Z][A-Z0-9_]+", s)])
 
     def test_states_are_asked_once_per_client(self) -> None:
         ozon = FakeOzon()
@@ -319,15 +322,16 @@ class SupplyOrderRequestShapeTest(unittest.TestCase):
         states = ozon.body("/v3/supply-order/list")["filter"]["states"]
         self.assertEqual(states, list(SellerApi.KNOWN_STATES))
 
-    def test_counter_without_enum_codes_does_not_poison_the_filter(self) -> None:
-        """Ozon отбрасывает неизвестные значения — фильтр остался бы пустым."""
+    def test_short_codes_are_sent_in_both_spellings(self) -> None:
+        """Счётчик может отдавать короткую форму — верную знает только Ozon."""
         ozon = FakeOzon()
         ozon.counter = lambda body: {"items": [{"status": "DATA_FILLING", "title": "Заполнение"}]}
         with mock.patch.object(SellerApi, "request", ozon):
             self.api().supply_orders()
         states = ozon.body("/v3/supply-order/list")["filter"]["states"]
-        self.assertNotIn("DATA_FILLING", states)
+        self.assertIn("DATA_FILLING", states)
         self.assertIn("ORDER_STATE_DATA_FILLING", states)
+        self.assertNotIn("Заполнение", states)
 
     def test_fbo_warehouses_send_supply_types(self) -> None:
         """Метод не принимает пустой список типов поставки."""

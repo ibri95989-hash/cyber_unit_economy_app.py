@@ -193,10 +193,22 @@ class SellerApi(ApiClient):
 
         found: List[str] = []
         try:
-            payload = self.supply_status_counter()
-            found = self.STATE_PATTERN.findall(json.dumps(payload, ensure_ascii=False))
+            payload = json.dumps(self.supply_status_counter(), ensure_ascii=False)
         except OzonApiError:
-            found = []
+            payload = ""
+
+        if payload:
+            # Полные коды берём как есть.
+            found += self.STATE_PATTERN.findall(payload)
+            # Счётчик может отдавать короткую форму («DATA_FILLING») — тогда
+            # правильное значение получается добавлением приставки. Что из двух
+            # верно, знает только Ozon, а лишнее он отбрасывает молча,
+            # поэтому отправляем оба написания.
+            for token in re.findall(r"\b[A-Z][A-Z0-9_]{3,}\b", payload):
+                if token.startswith("ORDER_STATE_"):
+                    continue
+                found.append(token)
+                found.append("ORDER_STATE_" + token)
 
         self._states = list(dict.fromkeys(found + list(self.KNOWN_STATES)))
         return self._states

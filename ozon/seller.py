@@ -11,12 +11,13 @@ Ozon постепенно выключает старые версии мето�
 """
 from __future__ import annotations
 
+import re
 from datetime import date, timedelta
 from typing import Any, Dict, Iterable, List, Optional
 
 from .client import ApiClient
 from .config import Credentials, load_credentials
-from .errors import OzonAuthError
+from .errors import OzonApiError, OzonAuthError
 from .safety import WriteGuard
 
 BASE_URL = "https://api-seller.ozon.ru"
@@ -44,6 +45,8 @@ class SellerApi(ApiClient):
         self.client_id = str(creds.seller_client_id)
         self.api_key = str(creds.seller_api_key)
         self.guard = guard or WriteGuard.from_env()
+        # Статусы заявок спрашиваются у Ozon один раз на клиента.
+        self._states: Optional[List[str]] = None
 
     def auth_headers(self) -> Dict[str, str]:
         return {"Client-Id": self.client_id, "Api-Key": self.api_key}
@@ -121,11 +124,15 @@ class SellerApi(ApiClient):
 
     def warehouses(self) -> Any:
         """Склады продавца (FBS)."""
-        return self.post("/v1/warehouse/list", body={})
+        return self.try_versions("POST", ["/v2/warehouse/list", "/v1/warehouse/list"], body={})
 
     def clusters(self) -> Any:
         """Кластеры Ozon — крупные регионы, между которыми делится поставка."""
-        return self.post("/v1/cluster/list", body={"cluster_type": "CLUSTER_TYPE_OZON"})
+        return self.try_versions(
+            "POST",
+            ["/v1/cluster/list", "/v2/cluster/list"],
+            body={"cluster_type": "CLUSTER_TYPE_OZON"},
+        )
 
     def supply_warehouses(self, search: str = "") -> Any:
         """Склады Ozon, куда можно везти поставку FBO."""
@@ -138,6 +145,46 @@ class SellerApi(ApiClient):
 
     # Поля сортировки, которые понимает /v3/supply-order/list.
     SORT_FIELDS = ("ORDER_CREATION", "ORDER_STATE_UPDATED_AT", "TIMESLOT_FROM_UTC", "TIMESLOT_FROM_LOCAL")
+
+    # Единственный статус, подтверждённый примером запроса. Используется, только
+    # если счётчик статусов почему-то не ответил: пустой фильтр Ozon отвергает.
+    FALLBACK_STATE = "ORDER_STATE_DATA_FILLING"
+
+    def supply_order_states(self) -> List[str]:
+        """Статусы заявок, которые Ozon знает для этого кабинета.
+
+        Список состояний в документации не опубликован, а фильтр без единого
+        статуса метод не принимает. Счётчик статусов отдаёт их ровно те, что
+        существуют у кабинета, — берём оттуда, а не угадываем.
+        """
+        if self._states is not None:
+            return self._states
+
+        found: List[str] = []
+
+        def walk(node: Any) -> None:
+            if isinstance(node, dict):
+                for key, value in node.items():
+                    if (
+                        isinstance(value, str)
+                        and ("state" in key.lower() or "status" in key.lower())
+                        and re.fullmatch(r"[A-Z][A-Z0-9_]{4,}", value)
+                    ):
+                        found.append(value)
+                    else:
+                        walk(value)
+            elif isinstance(node, list):
+                for value in node:
+                    walk(value)
+
+        try:
+            walk(self.supply_status_counter())
+        except OzonApiError:
+            found = []
+
+        # Порядок сохраняем, дубли убираем.
+        self._states = list(dict.fromkeys(found))
+        return self._states
 
     def supply_orders(
         self,
@@ -154,8 +201,9 @@ class SellerApi(ApiClient):
         sort_by и sort_dir передаются всегда.
         """
         limit = max(1, min(int(limit), self.SUPPLY_LIMIT))
+        chosen = list(states) if states else (self.supply_order_states() or [self.FALLBACK_STATE])
         body: Dict[str, Any] = {
-            "filter": {"states": list(states or [])},
+            "filter": {"states": chosen},
             "limit": limit,
             "sort_by": sort_by if sort_by in self.SORT_FIELDS else "ORDER_CREATION",
             "sort_dir": "ASC" if str(sort_dir).upper() == "ASC" else "DESC",
@@ -164,7 +212,7 @@ class SellerApi(ApiClient):
             body["last_id"] = last_id
 
         legacy: Dict[str, Any] = {
-            "filter": {"states": list(states or [])},
+            "filter": {"states": chosen},
             "paging": {"from_supply_order_id": 0, "limit": limit},
         }
         return self.try_variants(
@@ -282,8 +330,9 @@ class SellerApi(ApiClient):
     ) -> Any:
         """Интервалы приёмки, доступные черновику на выбранных складах."""
         today = date.today()
-        return self.post(
-            "/v1/draft/timeslot/info",
+        return self.try_versions(
+            "POST",
+            ["/v2/draft/timeslot/info", "/v1/draft/timeslot/info"],
             body={
                 "draft_id": draft_id,
                 "warehouse_ids": [str(w) for w in warehouse_ids],
@@ -294,7 +343,11 @@ class SellerApi(ApiClient):
 
     def supply_create_status(self, operation_id: str) -> Any:
         """Создалась ли заявка из черновика и какой у неё номер."""
-        return self.post("/v1/draft/supply/create/status", body={"operation_id": operation_id})
+        return self.try_versions(
+            "POST",
+            ["/v2/draft/supply/create/status", "/v1/draft/supply/create/status"],
+            body={"operation_id": operation_id},
+        )
 
     def supply_create(
         self,
@@ -361,6 +414,6 @@ class SellerApi(ApiClient):
         return self.request(method, path, body=body)
 
     def ping(self) -> str:
-        """Проверка ключей: дешёвый вызов, который отвечает при любых правах."""
-        self.post("/v1/warehouse/list", body={})
+        """Проверка ключей: дешёвый вызов, доступный даже ключу «только чтение»."""
+        self.post("/v1/supply-order/status/counter", body={})
         return "Seller API отвечает, ключ принят."

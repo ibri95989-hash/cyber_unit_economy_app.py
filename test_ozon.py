@@ -144,6 +144,21 @@ class FakeOzon:
     def __init__(self) -> None:
         self.calls: list = []
 
+    def body(self, path: str):
+        """Тело последнего запроса к указанному методу."""
+        for called, body in reversed(self.calls):
+            if called == path:
+                return body
+        raise AssertionError(f"К {path} не обращались. Были: {[p for p, _ in self.calls]}")
+
+    def paths(self, *, skip_counter: bool = True) -> list:
+        """Пути запросов; служебный счётчик статусов обычно не интересен."""
+        return [
+            path
+            for path, _ in self.calls
+            if not (skip_counter and path.endswith("status/counter"))
+        ]
+
     # Подставляется вместо метода класса, поэтому self сюда не приходит.
     def __call__(self, method, path, *, body=None, **kwargs):
         self.calls.append((path, body))
@@ -153,10 +168,20 @@ class FakeOzon:
             "/v1/supply-order/timeslot/get": self.timeslots,
             "/v1/cluster/list": self.clusters,
             "/v1/draft/direct/create": self.draft,
+            "/v1/supply-order/status/counter": self.counter,
         }.get(path)
         if handler is None:
             raise OzonApiError("404 page not found", status=404, path=path)
         return handler(body or {})
+
+    def counter(self, body):
+        return {
+            "items": [
+                {"state": "ORDER_STATE_DATA_FILLING", "count": 2},
+                {"state": "ORDER_STATE_IN_TRANSIT", "count": 1},
+                {"state": "ORDER_STATE_DATA_FILLING", "count": 9},
+            ]
+        }
 
     def list_orders(self, body):
         limit = body.get("limit")
@@ -174,8 +199,15 @@ class FakeOzon:
                 status=400,
                 path="/v3/supply-order/list",
             )
-        if "filter" not in body:
-            raise OzonApiError("invalid Filter: required", status=400, path="/v3/supply-order/list")
+        states = (body.get("filter") or {}).get("states")
+        if not states:
+            raise OzonApiError(
+                "Request validation error: invalid SupplyOrderListRequest.Filter: embedded "
+                "message failed validation | caused by: invalid SupplyOrderListRequest_Filter."
+                "States: value must contain at least 1 item(s)",
+                status=400,
+                path="/v3/supply-order/list",
+            )
         return {"order_ids": ["4321"], "last_id": "4321"}
 
     def get_orders(self, body):
@@ -223,38 +255,73 @@ class SupplyOrderRequestShapeTest(unittest.TestCase):
         ozon = FakeOzon()
         with mock.patch.object(SellerApi, "request", ozon):
             result = self.api().supply_orders(limit=50)
-        path, body = ozon.calls[0]
-        self.assertEqual(path, "/v3/supply-order/list")
+        body = ozon.body("/v3/supply-order/list")
         self.assertEqual(body["limit"], 50)
         self.assertEqual(body["sort_by"], "ORDER_CREATION")
         self.assertEqual(body["sort_dir"], "DESC")
         self.assertIn("filter", body)
         self.assertEqual(result["order_ids"], ["4321"])
 
+    def test_states_are_taken_from_the_status_counter(self) -> None:
+        """Фильтр без статусов Ozon отвергает, поэтому спрашиваем их у него же."""
+        ozon = FakeOzon()
+        with mock.patch.object(SellerApi, "request", ozon):
+            self.api().supply_orders(limit=10)
+        self.assertEqual(ozon.calls[0][0], "/v1/supply-order/status/counter")
+        states = ozon.body("/v3/supply-order/list")["filter"]["states"]
+        # Порядок сохранён, повторы убраны.
+        self.assertEqual(states, ["ORDER_STATE_DATA_FILLING", "ORDER_STATE_IN_TRANSIT"])
+
+    def test_states_are_asked_once_per_client(self) -> None:
+        ozon = FakeOzon()
+        with mock.patch.object(SellerApi, "request", ozon):
+            api = self.api()
+            api.supply_orders()
+            api.supply_orders()
+        counters = [path for path, _ in ozon.calls if path.endswith("status/counter")]
+        self.assertEqual(len(counters), 1)
+
+    def test_explicit_states_win_over_discovery(self) -> None:
+        ozon = FakeOzon()
+        with mock.patch.object(SellerApi, "request", ozon):
+            self.api().supply_orders(states=["ORDER_STATE_IN_TRANSIT"])
+        self.assertNotIn("/v1/supply-order/status/counter", [path for path, _ in ozon.calls])
+        self.assertEqual(
+            ozon.body("/v3/supply-order/list")["filter"]["states"], ["ORDER_STATE_IN_TRANSIT"]
+        )
+
+    def test_known_state_is_used_when_the_counter_is_silent(self) -> None:
+        ozon = FakeOzon()
+        ozon.counter = lambda body: {"items": []}
+        with mock.patch.object(SellerApi, "request", ozon):
+            self.api().supply_orders()
+        self.assertEqual(
+            ozon.body("/v3/supply-order/list")["filter"]["states"], ["ORDER_STATE_DATA_FILLING"]
+        )
+
     def test_limit_above_hundred_is_clamped(self) -> None:
         ozon = FakeOzon()
         with mock.patch.object(SellerApi, "request", ozon):
             self.api().supply_orders(limit=500)
-        self.assertEqual(ozon.calls[0][1]["limit"], 100)
+        self.assertEqual(ozon.body("/v3/supply-order/list")["limit"], 100)
 
     def test_unknown_sort_field_falls_back_to_a_valid_one(self) -> None:
         ozon = FakeOzon()
         with mock.patch.object(SellerApi, "request", ozon):
             self.api().supply_orders(sort_by="ПОПУЛЯРНОСТЬ")
-        self.assertEqual(ozon.calls[0][1]["sort_by"], "ORDER_CREATION")
+        self.assertEqual(ozon.body("/v3/supply-order/list")["sort_by"], "ORDER_CREATION")
 
     def test_get_sends_string_ids(self) -> None:
         ozon = FakeOzon()
         with mock.patch.object(SellerApi, "request", ozon):
             self.api().supply_order([4321])
-        self.assertEqual(ozon.calls[0][1], {"order_ids": ["4321"]})
+        self.assertEqual(ozon.body("/v3/supply-order/get"), {"order_ids": ["4321"]})
 
     def test_detailed_listing_joins_both_calls(self) -> None:
         ozon = FakeOzon()
         with mock.patch.object(SellerApi, "request", ozon):
             orders = self.api().supply_orders_detailed(limit=10)
-        self.assertEqual([path for path, _ in ozon.calls],
-                         ["/v3/supply-order/list", "/v3/supply-order/get"])
+        self.assertEqual(ozon.paths(), ["/v3/supply-order/list", "/v3/supply-order/get"])
         self.assertEqual(orders[0]["order_id"], 4321)
 
     def test_empty_listing_does_not_ask_for_details(self) -> None:
@@ -262,13 +329,13 @@ class SupplyOrderRequestShapeTest(unittest.TestCase):
         ozon.list_orders = lambda body: {"order_ids": []}
         with mock.patch.object(SellerApi, "request", ozon):
             self.assertEqual(self.api().supply_orders_detailed(), [])
-        self.assertEqual(len(ozon.calls), 1)
+        self.assertEqual(ozon.paths(), ["/v3/supply-order/list"])
 
     def test_timeslots_ask_by_order_only(self) -> None:
         ozon = FakeOzon()
         with mock.patch.object(SellerApi, "request", ozon):
             self.api().timeslots(4321)
-        self.assertEqual(ozon.calls[0][1], {"supply_order_id": 4321})
+        self.assertEqual(ozon.body("/v1/supply-order/timeslot/get"), {"supply_order_id": 4321})
 
     def test_real_error_is_reported_not_swallowed(self) -> None:
         def fake(self_, method, path, *, body=None, **kwargs):
@@ -311,7 +378,7 @@ class SupplyWorkflowTest(unittest.TestCase):
         self.assertEqual(plan.draft_id, 777)
         self.assertEqual(plan.units, 10)
         self.assertEqual(plan.warehouses[0]["warehouse_id"], 42)
-        draft_body = dict(ozon.calls)["/v1/draft/direct/create"]
+        draft_body = ozon.body("/v1/draft/direct/create")
         self.assertEqual(draft_body["cluster_info"]["macrolocal_cluster_id"], 77)
         self.assertEqual(draft_body["deletion_sku_mode"], "FULL")
 

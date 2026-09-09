@@ -25,11 +25,22 @@ echo   Спрашиваю Ozon...
 if errorlevel 1 goto :error
 
 echo.
-echo   Открываю папку с файлом. Перетащите ozon_snapshot.json
-echo   прямо в переписку с Claude - и он увидит ваши данные.
+echo   Файл лежит на РАБОЧЕМ СТОЛЕ: ozon_snapshot.json
+echo   Перетащите его в переписку с Claude - и он увидит ваши данные.
+echo.
+echo   Не перепутайте с snapshot.bat - это запускающий файл,
+echo   данных в нём нет.
 echo.
 
-if exist "ozon_snapshot.json" explorer /select,"%CD%\ozon_snapshot.json"
+if exist "%USERPROFILE%\Desktop\ozon_snapshot.json" (
+  explorer /select,"%USERPROFILE%\Desktop\ozon_snapshot.json"
+) else (
+  if exist "%USERPROFILE%\OneDrive\Desktop\ozon_snapshot.json" (
+    explorer /select,"%USERPROFILE%\OneDrive\Desktop\ozon_snapshot.json"
+  ) else (
+    if exist "ozon_snapshot.json" explorer /select,"%CD%\ozon_snapshot.json"
+  )
+)
 
 pause
 exit /b 0

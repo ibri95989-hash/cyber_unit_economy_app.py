@@ -879,6 +879,29 @@ class SnapshotTest(unittest.TestCase):
         for mark in ("api_key", "client_secret", "Api-Key"):
             self.assertNotIn(mark, text)
 
+    def test_copy_lands_on_the_desktop(self) -> None:
+        """Рядом с батниками файл путают — на рабочем столе он один такой."""
+        from ozon import snapshot as snap
+
+        folder = Path(tempfile.mkdtemp())
+        desk = Path(tempfile.mkdtemp())
+        with mock.patch.object(snap, "SNAPSHOT_FILE", folder / "ozon_snapshot.json"), \
+             mock.patch.object(snap, "STOCKS_CSV", folder / "ozon_stocks.csv"), \
+             mock.patch.object(snap, "desktop", lambda: desk):
+            written = snap.save({"разделы": []})
+        self.assertIn(desk / "ozon_snapshot.json", written)
+        self.assertTrue((desk / "ozon_snapshot.json").exists())
+
+    def test_missing_desktop_is_not_fatal(self) -> None:
+        from ozon import snapshot as snap
+
+        folder = Path(tempfile.mkdtemp())
+        with mock.patch.object(snap, "SNAPSHOT_FILE", folder / "ozon_snapshot.json"), \
+             mock.patch.object(snap, "STOCKS_CSV", folder / "ozon_stocks.csv"), \
+             mock.patch.object(snap, "desktop", lambda: None):
+            written = snap.save({"разделы": []})
+        self.assertEqual(written, [folder / "ozon_snapshot.json"])
+
     def test_files_are_written_next_to_the_panel(self) -> None:
         from ozon import snapshot as snap
 

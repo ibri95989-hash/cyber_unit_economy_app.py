@@ -20,6 +20,19 @@ ROOT = Path(__file__).resolve().parent.parent
 SNAPSHOT_FILE = ROOT / "ozon_snapshot.json"
 STOCKS_CSV = ROOT / "ozon_stocks.csv"
 
+
+def desktop() -> Optional[Path]:
+    """Рабочий стол пользователя, если он есть.
+
+    Снимок кладётся туда же: рядом с запускающими файлами его легко перепутать
+    с ними, а на рабочем столе он один такой.
+    """
+    home = Path.home()
+    for candidate in (home / "Desktop", home / "OneDrive" / "Desktop", home / "Рабочий стол"):
+        if candidate.is_dir():
+            return candidate
+    return None
+
 # Ничего похожего на ключи в снимок попасть не должно, даже случайно.
 FORBIDDEN = ("api_key", "api-key", "client_secret", "client-secret", "authorization", "access_token")
 
@@ -101,6 +114,16 @@ def save(snapshot: Optional[Dict[str, Any]] = None) -> List[Path]:
         json.dumps(snapshot, ensure_ascii=False, indent=2, default=str), encoding="utf-8"
     )
     written = [SNAPSHOT_FILE]
+
+    # Копия на рабочий стол: оттуда её не спутать с batch-файлами.
+    place = desktop()
+    if place:
+        copy = place / SNAPSHOT_FILE.name
+        try:
+            copy.write_text(SNAPSHOT_FILE.read_text(encoding="utf-8"), encoding="utf-8")
+            written.append(copy)
+        except OSError:
+            pass
 
     table = stocks_table(snapshot)
     if table:

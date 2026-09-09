@@ -5,4 +5,4 @@
 """
 from __future__ import annotations
 
-VERSION = "2026.09.09-23"
+VERSION = "2026.09.09-24"

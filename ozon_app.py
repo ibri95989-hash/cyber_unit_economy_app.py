@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 import streamlit as st
 
-from ozon.config import load_credentials, mask, save_env
+from ozon.config import load_credentials, mask, save_env, value
 from ozon.diagnostics import run_checks, summary
 from ozon.version import VERSION
 from ozon.errors import OzonApiError, OzonWriteBlocked
@@ -128,18 +128,48 @@ with st.sidebar:
 
     st.divider()
     st.header("Изменения")
+    st.caption(
+        "Настройка общая: её видит и панель, и Claude, когда работает с "
+        "кабинетом через MCP-сервер."
+    )
+
+    stored_allow = (value("OZON_ALLOW_WRITES") or "0") == "1"
+    stored_bid = float(value("OZON_MAX_BID") or 500)
+    stored_step = float(value("OZON_MAX_BID_CHANGE_PCT") or 50)
+
     allow = st.toggle(
         "Разрешить менять кабинет",
-        value=os.environ.get("OZON_ALLOW_WRITES", "0") == "1",
-        help="Пока выключено — приложение только смотрит и показывает предпросмотр.",
+        value=stored_allow,
+        help="Пока выключено — и панель, и Claude только смотрят.",
     )
+    max_bid = st.number_input("Потолок ставки, ₽", min_value=1.0, value=stored_bid, step=10.0)
+    max_step = st.number_input("Шаг ставки не больше, %", min_value=1.0, value=stored_step, step=5.0)
+
+    # Сначала память процесса, потом файл. Иначе после перезапуска страницы
+    # сравнение снова увидит старое значение и панель зациклится.
     os.environ["OZON_ALLOW_WRITES"] = "1" if allow else "0"
-    max_bid = st.number_input("Потолок ставки, ₽", min_value=1.0, value=500.0, step=10.0)
-    max_step = st.number_input("Шаг ставки не больше, %", min_value=1.0, value=50.0, step=5.0)
     os.environ["OZON_MAX_BID"] = str(max_bid)
     os.environ["OZON_MAX_BID_CHANGE_PCT"] = str(max_step)
+
+    # В .env, а не только в память: MCP-сервер запускается отдельным процессом
+    # и настройку из чужой памяти не увидит.
+    if (allow, max_bid, max_step) != (stored_allow, stored_bid, stored_step):
+        save_env(
+            {
+                "OZON_ALLOW_WRITES": "1" if allow else "0",
+                "OZON_MAX_BID": str(max_bid),
+                "OZON_MAX_BID_CHANGE_PCT": str(max_step),
+            }
+        )
+        st.rerun()
+
     if allow:
-        st.warning("Кнопки «Отправить в Ozon» теперь работают по-настоящему.")
+        st.warning(
+            "Изменения разрешены: кнопки «Отправить в Ozon» работают "
+            "по-настоящему, и Claude тоже может менять ставки."
+        )
+    else:
+        st.info("Только просмотр. Изменения заблокированы и в панели, и у Claude.")
 
     st.divider()
     if st.button("Обновить данные", width="stretch"):

@@ -37,8 +37,9 @@ def mask(value: Optional[str]) -> str:
     return f"{value[:4]}…{value[-4:]} ({len(value)} симв.)"
 
 
-def _read_env_file(path: Path = ENV_FILE) -> Dict[str, str]:
+def _read_env_file(path: Optional[Path] = None) -> Dict[str, str]:
     """Простейший разбор .env: KEY=value, кавычки и комментарии игнорируются."""
+    path = path or ENV_FILE
     if not path.exists():
         return {}
     out: Dict[str, str] = {}
@@ -103,13 +104,14 @@ class Credentials:
         return "\n".join(lines)
 
 
-def save_env(values: Dict[str, str], path: Path = ENV_FILE) -> Path:
+def save_env(values: Dict[str, str], path: Optional[Path] = None) -> Path:
     """Записать ключи в .env, сохранив остальные строки файла.
 
     Файл создаётся с правами 600 — читать его сможет только владелец. Пустые
     значения не затирают то, что уже сохранено: так форма не требует вводить
     все четыре ключа заново ради правки одного.
     """
+    path = path or ENV_FILE
     existing: Dict[str, str] = {}
     order: list[str] = []
     if path.exists():

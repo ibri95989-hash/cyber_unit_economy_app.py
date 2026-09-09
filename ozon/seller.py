@@ -153,24 +153,30 @@ class SellerApi(ApiClient):
         cursor: Dict[str, Any] = (
             {"from_supply_order_id": from_supply_order_id} if from_supply_order_id else {}
         )
+        base: Dict[str, Any] = {"limit": limit, "filter": filters, **cursor}
 
-        # Какой формы тело ждёт живая версия метода, Ozon в открытой документации
-        # не показывает, поэтому пробуем от самой скупой к самой полной: лишнее
-        # поле чаще ломает валидацию, чем отсутствующее.
-        bodies: List[Dict[str, Any]] = [
-            {"limit": limit, **cursor},
-            {"limit": limit, "filter": filters, **cursor},
-            {"limit": limit, "filter": {"states": list(states or [])}, **cursor},
+        # v3 требует сортировку и не принимает незаданное значение (ноль).
+        # Какие именно значения он считает валидными, в открытой документации
+        # не сказано, поэтому перебираем: сперва числовой код, потом имена
+        # в двух принятых у Ozon стилях. Лишние поля метод игнорирует —
+        # это видно по тому, что paging из прошлой версии он молча пропустил.
+        sortings: List[Dict[str, Any]] = [
+            {"sort_by": 1, "sort_dir": 1},
+            {"sort_by": 1},
+            {"sort_by": "SUPPLY_ORDER_SORT_BY_CREATED_AT", "sort_dir": "SORT_DIR_DESC"},
+            {"sort_by": "CREATED_AT", "sort_dir": "DESC"},
+            {"sortBy": 1, "sortDir": 1},
+            {"sort_by": 2, "sort_dir": 1},
         ]
+
+        variants: List[Any] = [("/v3/supply-order/list", {**base, **sort}) for sort in sortings]
+        # Вдруг сортировка нужна не всем кабинетам — оставляем и запрос без неё.
+        variants.append(("/v3/supply-order/list", base))
+
         legacy: Dict[str, Any] = {
             "filter": filters,
             "paging": {"from_supply_order_id": from_supply_order_id, "limit": limit},
         }
-
-        variants: List[Any] = []
-        for body in bodies:
-            if body not in [existing for _, existing in variants]:
-                variants.append(("/v3/supply-order/list", body))
         variants += [("/v2/supply-order/list", legacy), ("/v1/supply-order/list", legacy)]
 
         return self.try_variants("POST", variants)

@@ -165,6 +165,32 @@ class SupplyOrderRequestShapeTest(unittest.TestCase):
         self.assertEqual(calls[0][1]["limit"], 50)
         self.assertEqual(result["supply_orders"][0]["supply_order_id"], 1)
 
+    def test_sorting_is_supplied_until_ozon_accepts_it(self) -> None:
+        """Живой v3 требует SortBy и отвергает ноль — подбираем рабочее значение."""
+        accepted: list = []
+
+        def fake(self_, method, path, *, body=None, **kwargs):
+            if path != "/v3/supply-order/list":
+                raise OzonApiError("404 page not found", status=404, path=path)
+            sort_by = (body or {}).get("sort_by") or (body or {}).get("sortBy") or 0
+            if sort_by == 0:
+                raise OzonApiError(
+                    "Request validation error: invalid SupplyOrderListRequest.SortBy: "
+                    "value must not be in list [0]",
+                    status=400,
+                    path=path,
+                )
+            if not isinstance(sort_by, int):
+                raise OzonApiError("invalid SortBy: unknown value", status=400, path=path)
+            accepted.append(body)
+            return {"supply_orders": []}
+
+        with mock.patch.object(SellerApi, "request", fake):
+            self.api().supply_orders(limit=50)
+        self.assertEqual(len(accepted), 1)
+        self.assertEqual(accepted[0]["sort_by"], 1)
+        self.assertEqual(accepted[0]["limit"], 50)
+
     def test_limit_above_hundred_is_clamped(self) -> None:
         calls: list = []
         with self.strict_ozon(calls):

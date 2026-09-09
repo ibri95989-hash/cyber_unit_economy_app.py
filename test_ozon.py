@@ -75,6 +75,20 @@ class GuardTest(unittest.TestCase):
             self.assertFalse(WriteGuard.from_env().writes_allowed)
 
 
+class ProxyTest(unittest.TestCase):
+    """Запросы к Ozon можно увести через отдельный прокси."""
+
+    def test_proxy_is_applied_when_set(self) -> None:
+        with mock.patch.dict(os.environ, {"OZON_PROXY": "http://127.0.0.1:8080"}):
+            client = ApiClient()
+        self.assertEqual(client.session.proxies["https"], "http://127.0.0.1:8080")
+
+    def test_no_proxy_by_default(self) -> None:
+        with mock.patch.dict(os.environ, {}, clear=True):
+            client = ApiClient()
+        self.assertFalse(client.session.proxies)
+
+
 class VersionFallbackTest(unittest.TestCase):
     def test_falls_back_to_previous_version(self) -> None:
         client = ApiClient()

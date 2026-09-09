@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+import os
 from typing import Any, Callable, Dict, List
 
 from .config import Credentials, load_credentials
@@ -76,6 +77,18 @@ def run_checks(credentials: Credentials | None = None) -> List[Dict[str, str]]:
     rows: List[Dict[str, str]] = [
         {"проверка": "Версия панели", "метод": "—", "результат": OK, "подробности": VERSION}
     ]
+
+    # Через что уходят запросы: при разборе «а не VPN ли виноват» это первое,
+    # что стоит увидеть.
+    proxy = os.environ.get("OZON_PROXY") or os.environ.get("HTTPS_PROXY") or ""
+    rows.append(
+        {
+            "проверка": "Сеть",
+            "метод": "—",
+            "результат": OK,
+            "подробности": f"через прокси {proxy}" if proxy else "напрямую, без прокси",
+        }
+    )
 
     if not creds.has_seller:
         rows.append({"проверка": "Seller API", "метод": "—", "результат": SKIPPED, "подробности": "ключей нет"})

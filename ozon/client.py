@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import time
 from typing import Any, Dict, Mapping, Optional
 
@@ -45,6 +46,11 @@ class ApiClient:
         self.timeout = timeout
         self.session = session or requests.Session()
         self.session.headers.update({"Content-Type": "application/json", "Accept": "application/json"})
+        # Отдельный прокси для Ozon: полезно, когда VPN на компьютере уводит
+        # трафик не туда, а трогать общесистемные настройки не хочется.
+        proxy = (os.environ.get("OZON_PROXY") or "").strip()
+        if proxy:
+            self.session.proxies = {"http": proxy, "https": proxy}
 
     # Наследники добавляют сюда авторизацию.
     def auth_headers(self) -> Dict[str, str]:

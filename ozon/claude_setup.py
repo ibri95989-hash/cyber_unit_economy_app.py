@@ -73,7 +73,69 @@ def install(config_path: Optional[Path] = None) -> Path:
     return config_path
 
 
+def report() -> List[str]:
+    """Почему Claude не видит инструменты: проверяем всю цепочку по шагам."""
+    import subprocess
+
+    lines: List[str] = []
+    launcher = ROOT / "mcp_launch.py"
+    python = python_path()
+
+    lines.append(f"Папка проекта:   {ROOT}")
+    lines.append(f"Python сервера:  {python} — {'есть' if python.exists() else 'НЕ НАЙДЕН'}")
+    lines.append(f"Файл запуска:    {launcher} — {'есть' if launcher.exists() else 'НЕ НАЙДЕН'}")
+
+    # 1. Что записано в настройках приложения.
+    for path in config_candidates():
+        if not path.exists():
+            lines.append(f"Настройки Claude: {path} — файла нет")
+            continue
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            lines.append(f"Настройки Claude: {path} — файл повреждён ({exc})")
+            continue
+        entry = (data.get("mcpServers") or {}).get(SERVER_NAME)
+        if not entry:
+            lines.append(f"Настройки Claude: {path} — записи «{SERVER_NAME}» НЕТ")
+        else:
+            same = entry == server_entry()
+            lines.append(
+                f"Настройки Claude: {path} — запись есть"
+                + ("" if same else " (но пути отличаются от текущей папки!)")
+            )
+            lines.append(f"  команда: {entry.get('command')}")
+            lines.append(f"  аргумент: {(entry.get('args') or [''])[0]}")
+
+    # 2. Может ли этот питон вообще запустить сервер.
+    if python.exists() and launcher.exists():
+        probe = subprocess.run(
+            [str(python), "-c", "import mcp; from ozon.mcp_server import server; print('OK')"],
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        if probe.returncode == 0 and "OK" in probe.stdout:
+            lines.append("Запуск сервера:  собирается без ошибок")
+        else:
+            error = (probe.stderr or probe.stdout).strip().splitlines()
+            lines.append("Запуск сервера:  ОШИБКА")
+            for line in error[-4:]:
+                lines.append(f"  {line}")
+    return lines
+
+
 def main(argv: Optional[List[str]] = None) -> int:
+    args = argv if argv is not None else sys.argv[1:]
+    if "--check" in args:
+        for line in report():
+            print("  " + line)
+        return 0
+    return _install_and_report()
+
+
+def _install_and_report() -> int:
     try:
         path = install()
     except Exception as exc:  # noqa: BLE001 - пользователю нужен текст, а не трейсбек

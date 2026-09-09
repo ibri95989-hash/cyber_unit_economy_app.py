@@ -673,6 +673,28 @@ class ClaudeSetupTest(unittest.TestCase):
         data = json.loads(self.config.read_text(encoding="utf-8"))
         self.assertEqual(list(data["mcpServers"]), ["ozon"])
 
+    def test_report_names_the_missing_entry(self) -> None:
+        self.config.write_text(json.dumps({"mcpServers": {}}), encoding="utf-8")
+        with mock.patch.object(self.setup, "config_candidates", lambda: [self.config]):
+            lines = "\n".join(self.setup.report())
+        self.assertIn("записи «ozon» НЕТ", lines)
+
+    def test_report_notices_a_stale_path(self) -> None:
+        """Папку могли перенести — тогда в настройках остаётся старый путь."""
+        self.config.write_text(
+            json.dumps({"mcpServers": {"ozon": {"command": "старый.exe", "args": ["старый.py"]}}}),
+            encoding="utf-8",
+        )
+        with mock.patch.object(self.setup, "config_candidates", lambda: [self.config]):
+            lines = "\n".join(self.setup.report())
+        self.assertIn("пути отличаются", lines)
+
+    def test_report_survives_a_broken_config(self) -> None:
+        self.config.write_text("{это не json", encoding="utf-8")
+        with mock.patch.object(self.setup, "config_candidates", lambda: [self.config]):
+            lines = "\n".join(self.setup.report())
+        self.assertIn("повреждён", lines)
+
     def test_broken_config_is_not_overwritten(self) -> None:
         self.config.write_text("{это не json", encoding="utf-8")
         with self.assertRaises(RuntimeError):

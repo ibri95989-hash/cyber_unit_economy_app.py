@@ -695,6 +695,32 @@ class ClaudeSetupTest(unittest.TestCase):
             lines = "\n".join(self.setup.report())
         self.assertIn("повреждён", lines)
 
+    def test_empty_config_is_filled_in(self) -> None:
+        """Приложение оставляет файл пустым до первой настройки — это не поломка."""
+        self.config.write_text("", encoding="utf-8")
+        self.setup.install(self.config)
+        data = json.loads(self.config.read_text(encoding="utf-8"))
+        self.assertIn("ozon", data["mcpServers"])
+
+    def test_whitespace_only_config_is_filled_in(self) -> None:
+        self.config.write_text("\n  \n", encoding="utf-8")
+        self.setup.install(self.config)
+        self.assertIn("ozon", json.loads(self.config.read_text(encoding="utf-8"))["mcpServers"])
+
+    def test_config_with_bom_is_read(self) -> None:
+        self.config.write_text('\ufeff{"theme": "dark"}', encoding="utf-8")
+        self.setup.install(self.config)
+        data = json.loads(self.config.read_text(encoding="utf-8"))
+        self.assertEqual(data["theme"], "dark")
+
+    def test_force_rewrites_an_unreadable_config(self) -> None:
+        self.config.write_text("{это не json", encoding="utf-8")
+        self.setup.install(self.config, force=True)
+        self.assertIn("ozon", json.loads(self.config.read_text(encoding="utf-8"))["mcpServers"])
+        # Прежнее содержимое сохранено рядом.
+        backup = self.config.with_suffix(".json.backup")
+        self.assertEqual(backup.read_text(encoding="utf-8"), "{это не json")
+
     def test_broken_config_is_not_overwritten(self) -> None:
         self.config.write_text("{это не json", encoding="utf-8")
         with self.assertRaises(RuntimeError):

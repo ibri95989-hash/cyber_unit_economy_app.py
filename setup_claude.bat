@@ -54,11 +54,20 @@ exit /b 0
 
 :manual
 echo.
-echo   [!] Автоматически не получилось.
+echo   [!] Автоматически не получилось - причина выше.
 echo.
-echo   Похоже, приложения Claude на компьютере тоже нет.
-echo   Установите его со страницы https://claude.com/claude-code
-echo   и запустите этот файл заново.
-echo.
+if exist "%APPDATA%\Claude" (
+  echo   Папка настроек Claude на месте, значит приложение установлено.
+  echo   Запустите check_claude.bat - он покажет, что именно мешает.
+  echo   Если файл настроек не разбирается, можно переписать его начисто:
+  echo.
+  echo     .venv\Scripts\python.exe -m ozon.claude_setup --force
+  echo.
+) else (
+  echo   Папки настроек Claude нет - похоже, приложение не установлено.
+  echo   Поставьте его со страницы https://claude.com/claude-code
+  echo   и запустите этот файл заново.
+  echo.
+)
 pause
 exit /b 1

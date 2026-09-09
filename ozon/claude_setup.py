@@ -44,7 +44,7 @@ def server_entry() -> dict:
     return {"command": str(python_path()), "args": [str(ROOT / "mcp_launch.py")]}
 
 
-def install(config_path: Optional[Path] = None) -> Path:
+def install(config_path: Optional[Path] = None, *, force: bool = False) -> Path:
     """Добавить сервер в настройки Claude. Возвращает изменённый файл."""
     if config_path is None:
         candidates = config_candidates()
@@ -54,14 +54,24 @@ def install(config_path: Optional[Path] = None) -> Path:
 
     data: dict = {}
     if config_path.exists():
-        try:
-            data = json.loads(config_path.read_text(encoding="utf-8")) or {}
-        except json.JSONDecodeError as exc:
-            raise RuntimeError(
-                f"Файл настроек Claude повреждён ({exc}). Откройте его и проверьте: {config_path}"
-            ) from exc
         # Копия рядом: настройки чужие, ошибиться в них нельзя.
         shutil.copy2(config_path, config_path.with_suffix(".json.backup"))
+        text = config_path.read_text(encoding="utf-8-sig").strip()
+        if not text:
+            # Пустой файл — не поломка: приложение так и оставляет его до
+            # первой настройки. Терять там нечего, пишем с нуля.
+            data = {}
+        else:
+            try:
+                data = json.loads(text) or {}
+            except json.JSONDecodeError as exc:
+                if not force:
+                    raise RuntimeError(
+                        f"Файл настроек Claude не разбирается ({exc}): {config_path}. "
+                        "Копия сохранена рядом с расширением .backup. Чтобы переписать "
+                        "файл начисто, запустите с ключом --force."
+                    ) from exc
+                data = {}
 
     servers = data.setdefault("mcpServers", {})
     if not isinstance(servers, dict):
@@ -132,12 +142,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         for line in report():
             print("  " + line)
         return 0
-    return _install_and_report()
+    return _install_and_report(force="--force" in args)
 
 
-def _install_and_report() -> int:
+def _install_and_report(force: bool = False) -> int:
     try:
-        path = install()
+        path = install(force=force)
     except Exception as exc:  # noqa: BLE001 - пользователю нужен текст, а не трейсбек
         print(f"  [!] {exc}")
         return 1

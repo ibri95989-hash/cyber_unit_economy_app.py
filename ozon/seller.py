@@ -48,9 +48,12 @@ class SellerApi(ApiClient):
         self.guard = guard or WriteGuard.from_env()
         # Статусы заявок спрашиваются у Ozon один раз на клиента.
         self._states: Optional[List[str]] = None
-        # Рабочее сочетание «имя поля + приставка», если оно уже найдено.
-        self.filter_field: Optional[str] = None
-        self.state_prefix: str = "ORDER_STATE_"
+        # Сочетание подобрано перебором на живом кабинете: поле называется
+        # states, а статусы в фильтре идут без приставки — в отличие от
+        # счётчика, который отдаёт их как ORDER_STATE_*. Если Ozon снова
+        # поменяет форму, перебор найдёт новую и подставит её сюда.
+        self.filter_field: Optional[str] = "states"
+        self.state_prefix: str = ""
 
     def auth_headers(self) -> Dict[str, str]:
         return {"Client-Id": self.client_id, "Api-Key": self.api_key}

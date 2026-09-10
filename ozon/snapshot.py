@@ -164,6 +164,8 @@ def collect(credentials: Optional[Credentials] = None, *, limit: int = 500) -> D
             _part("Счётчик статусов поставок", api.supply_status_counter),
             _part("Заявки на поставку", lambda: api.supply_orders_detailed(limit=50)),
             _part("Аналитика продаж за 30 дней", lambda: api.analytics(limit=min(limit, 500))),
+            _part("Оборачиваемость", lambda: api.turnover(limit=100)),
+            _part("Поисковые запросы по товарам", lambda: api.product_queries(page_size=50)),
         ]
     else:
         sections.append({"раздел": "Кабинет продавца", "ошибка": "Нет ключей Seller API."})

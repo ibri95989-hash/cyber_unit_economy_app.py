@@ -447,6 +447,37 @@ class SupplyOrderRequestShapeTest(unittest.TestCase):
             self.assertEqual(self.api().supply_orders_detailed(), [])
         self.assertEqual(ozon.paths(), ["/v3/supply-order/list"])
 
+    def test_turnover_asks_the_current_method(self) -> None:
+        ozon = FakeOzon()
+        ozon.calls.clear()
+
+        def fake(self_, method, path, *, body=None, **kwargs):
+            ozon.calls.append((path, body))
+            if path == "/v1/analytics/turnover/stocks":
+                return {"items": [{"sku": 1, "idc": 45.0}]}
+            raise OzonApiError("404 page not found", status=404, path=path)
+
+        with mock.patch.object(SellerApi, "request", fake):
+            result = self.api().turnover(limit=10)
+        self.assertEqual(ozon.calls[0][0], "/v1/analytics/turnover/stocks")
+        self.assertEqual(ozon.calls[0][1]["limit"], 10)
+        self.assertEqual(result["items"][0]["idc"], 45.0)
+
+    def test_product_queries_send_a_period(self) -> None:
+        ozon = FakeOzon()
+        ozon.calls.clear()
+
+        def fake(self_, method, path, *, body=None, **kwargs):
+            ozon.calls.append((path, body))
+            return {"queries": []}
+
+        with mock.patch.object(SellerApi, "request", fake):
+            self.api().product_queries(sku=[5268470068])
+        path, body = ozon.calls[0]
+        self.assertEqual(path, "/v1/analytics/product-queries")
+        self.assertEqual(body["skus"], ["5268470068"])
+        self.assertTrue(body["date_from"])
+
     def test_timeslots_ask_by_order_only(self) -> None:
         ozon = FakeOzon()
         with mock.patch.object(SellerApi, "request", ozon):

@@ -108,6 +108,51 @@ class SellerApi(ApiClient):
             },
         )
 
+    def turnover(self, *, sku: Optional[List[int]] = None, limit: int = 100) -> Any:
+        """Оборачиваемость: за сколько дней распродаётся остаток.
+
+        Прямой ответ на вопрос «не затоварились ли»: Ozon считает её сам и по
+        ней же берёт плату за хранение сверх нормы.
+        """
+        body: Dict[str, Any] = {"limit": max(1, min(int(limit), 1000)), "offset": 0}
+        if sku:
+            body["sku"] = [str(s) for s in sku]
+        return self.try_versions(
+            "POST",
+            ["/v1/analytics/turnover/stocks", "/v1/analytics/item_turnover"],
+            body=body,
+        )
+
+    def product_queries(
+        self,
+        *,
+        sku: Optional[List[int]] = None,
+        date_from: Optional[str] = None,
+        page_size: int = 50,
+    ) -> Any:
+        """По каким запросам находят ваши товары.
+
+        Показывает спрос словами покупателя: что ищут, сколько раз и куда
+        попадает карточка. Основа и для описания, и для ставок в поиске.
+        """
+        today = date.today()
+        body: Dict[str, Any] = {
+            "date_from": date_from or (today - timedelta(days=28)).isoformat(),
+            "page": 1,
+            "page_size": max(1, min(int(page_size), 1000)),
+        }
+        if sku:
+            body["skus"] = [str(s) for s in sku]
+        return self.post("/v1/analytics/product-queries", body=body)
+
+    def search_queries(self, *, page_size: int = 50) -> Any:
+        """Топ поисковых запросов площадки — что вообще ищут в вашей нише."""
+        return self.try_versions(
+            "POST",
+            ["/v1/search-queries/top", "/v1/search-queries/text"],
+            body={"page": 1, "page_size": max(1, min(int(page_size), 1000))},
+        )
+
     # ---------------------------------------------------------------- отправления
 
     def postings_fbs(self, *, since: Optional[str] = None, to: Optional[str] = None, limit: int = 100) -> Any:

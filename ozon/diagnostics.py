@@ -103,6 +103,8 @@ def run_checks(credentials: Credentials | None = None) -> List[Dict[str, str]]:
         _check(rows, "Остатки по складам", "/v2/analytics/stock_on_warehouses", lambda: api.stocks_on_warehouses(limit=10))
         _check(rows, "Товары", "/v3/product/list", lambda: api.product_list(limit=10))
         _check(rows, "Аналитика продаж", "/v1/analytics/data", lambda: api.analytics(limit=10))
+        _check(rows, "Оборачиваемость", "/v1/analytics/turnover/stocks", lambda: api.turnover(limit=10))
+        _check(rows, "Поисковые запросы", "/v1/analytics/product-queries", lambda: api.product_queries(page_size=10))
         _check(rows, "Кластеры", "/v1/cluster/list", api.clusters)
         _check(rows, "Склады FBO", "/v1/warehouse/fbo/list", lambda: api.supply_warehouses())
         _check(rows, "Склады продавца", "/v2/warehouse/list", api.warehouses)

@@ -36,4 +36,6 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
 sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:' + os.environ.get('PORT','8501') + '/healthz', timeout=4).status == 200 else 1)"
 
 # PORT переопределяют Render, Cloud Run и Heroku; по умолчанию 8501.
-CMD ["sh", "-c", "streamlit run search_frequency_app.py --server.port=${PORT:-8501} --server.address=0.0.0.0"]
+# APP выбирает приложение: частотность (по умолчанию), воронка продаж
+# (funnel_app.py) или юнит-экономика (streamlit_app.py).
+CMD ["sh", "-c", "streamlit run ${APP:-search_frequency_app.py} --server.port=${PORT:-8501} --server.address=0.0.0.0"]

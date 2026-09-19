@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="AZKAR">
+  <defs>
+    <mask id="crescent">
+      <rect width="100" height="100" fill="black"/>
+      <circle cx="47" cy="50" r="30" fill="white"/>
+      <circle cx="56" cy="44" r="25.5" fill="black"/>
+    </mask>
+  </defs>
+  <rect width="100" height="100" rx="22" fill="#0a3c2c"/>
+  <rect width="100" height="100" fill="#e8f6ef" mask="url(#crescent)"/>
+  <circle cx="66.5" cy="39.5" r="5.8" fill="#4cc48e"/>
+</svg>

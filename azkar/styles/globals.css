@@ -1,0 +1,408 @@
+@import 'tailwindcss';
+
+/* Явно указываем, где Tailwind ищет классы. */
+@source '../app';
+@source '../components';
+@source '../lib';
+@source '../hooks';
+
+/* ============================================================
+   ДИЗАЙН-ТОКЕНЫ
+   Одна палитра, два режима. Никаких кислотных цветов,
+   акцент — приглушённый изумруд.
+   ============================================================ */
+
+:root {
+  color-scheme: light;
+
+  /* Поверхности */
+  --az-bg: #f6f5f1;
+  --az-bg-elevated: #fffefb;
+  --az-surface: #ffffff;
+  --az-surface-2: #f1efe9;
+  --az-surface-3: #e7e4dc;
+  --az-surface-inset: #faf9f6;
+
+  /* Границы */
+  --az-border: rgb(24 28 26 / 8%);
+  --az-border-strong: rgb(24 28 26 / 14%);
+
+  /* Текст */
+  --az-text: #14171a;
+  --az-text-muted: #55605b;
+  --az-text-subtle: #7d8884;
+
+  /* Акцент */
+  --az-accent: #0d7a56;
+  --az-accent-hover: #0a6547;
+  --az-accent-soft: #e6f2ec;
+  --az-accent-soft-strong: #cfe7dc;
+  --az-accent-contrast: #ffffff;
+  --az-accent-ring: rgb(13 122 86 / 35%);
+
+  /* Служебные цвета */
+  --az-warning: #9a6207;
+  --az-warning-soft: #fdf3e2;
+  --az-danger: #a52f2f;
+  --az-danger-soft: #fbeceb;
+
+  /* Тени — мягкие, почти незаметные */
+  --az-shadow-sm: 0 1px 2px rgb(20 23 26 / 5%);
+  --az-shadow-md: 0 2px 8px -2px rgb(20 23 26 / 8%), 0 1px 3px rgb(20 23 26 / 4%);
+  --az-shadow-lg: 0 12px 32px -12px rgb(20 23 26 / 18%), 0 2px 8px -4px rgb(20 23 26 / 8%);
+
+  /* Типографика — управляется настройками пользователя */
+  --az-arabic-size: 2rem;        /* 32px */
+  --az-arabic-leading: 2.15;
+  --az-translation-size: 1.1875rem; /* 19px */
+
+  /* Геометрия */
+  --az-radius-sm: 0.625rem;
+  --az-radius: 1rem;
+  --az-radius-lg: 1.5rem;
+  --az-radius-xl: 1.75rem;
+
+  /* Высота нижней навигации + safe-area, чтобы контент не перекрывался */
+  --az-bottom-nav-h: 4.25rem;
+
+  /* Акценты разделов — приглушённые, без кислотности */
+  --az-c-emerald: #0d7a56;
+  --az-c-emerald-soft: #e6f2ec;
+  --az-c-indigo: #3f4f9e;
+  --az-c-indigo-soft: #e9ebf7;
+  --az-c-amber: #96650a;
+  --az-c-amber-soft: #faf1de;
+  --az-c-violet: #6a4a99;
+  --az-c-violet-soft: #f0eaf8;
+  --az-c-rose: #a6404f;
+  --az-c-rose-soft: #fbeaec;
+  --az-c-teal: #0f6f73;
+  --az-c-teal-soft: #e3f1f1;
+  --az-c-slate: #4a5560;
+  --az-c-slate-soft: #ecedf0;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --az-bg: #0b0d0c;
+  --az-bg-elevated: #101312;
+  --az-surface: #151917;
+  --az-surface-2: #1c211e;
+  --az-surface-3: #262c29;
+  --az-surface-inset: #101413;
+
+  --az-border: rgb(255 255 255 / 8%);
+  --az-border-strong: rgb(255 255 255 / 15%);
+
+  --az-text: #eceeec;
+  --az-text-muted: #a0aaa5;
+  --az-text-subtle: #7c8681;
+
+  --az-accent: #4cc48e;
+  --az-accent-hover: #63d09e;
+  --az-accent-soft: rgb(76 196 142 / 13%);
+  --az-accent-soft-strong: rgb(76 196 142 / 22%);
+  --az-accent-contrast: #05231a;
+  --az-accent-ring: rgb(76 196 142 / 45%);
+
+  --az-warning: #e0b168;
+  --az-warning-soft: rgb(224 177 104 / 13%);
+  --az-danger: #e08b85;
+  --az-danger-soft: rgb(224 139 133 / 13%);
+
+  --az-shadow-sm: 0 1px 2px rgb(0 0 0 / 40%);
+  --az-shadow-md: 0 2px 10px -2px rgb(0 0 0 / 50%);
+  --az-shadow-lg: 0 16px 40px -16px rgb(0 0 0 / 70%), 0 2px 8px -4px rgb(0 0 0 / 50%);
+  --az-c-emerald: #4cc48e;
+  --az-c-emerald-soft: rgb(76 196 142 / 14%);
+  --az-c-indigo: #96a4ea;
+  --az-c-indigo-soft: rgb(150 164 234 / 14%);
+  --az-c-amber: #e0b168;
+  --az-c-amber-soft: rgb(224 177 104 / 14%);
+  --az-c-violet: #b79fe8;
+  --az-c-violet-soft: rgb(183 159 232 / 14%);
+  --az-c-rose: #e59aa4;
+  --az-c-rose-soft: rgb(229 154 164 / 14%);
+  --az-c-teal: #63c2c6;
+  --az-c-teal-soft: rgb(99 194 198 / 14%);
+  --az-c-slate: #a6b1bd;
+  --az-c-slate-soft: rgb(166 177 189 / 14%);
+}
+
+/* ============================================================
+   МОСТ В TAILWIND
+   ============================================================ */
+
+@theme inline {
+  --color-bg: var(--az-bg);
+  --color-bg-elevated: var(--az-bg-elevated);
+  --color-surface: var(--az-surface);
+  --color-surface-2: var(--az-surface-2);
+  --color-surface-3: var(--az-surface-3);
+  --color-surface-inset: var(--az-surface-inset);
+
+  --color-line: var(--az-border);
+  --color-line-strong: var(--az-border-strong);
+
+  --color-ink: var(--az-text);
+  --color-ink-muted: var(--az-text-muted);
+  --color-ink-subtle: var(--az-text-subtle);
+
+  --color-accent: var(--az-accent);
+  --color-accent-hover: var(--az-accent-hover);
+  --color-accent-soft: var(--az-accent-soft);
+  --color-accent-soft-strong: var(--az-accent-soft-strong);
+  --color-accent-contrast: var(--az-accent-contrast);
+
+  --color-warning: var(--az-warning);
+  --color-warning-soft: var(--az-warning-soft);
+  --color-danger: var(--az-danger);
+  --color-danger-soft: var(--az-danger-soft);
+
+  --radius-card: var(--az-radius);
+  --radius-card-lg: var(--az-radius-lg);
+  --radius-card-xl: var(--az-radius-xl);
+
+  --shadow-soft: var(--az-shadow-sm);
+  --shadow-card: var(--az-shadow-md);
+  --shadow-float: var(--az-shadow-lg);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: var(--font-manrope), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-arabic: var(--font-naskh), 'Noto Naskh Arabic', 'Traditional Arabic', 'Amiri', serif;
+}
+
+/* ============================================================
+   БАЗОВЫЕ СТИЛИ
+   ============================================================ */
+
+@layer base {
+  * {
+    border-color: var(--az-border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--az-bg);
+    color: var(--az-text);
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-synthesis-weight: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    overscroll-behavior-y: none;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  /* Никаких «тонких» шрифтов: базовый интерфейс — 500/600. */
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--az-accent);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  /* Убираем outline там, где мы рисуем собственное кольцо фокуса. */
+  [data-custom-focus]:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--az-accent-ring);
+  }
+
+  ::selection {
+    background: var(--az-accent-soft-strong);
+    color: var(--az-text);
+  }
+}
+
+/* ============================================================
+   УТИЛИТЫ
+   ============================================================ */
+
+@utility container-az {
+  width: 100%;
+  margin-inline: auto;
+  padding-inline: 1rem;
+  max-width: 44rem; /* ~704px — арабский текст не растягивается на весь монитор */
+}
+
+@utility safe-bottom {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--az-bottom-nav-h) + 1rem);
+}
+
+@utility tap-target {
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+}
+
+/* Арабский текст. */
+.arabic-text {
+  font-family: var(--font-arabic);
+  font-size: var(--az-arabic-size);
+  line-height: var(--az-arabic-leading);
+  font-weight: 500;
+  direction: rtl;
+  text-align: right;
+  unicode-bidi: isolate;
+  word-spacing: 0.06em;
+  /* Длинные аяты должны переноситься, а не уезжать за экран. */
+  overflow-wrap: break-word;
+  hyphens: none;
+}
+
+.translation-text {
+  font-size: var(--az-translation-size);
+  line-height: 1.65;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+
+/* Скрытая от глаз, доступная скринридеру подпись. */
+.sr-only-focusable:not(:focus):not(:focus-within) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ============================================================
+   АНИМАЦИИ — очень умеренно
+   ============================================================ */
+
+@keyframes az-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes az-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes az-pop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes az-check {
+  from {
+    stroke-dashoffset: 26;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes az-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.animate-fade-up {
+  animation: az-fade-up 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-fade-in {
+  animation: az-fade-in 0.25s ease-out both;
+}
+
+.animate-pop {
+  animation: az-pop 0.28s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.animate-check path {
+  stroke-dasharray: 26;
+  animation: az-check 0.35s ease-out forwards;
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--az-surface-2) 25%,
+    var(--az-surface-3) 37%,
+    var(--az-surface-2) 63%
+  );
+  background-size: 200% 100%;
+  animation: az-shimmer 1.4s ease-in-out infinite;
+}
+
+/* Полное уважение к системной настройке. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Скрываем скроллбар у горизонтальных лент, оставляя скролл. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Цветной кружок раздела. Цвета приходят через --chip-fg / --chip-bg,
+   поэтому Tailwind не нужно генерировать классы под каждый акцент. */
+.accent-chip {
+  color: var(--chip-fg, var(--az-accent));
+  background-color: var(--chip-bg, var(--az-accent-soft));
+}

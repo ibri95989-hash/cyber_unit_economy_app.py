@@ -1,0 +1,1708 @@
+<title>AZKAR</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@700;800&family=Noto+Naskh+Arabic:wght@400;500;600&display=swap">
+
+<style>
+  /* ============ ТОКЕНЫ: та же палитра, что и в основном приложении ============ */
+  :root {
+    color-scheme: light;
+
+    --bg: #f6f5f1;
+    --surface: #ffffff;
+    --surface-2: #f1efe9;
+    --surface-3: #e7e4dc;
+    --inset: #faf9f6;
+
+    --line: rgb(24 28 26 / 8%);
+    --line-strong: rgb(24 28 26 / 14%);
+
+    --ink: #14171a;
+    --muted: #55605b;
+    --subtle: #7d8884;
+
+    --accent: #0d7a56;
+    --accent-hover: #0a6547;
+    --accent-soft: #e6f2ec;
+    --accent-soft-2: #cfe7dc;
+    --on-accent: #ffffff;
+    --ring: rgb(13 122 86 / 35%);
+
+    --warn: #9a6207;
+    --warn-soft: #faf1de;
+    --danger: #a52f2f;
+    --danger-soft: #fbeceb;
+
+    --c-emerald: #0d7a56;  --c-emerald-soft: #e6f2ec;
+    --c-indigo: #3f4f9e;   --c-indigo-soft: #e9ebf7;
+    --c-amber: #96650a;    --c-amber-soft: #faf1de;
+    --c-violet: #6a4a99;   --c-violet-soft: #f0eaf8;
+    --c-rose: #a6404f;     --c-rose-soft: #fbeaec;
+    --c-teal: #0f6f73;     --c-teal-soft: #e3f1f1;
+    --c-slate: #4a5560;    --c-slate-soft: #ecedf0;
+
+    --shadow-s: 0 1px 2px rgb(20 23 26 / 5%);
+    --shadow-m: 0 2px 8px -2px rgb(20 23 26 / 8%), 0 1px 3px rgb(20 23 26 / 4%);
+    --shadow-l: 0 12px 32px -12px rgb(20 23 26 / 18%), 0 2px 8px -4px rgb(20 23 26 / 8%);
+
+    --ar-size: 2rem;
+    --ar-lh: 2.15;
+    --tr-size: 1.1875rem;
+    --nav-h: 4.25rem;
+  }
+
+  /* Тёмная тема: сначала системная (если пользователь не выбрал светлую явно)… */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      color-scheme: dark;
+      --bg: #0b0d0c;
+      --surface: #151917;
+      --surface-2: #1c211e;
+      --surface-3: #262c29;
+      --inset: #101413;
+      --line: rgb(255 255 255 / 8%);
+      --line-strong: rgb(255 255 255 / 15%);
+      --ink: #eceeec;
+      --muted: #a0aaa5;
+      --subtle: #7c8681;
+      --accent: #4cc48e;
+      --accent-hover: #63d09e;
+      --accent-soft: rgb(76 196 142 / 13%);
+      --accent-soft-2: rgb(76 196 142 / 22%);
+      --on-accent: #05231a;
+      --ring: rgb(76 196 142 / 45%);
+      --warn: #e0b168;
+      --warn-soft: rgb(224 177 104 / 13%);
+      --danger: #e08b85;
+      --danger-soft: rgb(224 139 133 / 13%);
+      --c-emerald: #4cc48e;  --c-emerald-soft: rgb(76 196 142 / 14%);
+      --c-indigo: #96a4ea;   --c-indigo-soft: rgb(150 164 234 / 14%);
+      --c-amber: #e0b168;    --c-amber-soft: rgb(224 177 104 / 14%);
+      --c-violet: #b79fe8;   --c-violet-soft: rgb(183 159 232 / 14%);
+      --c-rose: #e59aa4;     --c-rose-soft: rgb(229 154 164 / 14%);
+      --c-teal: #63c2c6;     --c-teal-soft: rgb(99 194 198 / 14%);
+      --c-slate: #a6b1bd;    --c-slate-soft: rgb(166 177 189 / 14%);
+      --shadow-s: 0 1px 2px rgb(0 0 0 / 40%);
+      --shadow-m: 0 2px 10px -2px rgb(0 0 0 / 50%);
+      --shadow-l: 0 16px 40px -16px rgb(0 0 0 / 70%);
+    }
+  }
+
+  /* …затем явный выбор пользователя, который побеждает в обе стороны. */
+  :root[data-theme='dark'] {
+    color-scheme: dark;
+    --bg: #0b0d0c;
+    --surface: #151917;
+    --surface-2: #1c211e;
+    --surface-3: #262c29;
+    --inset: #101413;
+    --line: rgb(255 255 255 / 8%);
+    --line-strong: rgb(255 255 255 / 15%);
+    --ink: #eceeec;
+    --muted: #a0aaa5;
+    --subtle: #7c8681;
+    --accent: #4cc48e;
+    --accent-hover: #63d09e;
+    --accent-soft: rgb(76 196 142 / 13%);
+    --accent-soft-2: rgb(76 196 142 / 22%);
+    --on-accent: #05231a;
+    --ring: rgb(76 196 142 / 45%);
+    --warn: #e0b168;
+    --warn-soft: rgb(224 177 104 / 13%);
+    --danger: #e08b85;
+    --danger-soft: rgb(224 139 133 / 13%);
+    --c-emerald: #4cc48e;  --c-emerald-soft: rgb(76 196 142 / 14%);
+    --c-indigo: #96a4ea;   --c-indigo-soft: rgb(150 164 234 / 14%);
+    --c-amber: #e0b168;    --c-amber-soft: rgb(224 177 104 / 14%);
+    --c-violet: #b79fe8;   --c-violet-soft: rgb(183 159 232 / 14%);
+    --c-rose: #e59aa4;     --c-rose-soft: rgb(229 154 164 / 14%);
+    --c-teal: #63c2c6;     --c-teal-soft: rgb(99 194 198 / 14%);
+    --c-slate: #a6b1bd;    --c-slate-soft: rgb(166 177 189 / 14%);
+    --shadow-s: 0 1px 2px rgb(0 0 0 / 40%);
+    --shadow-m: 0 2px 10px -2px rgb(0 0 0 / 50%);
+    --shadow-l: 0 16px 40px -16px rgb(0 0 0 / 70%);
+  }
+
+  /* ============ БАЗА ============ */
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-weight: 500;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 1.5rem);
+  }
+
+  h1, h2, h3 {
+    font-family: Manrope, Inter, ui-sans-serif, system-ui, sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  p { margin: 0; }
+  ul { margin: 0; padding: 0; list-style: none; }
+
+  button {
+    font: inherit;
+    color: inherit;
+    border: none;
+    background: none;
+    cursor: pointer;
+  }
+
+  a { color: inherit; text-decoration: none; }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+
+  .wrap {
+    width: 100%;
+    max-width: 44rem;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+
+  .skip {
+    position: absolute;
+    left: 0.5rem;
+    top: 0.5rem;
+    z-index: 60;
+    padding: 0.5rem 1rem;
+    border-radius: 0.75rem;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-weight: 700;
+  }
+  .skip:not(:focus) {
+    position: absolute;
+    width: 1px; height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  /* ============ ВЕРХНЯЯ ПАНЕЛЬ ============ */
+  .topbar {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 30;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+  }
+  .topbar-in {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    height: 3.5rem;
+  }
+  .brand {
+    font-family: Manrope, sans-serif;
+    font-weight: 800;
+    font-size: 1.375rem;
+    letter-spacing: 0.14em;
+  }
+  .iconbtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    flex: none;
+    border-radius: 999px;
+    color: var(--muted);
+    transition: background-color .15s, color .15s, transform .15s;
+  }
+  .iconbtn:hover { background: var(--surface-2); color: var(--ink); }
+  .iconbtn:active { transform: scale(.92); }
+  .spacer { margin-inline-start: auto; }
+
+  /* ============ ГЛАВНАЯ ============ */
+  .hello-ar {
+    font-family: 'Noto Naskh Arabic', serif;
+    direction: rtl;
+    text-align: right;
+    color: var(--subtle);
+    font-size: 0.9375rem;
+    font-weight: 600;
+  }
+  .hello-ru { font-size: 2rem; line-height: 1.15; margin-top: 0.25rem; }
+  .hello-sub { margin-top: 0.5rem; color: var(--muted); font-weight: 600; min-height: 1.5rem; }
+
+  .searchlink {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    min-height: 3rem;
+    margin-top: 1rem;
+    padding-inline: 1rem;
+    border: 1px solid var(--line);
+    border-radius: 1rem;
+    background: var(--surface-2);
+    color: var(--subtle);
+    font-weight: 600;
+    font-size: 0.9375rem;
+  }
+
+  .today {
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--line);
+    border-radius: 1.5rem;
+    background: var(--surface);
+    box-shadow: var(--shadow-s);
+  }
+  .today-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+  .eyebrow {
+    font-size: 0.6875rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--subtle);
+  }
+  .streak {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: 999px;
+    background: var(--warn-soft);
+    color: var(--warn);
+    font-size: 0.75rem;
+    font-weight: 800;
+  }
+  .today-list { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; margin-top: 0.75rem; }
+  .today-item { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 0.9375rem; }
+  .today-item .num { color: var(--subtle); font-variant-numeric: tabular-nums; }
+
+  .heroes { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem; }
+  @media (min-width: 40rem) { .heroes { flex-direction: row; } .hero { flex: 1; } }
+
+  .hero {
+    display: block;
+    padding: 1.25rem;
+    border: 1px solid var(--line);
+    border-radius: 1.75rem;
+    background: var(--surface);
+    box-shadow: var(--shadow-m);
+    transition: box-shadow .2s, transform .2s;
+  }
+  .hero:hover { box-shadow: var(--shadow-l); }
+  .hero:active { transform: scale(.99); }
+  .hero-top { display: flex; align-items: flex-start; gap: 1rem; }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    border-radius: 1rem;
+    color: var(--chip-fg, var(--accent));
+    background: var(--chip-bg, var(--accent-soft));
+  }
+  .chip.lg { width: 3.5rem; height: 3.5rem; font-size: 1.75rem; }
+  .chip.sm { width: 2.5rem; height: 2.5rem; font-size: 1.25rem; border-radius: 0.75rem; }
+  .chip.xs { width: 1.25rem; height: 1.25rem; font-size: 0.6875rem; border-radius: 0.375rem; }
+  .hero h3 { font-size: 1.25rem; line-height: 1.2; }
+  .hero .count { margin-top: 0.25rem; color: var(--muted); font-weight: 600; font-size: 0.875rem; }
+  .hero .go {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-top: 1rem;
+    color: var(--accent);
+    font-weight: 800;
+    font-size: 0.9375rem;
+  }
+
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; margin-top: 0.75rem; }
+  @media (min-width: 40rem) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+  .tile {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 6.5rem;
+    padding: 1rem;
+    border: 1px solid var(--line);
+    border-radius: 1.5rem;
+    background: var(--surface);
+    box-shadow: var(--shadow-s);
+    transition: box-shadow .2s, transform .2s;
+  }
+  .tile:hover { box-shadow: var(--shadow-m); }
+  .tile:active { transform: scale(.98); }
+  .tile.dashed { border-style: dashed; border-color: var(--line-strong); background: transparent; box-shadow: none; }
+  .tile h3 { font-size: 0.9375rem; line-height: 1.2; }
+  .tile .count { margin-top: 0.125rem; color: var(--subtle); font-weight: 600; font-size: 0.75rem; }
+
+  .done-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem; height: 1.5rem;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  /* ============ ЗАГОЛОВОК РАЗДЕЛА ============ */
+  .prog {
+    position: sticky;
+    top: calc(env(safe-area-inset-top, 0px) + 3.5rem);
+    z-index: 25;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+  }
+  .prog-in { padding-block: 0.75rem; }
+  .prog-row { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; }
+  .prog-title { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9375rem; font-weight: 800; min-width: 0; }
+  .prog-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .prog-num { flex: none; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 0.9375rem; }
+  .prog-num i { font-style: normal; color: var(--subtle); }
+  .bar { height: 0.375rem; margin-top: 0.5rem; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+  .bar > i { display: block; height: 100%; border-radius: 999px; background: var(--accent); transition: width .5s ease-out; }
+
+  /* ============ СЕГМЕНТЫ ============ */
+  .seg {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    border-radius: 1rem;
+    background: var(--surface-2);
+  }
+  .seg button {
+    flex: 1;
+    height: 2.5rem;
+    border-radius: 0.75rem;
+    font-weight: 700;
+    font-size: 0.9375rem;
+    color: var(--muted);
+    transition: background-color .2s, color .2s, box-shadow .2s;
+  }
+  .seg button[aria-checked='true'] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-s); }
+  .seg.sm button { height: 2.25rem; font-size: 0.875rem; }
+
+  /* ============ КАРТОЧКА АЗКАРА ============ */
+  .cards { display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem; }
+
+  .card {
+    padding: 1.25rem;
+    border: 1px solid var(--line);
+    border-radius: 1.5rem;
+    background: var(--surface);
+    box-shadow: var(--shadow-s);
+    transition: border-color .3s, background-color .3s;
+  }
+  .card.done { border-color: var(--accent-soft-2); background: color-mix(in srgb, var(--accent-soft) 45%, var(--surface)); }
+  .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; }
+  .card-meta {
+    font-size: 0.8125rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--subtle);
+  }
+  .card-meta .dot { opacity: .4; margin-inline: 0.375rem; }
+  .card-meta .reps { text-transform: none; }
+  .card h3 { margin-top: 0.25rem; font-size: 1.0625rem; line-height: 1.3; font-weight: 700; font-family: Inter, sans-serif; letter-spacing: -0.01em; }
+  .card-actions { display: flex; flex: none; margin-inline-end: -0.5rem; }
+
+  .arabic {
+    margin-top: 1.25rem;
+    font-family: 'Noto Naskh Arabic', 'Traditional Arabic', serif;
+    font-size: var(--ar-size);
+    line-height: var(--ar-lh);
+    font-weight: 500;
+    direction: rtl;
+    text-align: right;
+    unicode-bidi: isolate;
+    word-spacing: 0.06em;
+    overflow-wrap: break-word;
+  }
+
+  .translation { margin-top: 1.25rem; font-size: var(--tr-size); line-height: 1.65; font-weight: 600; }
+
+  .translit-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-height: 2.75rem;
+    margin-top: 0.75rem;
+    margin-inline-start: -0.5rem;
+    padding-inline: 0.5rem;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--muted);
+  }
+  .translit-toggle:hover { color: var(--ink); }
+  .translit-toggle .caret { transition: transform .2s; }
+  .translit-toggle[aria-expanded='true'] .caret { transform: rotate(180deg); }
+  .translit {
+    margin-top: 0.25rem;
+    padding: 0.75rem 1rem;
+    border-radius: 1rem;
+    background: var(--inset);
+    color: var(--muted);
+    font-weight: 500;
+    line-height: 1.6;
+  }
+
+  .source { margin-top: 1rem; padding: 0.875rem 1rem; border-radius: 1rem; background: var(--inset); }
+  .source-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+  .source-name { margin-top: 0.5rem; font-size: 0.9375rem; font-weight: 600; line-height: 1.35; }
+  .source-name i { font-style: normal; color: var(--muted); }
+  .source-note { margin-top: 0.375rem; font-size: 0.8125rem; font-weight: 500; line-height: 1.4; color: var(--subtle); }
+  .source-warn { margin-top: 0.5rem; font-size: 0.8125rem; font-weight: 500; line-height: 1.4; color: var(--warn); }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-inline-start: auto;
+    padding: 0.25rem 0.625rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .badge.ok { background: var(--accent-soft); color: var(--accent); }
+  .badge.review { background: var(--warn-soft); color: var(--warn); }
+
+  .counter-row { display: flex; align-items: stretch; gap: 0.5rem; margin-top: 1rem; }
+  .counter {
+    position: relative;
+    flex: 1;
+    min-height: 4rem;
+    padding-inline: 1.25rem;
+    border-radius: 1rem;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-weight: 800;
+    font-size: 1.5rem;
+    font-variant-numeric: tabular-nums;
+    overflow: hidden;
+    box-shadow: var(--shadow-s);
+    transition: transform .15s, background-color .15s;
+  }
+  .counter:hover { background: var(--accent-hover); }
+  .counter:active { transform: scale(.985); }
+  .counter[disabled] { background: var(--accent-soft); color: var(--accent); cursor: default; transform: none; box-shadow: none; }
+  .counter .fill {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    background: rgb(0 0 0 / 10%);
+    transition: width .3s ease-out;
+  }
+  :root[data-theme='dark'] .counter .fill { background: rgb(255 255 255 / 10%); }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) .counter .fill { background: rgb(255 255 255 / 10%); }
+  }
+  .counter .lbl { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 0.625rem; }
+  .counter .pop { display: inline-block; animation: pop .28s cubic-bezier(.34,1.4,.64,1); }
+
+  .counter-reset {
+    flex: none;
+    width: 3.5rem;
+    min-height: 4rem;
+    border: 1px solid var(--line);
+    border-radius: 1rem;
+    background: var(--surface-2);
+    color: var(--muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color .15s, color .15s, transform .15s;
+  }
+  .counter-reset:hover { background: var(--surface-3); color: var(--ink); }
+  .counter-reset:active { transform: scale(.95); }
+
+  .audio-note {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 1rem;
+    background: var(--inset);
+    color: var(--subtle);
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
+
+  /* ============ БАННЕРЫ ============ */
+  .banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--accent-soft-2);
+    border-radius: 1.5rem;
+    background: var(--accent-soft);
+  }
+  .banner p { flex: 1; min-width: 10rem; font-weight: 700; font-size: 0.9375rem; line-height: 1.3; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    padding-inline: 1rem;
+    border-radius: 0.875rem;
+    font-weight: 700;
+    font-size: 0.9375rem;
+    transition: background-color .15s, transform .15s;
+  }
+  .btn:active { transform: scale(.98); }
+  .btn.primary { background: var(--accent); color: var(--on-accent); }
+  .btn.primary:hover { background: var(--accent-hover); }
+  .btn.secondary { background: var(--surface-2); color: var(--ink); border: 1px solid var(--line); }
+  .btn.secondary:hover { background: var(--surface-3); }
+  .btn.ghost { color: var(--muted); }
+  .btn.ghost:hover { background: var(--surface-2); color: var(--ink); }
+  .btn.danger { background: var(--danger-soft); color: var(--danger); }
+  .btn.full { width: 100%; }
+
+  /* ============ РЕЖИМ «ПО ОДНОМУ» ============ */
+  .pager {
+    position: sticky;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + var(--nav-h) + 0.5rem);
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding: 0.5rem;
+    border: 1px solid var(--line);
+    border-radius: 1.5rem;
+    background: var(--surface);
+    box-shadow: var(--shadow-l);
+  }
+  /* flex-basis 0 + min-width:0 — чтобы пейджер не распирал экран,
+     если шрифт не загрузился и текст рисуется более широким фолбэком. */
+  .pager .btn { flex: 1 1 0; min-width: 0; padding-inline: 0.625rem; }
+  .pager .btn[disabled] { opacity: .45; pointer-events: none; }
+  .pager .pos { flex: none; padding-inline: 0.25rem; font-weight: 800; font-size: 0.9375rem; font-variant-numeric: tabular-nums; color: var(--muted); }
+
+  /* ============ НИЖНЯЯ НАВИГАЦИЯ ============ */
+  .bottomnav {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 40;
+    border-top: 1px solid var(--line);
+    background: color-mix(in srgb, var(--bg) 92%, transparent);
+    backdrop-filter: blur(14px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .bottomnav ul { display: flex; max-width: 32rem; margin-inline: auto; }
+  .bottomnav li { flex: 1; }
+  .bottomnav a, .bottomnav button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    width: 100%;
+    height: var(--nav-h);
+    border-radius: 1rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: var(--subtle);
+    transition: color .15s;
+  }
+  .bottomnav a:hover, .bottomnav button:hover { color: var(--muted); }
+  .bottomnav [aria-current='page'], .bottomnav .active { color: var(--accent); }
+
+  /* ============ ШТОРКА НАСТРОЕК ============ */
+  .sheet-root { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; }
+  @media (min-width: 40rem) { .sheet-root { align-items: center; } }
+  .sheet-bg { position: absolute; inset: 0; background: rgb(0 0 0 / 45%); backdrop-filter: blur(2px); animation: fade .25s ease-out; }
+  .sheet {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-height: 88dvh;
+    border-radius: 1.75rem 1.75rem 0 0;
+    background: var(--surface);
+    box-shadow: var(--shadow-l);
+    overflow: hidden;
+    animation: up .3s cubic-bezier(.22,1,.36,1);
+  }
+  @media (min-width: 40rem) { .sheet { max-width: 32rem; border-radius: 1.75rem; } }
+  .sheet-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--line); }
+  .sheet-grab { width: 2.5rem; height: 0.25rem; margin: 0 auto 0.75rem; border-radius: 999px; background: var(--surface-3); }
+  @media (min-width: 40rem) { .sheet-grab { display: none; } }
+  .sheet-head h2 { font-size: 1.25rem; }
+  .sheet-head p { margin-top: 0.25rem; font-size: 0.875rem; font-weight: 500; color: var(--muted); }
+  .sheet-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0.75rem 0.75rem calc(1rem + env(safe-area-inset-bottom, 0px)); }
+  .sheet-body .eyebrow { display: block; margin: 1rem 0 0.25rem; padding-inline: 1rem; }
+
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    width: 100%;
+    min-height: 3.5rem;
+    padding: 0.875rem 1rem;
+    border-radius: 1rem;
+    text-align: start;
+    transition: background-color .15s;
+  }
+  button.row:hover { background: var(--surface-2); }
+  .row .lbl { min-width: 0; }
+  .row .lbl b { display: block; font-size: 0.9375rem; font-weight: 600; }
+  .row .lbl small { display: block; margin-top: 0.125rem; font-size: 0.8125rem; font-weight: 500; line-height: 1.3; color: var(--subtle); }
+  .row[disabled] { opacity: .45; pointer-events: none; }
+
+  .switch { position: relative; flex: none; width: 3.25rem; height: 1.75rem; border-radius: 999px; background: var(--surface-3); transition: background-color .2s; }
+  .row[aria-checked='true'] .switch { background: var(--accent); }
+  .switch i { position: absolute; top: 0.125rem; left: 0.125rem; width: 1.5rem; height: 1.5rem; border-radius: 999px; background: #fff; box-shadow: var(--shadow-s); transition: left .2s ease-out; }
+  .row[aria-checked='true'] .switch i { left: 1.625rem; }
+
+  .stepper { display: flex; align-items: center; gap: 0.5rem; }
+  .stepper button {
+    width: 3rem; height: 3rem;
+    border: 1px solid var(--line);
+    border-radius: 0.75rem;
+    background: var(--surface);
+    font-weight: 800;
+    transition: background-color .15s, transform .15s;
+  }
+  .stepper button:hover { background: var(--surface-2); }
+  .stepper button:active { transform: scale(.95); }
+  .stepper button[disabled] { opacity: .4; pointer-events: none; }
+  .stepper .val { width: 2.25rem; text-align: center; font-weight: 700; font-size: 0.875rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .preview { margin-top: 0.75rem; padding: 0.625rem 0.75rem; border-radius: 0.75rem; background: var(--inset); }
+
+  /* ============ ПОИСК ============ */
+  .search-field { position: relative; margin-top: 1rem; }
+  .search-field svg.lead { position: absolute; top: 50%; inset-inline-start: 1rem; transform: translateY(-50%); color: var(--subtle); pointer-events: none; }
+  .search-field input {
+    width: 100%;
+    height: 3.5rem;
+    padding-inline: 3rem;
+    border: 1px solid var(--line);
+    border-radius: 1rem;
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+    font-weight: 600;
+  }
+  .search-field input::placeholder { color: var(--subtle); font-weight: 500; }
+  .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.625rem; }
+  .chips button {
+    min-height: 2.75rem;
+    padding-inline: 1rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--muted);
+    font-weight: 700;
+    font-size: 0.9375rem;
+  }
+  .chips button:hover { background: var(--surface-3); color: var(--ink); }
+
+  .mini { padding: 1rem; border: 1px solid var(--line); border-radius: 1.5rem; background: var(--surface); box-shadow: var(--shadow-s); }
+  .mini-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; }
+  .mini-cat { display: inline-flex; align-items: center; gap: 0.375rem; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--subtle); }
+  .mini h3 { margin-top: 0.375rem; font-family: Inter, sans-serif; font-size: 1.0625rem; font-weight: 700; line-height: 1.3; letter-spacing: -0.01em; }
+  .mini .arabic { margin-top: 0.75rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-clamp: 2; overflow: hidden; }
+  .mini .excerpt { margin-top: 0.75rem; color: var(--muted); font-weight: 600; font-size: 0.9375rem; line-height: 1.55; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; line-clamp: 3; overflow: hidden; }
+  .mini-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: 0.75rem; }
+  .mini-foot .src { font-size: 0.8125rem; font-weight: 600; color: var(--subtle); }
+
+  .empty { margin-top: 1.5rem; padding: 2.5rem 1.25rem; border: 1px dashed var(--line-strong); border-radius: 1.5rem; text-align: center; }
+  .empty .big { font-size: 1.875rem; }
+  .empty h2 { margin-top: 0.75rem; font-size: 1.0625rem; font-family: Inter, sans-serif; font-weight: 700; }
+  .empty p { margin: 0.5rem auto 0; max-width: 24rem; color: var(--muted); font-weight: 500; line-height: 1.6; font-size: 0.9375rem; }
+
+  .prose { margin-top: 0.75rem; color: var(--muted); font-weight: 500; line-height: 1.7; }
+  .prose + h2 { margin-top: 2rem; font-size: 1.25rem; }
+  .stack { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.75rem; }
+
+  .fav-on { color: var(--danger); }
+
+  /* ============ АНИМАЦИИ ============ */
+  @keyframes pop { 0% { transform: scale(1); } 45% { transform: scale(1.06); } 100% { transform: scale(1); } }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  .fade-up { animation: up .32s cubic-bezier(.22,1,.36,1) both; }
+
+  .toast {
+    position: fixed;
+    inset-inline: 0;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + var(--nav-h) + 0.75rem);
+    z-index: 60;
+    display: flex;
+    justify-content: center;
+    padding-inline: 1rem;
+    pointer-events: none;
+  }
+  .toast span { padding: 0.625rem 1rem; border-radius: 999px; background: var(--ink); color: var(--bg); font-weight: 600; font-size: 0.875rem; box-shadow: var(--shadow-l); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+    html { scroll-behavior: auto !important; }
+  }
+</style>
+
+<a class="skip" href="#view">Перейти к содержимому</a>
+
+<header class="topbar">
+  <div class="wrap topbar-in" id="topbar"></div>
+</header>
+
+<main id="view"></main>
+
+<nav class="bottomnav" aria-label="Основная навигация">
+  <ul id="bottomnav"></ul>
+</nav>
+
+<div id="sheet-host"></div>
+<div class="toast" id="toast" hidden><span></span></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= ДАННЫЕ =================
+     Подставляются на сборке из data/*.ts — второго набора текстов не существует. */
+  var DATA = {"categories":[{"id":"morning","slug":"morning","title":"Утренние азкары","shortTitle":"Утренние","emoji":"🌅","accent":"emerald","count":23},{"id":"evening","slug":"evening","title":"Вечерние азкары","shortTitle":"Вечерние","emoji":"🌙","accent":"indigo","count":22},{"id":"after-prayer","slug":"after-prayer","title":"После намаза","shortTitle":"После намаза","emoji":"📿","accent":"teal","count":13},{"id":"sleep","slug":"sleep","title":"Перед сном","shortTitle":"Перед сном","emoji":"🛏️","accent":"violet","count":12},{"id":"waking","slug":"waking","title":"После пробуждения","shortTitle":"Пробуждение","emoji":"☀️","accent":"amber","count":4},{"id":"protection","slug":"protection","title":"Защитные дуа","shortTitle":"Защита","emoji":"🛡️","accent":"rose","count":9},{"id":"quran-duas","slug":"quran-duas","title":"Дуа из Корана","shortTitle":"Из Корана","emoji":"📖","accent":"slate","count":14},{"id":"prophet-duas","slug":"prophet-duas","title":"Дуа пророка ﷺ","shortTitle":"Дуа пророка","emoji":"🕌","accent":"emerald","count":10},{"id":"situations","slug":"situations","title":"Жизненные ситуации","shortTitle":"Ситуации","emoji":"🧭","accent":"amber","count":15}],"azkar":{"morning":[{"id":"morning-01-ayat-al-kursi","category":"morning","order":1,"title":"Аят аль-Курси","arabic":"اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَّهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ ۗ مَن ذَا الَّذِي يَشْفَعُ عِندَهُ إِلَّا بِإِذْنِهِ ۚ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَيْءٍ مِّنْ عِلْمِهِ إِلَّا بِمَا شَاءَ ۚ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ ۖ وَلَا يَئُودُهُ حِفْظُهُمَا ۚ وَهُوَ الْعَلِيُّ الْعَظِيمُ","translation":"Аллах — нет божества, кроме Него, Живого, Вечносущего. Не овладевают Им ни дремота, ни сон. Ему принадлежит то, что на небесах, и то, что на земле. Кто заступится перед Ним без Его дозволения? Он знает их прошлое и их будущее, а они постигают из Его знания лишь то, что Он пожелает. Престол Его объемлет небеса и землю, и не тяготит Его оберегание их. Он — Возвышенный, Великий.","transliteration":"Аллаху ля иляха илля Хуа-ль-Хаййу-ль-Каййум. Ля та'хузуху синатун ва ля наум. Ляху ма фи-с-самавати ва ма фи-ль-ард. Ман заллязи яшфа'у 'индаху илля би-изних. Я'ляму ма байна айдихим ва ма хальфахум, ва ля юхитуна би-шайин мин 'ильмихи илля бима ша'а. Васи'а курсиййуху-с-самавати ва-ль-ард, ва ля я'удуху хифзухума, ва Хуа-ль-'Алиййу-ль-'Азым.","repetitions":1,"source":{"kind":"quran","collection":"Коран","reference":"2:255"},"sourceDetails":"Сура «аль-Бакара», аят 255.","tags":["защита","коран","величие Аллаха","утро"],"verified":true},{"id":"morning-02-al-ikhlas","category":"morning","order":2,"title":"Сура «аль-Ихляс»","arabic":"قُلْ هُوَ اللَّهُ أَحَدٌ ۝ اللَّهُ الصَّمَدُ ۝ لَمْ يَلِدْ وَلَمْ يُولَدْ ۝ وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ","translation":"Скажи: «Он — Аллах, Единый. Аллах Самодостаточный. Он не родил и не был рождён, и нет никого, равного Ему».","transliteration":"Куль Хуа-Ллаху Ахад. Аллаху-с-Самад. Лям ялид ва лям юляд. Ва лям якуль-ляху куфуван ахад.","repetitions":3,"source":{"kind":"quran","collection":"Коран","reference":"112:1–4"},"sourceDetails":"Сура «аль-Ихляс» полностью.","tags":["коран","единобожие","защита","утро"],"verified":true},{"id":"morning-03-al-falaq","category":"morning","order":3,"title":"Сура «аль-Фаляк»","arabic":"قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ ۝ مِن شَرِّ مَا خَلَقَ ۝ وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ ۝ وَمِن شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ ۝ وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ","translation":"Скажи: «Прибегаю к защите Господа рассвета от зла того, что Он сотворил, от зла мрака, когда он наступает, от зла дующих на узлы и от зла завистника, когда он завидует».","transliteration":"Куль а'узу би-Рабби-ль-фаляк. Мин шарри ма халяк. Ва мин шарри гасикын иза вакаб. Ва мин шарри-н-наффасати фи-ль-'укад. Ва мин шарри хасидин иза хасад.","repetitions":3,"source":{"kind":"quran","collection":"Коран","reference":"113:1–5"},"sourceDetails":"Сура «аль-Фаляк» полностью.","tags":["коран","защита","сглаз","зависть","утро"],"verified":true},{"id":"morning-04-an-nas","category":"morning","order":4,"title":"Сура «ан-Нас»","arabic":"قُلْ أَعُوذُ بِرَبِّ النَّاسِ ۝ مَلِكِ النَّاسِ ۝ إِلَٰهِ النَّاسِ ۝ مِن شَرِّ الْوَسْوَاسِ الْخَنَّاسِ ۝ الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ ۝ مِنَ الْجِنَّةِ وَالنَّاسِ","translation":"Скажи: «Прибегаю к защите Господа людей, Царя людей, Бога людей, от зла наущающего, отступающего при поминании Аллаха, который наущает в груди людей, — из джиннов и людей».","transliteration":"Куль а'узу би-Рабби-н-нас. Малики-н-нас. Иляхи-н-нас. Мин шарри-ль-васваси-ль-ханнас. Аллязи ювасвису фи судури-н-нас. Мина-ль-джиннати ва-н-нас.","repetitions":3,"source":{"kind":"quran","collection":"Коран","reference":"114:1–6"},"sourceDetails":"Сура «ан-Нас» полностью.","tags":["коран","защита","наущения","шайтан","утро"],"verified":true},{"id":"morning-05-asbahna-wa-asbaha-l-mulk","category":"morning","order":5,"title":"Мы встретили утро, и власть принадлежит Аллаху","arabic":"أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ، لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ. رَبِّ أَسْأَلُكَ خَيْرَ مَا فِي هَذَا الْيَوْمِ وَخَيْرَ مَا بَعْدَهُ، وَأَعُوذُ بِكَ مِنْ شَرِّ مَا فِي هَذَا الْيَوْمِ وَشَرِّ مَا بَعْدَهُ، رَبِّ أَعُوذُ بِكَ مِنَ الْكَسَلِ وَسُوءِ الْكِبَرِ، رَبِّ أَعُوذُ بِكَ مِنْ عَذَابٍ فِي النَّارِ وَعَذَابٍ فِي الْقَبْرِ","translation":"Мы встретили утро, и вместе с нами утро встретила власть, принадлежащая Аллаху. Хвала Аллаху! Нет божества, кроме одного лишь Аллаха, у Которого нет сотоварища. Ему принадлежит власть, Ему хвала, и Он всё может. Господь мой, прошу Тебя о благе этого дня и о благе того, что за ним, и прибегаю к Тебе от зла этого дня и зла того, что за ним. Господь мой, прибегаю к Тебе от лени и тягот старости. Господь мой, прибегаю к Тебе от мучений в Огне и мучений в могиле.","transliteration":"Асбахна ва асбаха-ль-мульку ли-Лляh, ва-ль-хамду ли-Лляh, ля иляха илля-Ллаху вахдаху ля шарика ляh, ляху-ль-мульку ва ляху-ль-хамду ва Хуа 'аля кулли шайин кадир. Рабби, ас'алюка хайра ма фи хаза-ль-йаум ва хайра ма ба'даh, ва а'узу бика мин шарри ма фи хаза-ль-йаум ва шарри ма ба'даh. Рабби, а'узу бика мина-ль-кясали ва суи-ль-кибар. Рабби, а'узу бика мин 'азабин фи-н-нари ва 'азабин фи-ль-кабр.","repetitions":1,"source":{"kind":"hadith","collection":"Сахих Муслим"},"sourceDetails":"Приводится у Муслима в разделе поминаний Аллаха.","tags":["утро","вечер","защита","восхваление","утро"],"verified":false},{"id":"morning-06-allahumma-bika-asbahna","category":"morning","order":6,"title":"О Аллах, с Тобой мы встретили утро","arabic":"اللَّهُمَّ بِكَ أَصْبَحْنَا، وَبِكَ أَمْسَيْنَا، وَبِكَ نَحْيَا، وَبِكَ نَمُوتُ، وَإِلَيْكَ النُّشُورُ","translation":"О Аллах, с Тобой мы встретили утро и с Тобой встречаем вечер, с Тобой живём и с Тобой умираем, и к Тебе воскрешение.","transliteration":"Аллахумма, бика асбахна, ва бика амсайна, ва бика нахйа, ва бика намуту, ва илейка-н-нушур.","repetitions":1,"source":{"kind":"hadith","collection":"Сунан ат-Тирмизи"},"sourceDetails":"Передаётся также у Абу Дауда и ан-Насаи.","tags":["утро","вечер","упование","утро"],"verified":false},{"id":"morning-07-sayyid-al-istighfar","category":"morning","order":7,"title":"Господин мольб о прощении","arabic":"اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَهَ إِلَّا أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ، وَأَنَا عَلَى عَهْدِكَ وَوَعْدِكَ مَا اسْتَطَعْتُ، أَعُوذُ بِكَ مِنْ شَرِّ مَا صَنَعْتُ، أَبُوءُ لَكَ بِنِعْمَتِكَ عَلَيَّ، وَأَبُوءُ بِذَنْبِي فَاغْفِرْ لِي، فَإِنَّهُ لَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ","translation":"О Аллах, Ты — Господь мой, нет божества, кроме Тебя. Ты создал меня, и я — Твой раб. Я буду верен обещанию, данному Тебе, насколько хватит сил. Прибегаю к Тебе от зла того, что я совершил. Признаю милость, оказанную Тобой мне, и признаю грех свой — прости же меня, ведь никто не прощает грехи, кроме Тебя.","transliteration":"Аллахумма, Анта Рабби, ля иляха илля Ант. Халяктани ва ана 'абдук, ва ана 'аля 'ахдика ва ва'дика ма-стата'т. А'узу бика мин шарри ма сана'т. Абу'у ляка би-ни'матика 'аляййа, ва абу'у би-занби, фа-гфир ли, фа-иннаху ля ягфиру-з-зунуба илля Ант.","repetitions":1,"source":{"kind":"hadith","collection":"Сахих аль-Бухари"},"sourceDetails":"Известно как «саййид аль-истигфар» — лучшая форма мольбы о прощении.","tags":["прощение","покаяние","утро","вечер","утро"],"verified":false},{"id":"morning-08-ushhiduka","category":"morning","order":8,"title":"Утром призываю Тебя в свидетели","arabic":"اللَّهُمَّ إِنِّي أَصْبَحْتُ أُشْهِدُكَ، وَأُشْهِدُ حَمَلَةَ عَرْشِكَ، وَمَلَائِكَتَكَ وَجَمِيعَ خَلْقِكَ، أَنَّكَ أَنْتَ اللَّهُ لَا إِلَهَ إِلَّا أَنْتَ وَحْدَكَ لَا شَرِيكَ لَكَ، وَأَنَّ مُحَمَّدًا عَبْدُكَ وَرَسُولُكَ","translation":"О Аллах, я встретил утро, призывая в свидетели Тебя, носителей Твоего Трона, Твоих ангелов и всё Твоё творение, что Ты — Аллах, нет божества, кроме Тебя одного, у Тебя нет сотоварища, и что Мухаммад — Твой раб и Твой посланник.","transliteration":"Аллахумма, инни асбахту ушхидука, ва ушхиду хамаляте 'аршика, ва маляикатака ва джами'а халькика, аннака Анта-Ллаху ля иляха илля Анта вахдака ля шарика лак, ва анна Мухаммадан 'абдука ва расулюк.","repetitions":4,"source":{"kind":"hadith","collection":"Сунан Абу Дауда"},"tags":["свидетельство","единобожие","утро","вечер","утро"],"verified":false},{"id":"morning-09-ma-asbaha-bi-min-nimah","category":"morning","order":9,"title":"Всякая милость этим утром — от Тебя","arabic":"اللَّهُمَّ مَا أَصْبَحَ بِي مِنْ نِعْمَةٍ أَوْ بِأَحَدٍ مِنْ خَلْقِكَ، فَمِنْكَ وَحْدَكَ لَا شَرِيكَ لَكَ، فَلَكَ الْحَمْدُ وَلَكَ الشُّكْرُ","translation":"О Аллах, всё, чем Ты одарил меня этим утром или кого-либо из Твоих созданий, — от Тебя одного, у Тебя нет сотоварища. Тебе хвала и Тебе благодарность.","transliteration":"Аллахумма, ма асбаха би мин ни'матин ау би-ахадин мин халькик, фа-минка вахдака ля шарика лак, фа-ляка-ль-хамду ва ляка-ш-шукр.","repetitions":1,"source":{"kind":"hadith","collection":"Сунан Абу Дауда"},"tags":["благодарность","милость","утро","вечер","утро"],"verified":false},{"id":"morning-10-hasbiyallahu","category":"morning","order":10,"title":"Достаточно мне Аллаха","arabic":"حَسْبِيَ اللَّهُ لَا إِلَهَ إِلَّا هُوَ، عَلَيْهِ تَوَكَّلْتُ، وَهُوَ رَبُّ الْعَرْشِ الْعَظِيمِ","translation":"Достаточно мне Аллаха, нет божества, кроме Него. На Него я уповаю, и Он — Господь великого Трона.","transliteration":"Хасбия-Ллаху ля иляха илля Хуа, 'алейхи таваккальту, ва Хуа Рабби-ль-'арши-ль-'азым.","repetitions":7,"source":{"kind":"quran","collection":"Коран","reference":"9:129"},"sourceDetails":"Текст — часть аята 129 суры «ат-Тауба». Практика семикратного чтения утром и вечером передаётся отдельным преданием.","tags":["упование","защита","коран","трудности","утро"],"verified":false},{"id":"morning-11-bismillahi-lladhi-la-yadurru","category":"morning","order":11,"title":"С именем Аллаха, с именем Которого ничто не причинит вреда","arabic":"بِسْمِ اللَّهِ الَّذِي لَا يَضُرُّ مَعَ اسْمِهِ شَيْءٌ فِي الْأَرْضِ وَلَا فِي السَّمَاءِ، وَهُوَ السَّمِيعُ الْعَلِيمُ","translation":"С именем Аллаха, с именем Которого ничто не причинит вреда ни на земле, ни на небе, и Он — Слышащий, Знающий.","transliteration":"Бисми-Лляхи-ллязи ля ядурру ма'а-смихи шайун фи-ль-арди ва ля фи-с-сама, ва Хуа-с-Сами'у-ль-'Алим.","repetitions":3,"source":{"kind":"hadith","collection":"Сунан ат-Тирмизи"},"sourceDetails":"Передаётся также у Абу Дауда и Ибн Маджи.","tags":["защита","от вреда","утро","вечер","утро"],"verified":false},{"id":"morning-12-radeetu-billahi","category":"morning","order":12,"title":"Я доволен Аллахом как Господом","arabic":"رَضِيتُ بِاللَّهِ رَبًّا، وَبِالْإِسْلَامِ دِينًا، وَبِمُحَمَّدٍ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ نَبِيًّا","translation":"Я доволен Аллахом как Господом, исламом — как религией и Мухаммадом, мир ему и благословение Аллаха, — как пророком.","transliteration":"Радыту би-Лляхи Раббан, ва би-ль-Ислями динан, ва би-Мухаммадин салля-Ллаху алейхи ва саллям набийян.","repetitions":3,"source":{"kind":"hadith","collection":"Сунан Абу Дауда"},"sourceDetails":"Передаётся также у ат-Тирмизи и Ахмада.","tags":["довольство","вера","утро","вечер","утро"],"verified":false},{"id":"morning-13-ya-hayyu-ya-qayyum","category":"morning","order":13,"title":"О Живой, о Вечносущий","arabic":"يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ، أَصْلِحْ لِي شَأْنِي كُلَّهُ، وَلَا تَكِلْنِي إِلَى نَفْسِي طَرْفَةَ عَيْنٍ","translation":"О Живой, о Вечносущий! К Твоей милости взываю о помощи. Приведи в порядок все мои дела и не оставляй меня наедине с самим собой даже на мгновение ока.","transliteration":"Йа Хаййу, йа Каййум, би-рахматика астагис. Аслих ли шани куллях, ва ля такильни иля нафси тарфата айн.","repetitions":1,"source":{"kind":"hadith","collection":"Сунан ан-Насаи («ас-Сунан аль-кубра»)"},"sourceDetails":"Приводится также у аль-Хакима.","tags":["помощь","упование","трудности","утро","вечер","утро"],"verified":false},{"id":"morning-14-fitrat-al-islam","category":"morning","order":14,"title":"Мы встретили утро в естестве ислама","arabic":"أَصْبَحْنَا عَلَى فِطْرَةِ الْإِسْلَامِ، وَعَلَى كَلِمَةِ الْإِخْلَاصِ، وَعَلَى دِينِ نَبِيِّنَا مُحَمَّدٍ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ، وَعَلَى مِلَّةِ أَبِينَا إِبْرَاهِيمَ حَنِيفًا مُسْلِمًا وَمَا كَانَ مِنَ الْمُشْرِكِينَ","translation":"Мы встретили утро в естестве ислама, со словом искренности, в религии нашего пророка Мухаммада, мир ему и благословение Аллаха, и в вере отца нашего Ибрахима, который был единобожником, предавшимся Аллаху, и не был из числа многобожников.","transliteration":"Асбахна аля фитрати-ль-Ислям, ва аля калимати-ль-ихляс, ва аля дини набиййина Мухаммадин салля-Ллаху алейхи ва саллям, ва аля миллети абина Ибрахима ханифан муслиман ва ма кяна мина-ль-мушрикин.","repetitions":1,"source":{"kind":"hadith","collection":"Муснад Ахмада"},"tags":["вера","единобожие","утро","вечер","утро"],"verified":false},{"id":"morning-15-afini-fi-badani","category":"morning","order":15,"title":"О Аллах, даруй мне благополучие","arabic":"اللَّهُمَّ عَافِنِي فِي بَدَنِي، اللَّهُمَّ عَافِنِي فِي سَمْعِي، اللَّهُمَّ عَافِنِي فِي بَصَرِي، لَا إِلَهَ إِلَّا أَنْتَ. اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْكُفْرِ وَالْفَقْرِ، وَأَعُوذُ بِكَ مِنْ عَذَابِ الْقَبْرِ، لَا إِلَهَ إِلَّا أَنْتَ","translation":"О Аллах, даруй здоровье моему телу. О Аллах, даруй здоровье моему слуху. О Аллах, даруй здоровье моему зрению. Нет божества, кроме Тебя. О Аллах, прибегаю к Тебе от неверия и нищеты и прибегаю к Тебе от мучений в могиле. Нет божества, кроме Тебя.","transliteration":"Аллахумма, 'афини фи бадани. Аллахумма, 'афини фи сам'и. Аллахумма, 'афини фи басари. Ля иляха илля Ант. Аллахумма, инни а'узу бика мина-ль-куфри ва-ль-факр, ва а'узу бика мин 'азаби-ль-кабр. Ля иляха илля Ант.","repetitions":3,"source":{"kind":"hadith","collection":"Сунан Абу Дауда"},"tags":["здоровье","благополучие","защита","утро","вечер","утро"],"verified":false},{"id":"morning-16-al-afwa-wal-afiyah","category":"morning","order":16,"title":"Прошу у Тебя прощения и благополучия","arabic":"اللَّهُمَّ إِنِّي أَسْأَلُكَ الْعَفْوَ وَالْعَافِيَةَ فِي الدُّنْيَا وَالْآخِرَةِ. اللَّهُمَّ إِنِّي أَسْأَلُكَ الْعَفْوَ وَالْعَافِيَةَ فِي دِينِي وَدُنْيَايَ وَأَهْلِي وَمَالِي. اللَّهُمَّ اسْتُرْ عَوْرَاتِي، وَآمِنْ رَوْعَاتِي. اللَّهُمَّ احْفَظْنِي مِنْ بَيْنِ يَدَيَّ، وَمِنْ خَلْفِي، وَعَنْ يَمِينِي، وَعَنْ شِمَالِي، وَمِنْ فَوْقِي، وَأَعُوذُ بِعَظَمَتِكَ أَنْ أُغْتَالَ مِنْ تَحْتِي","translation":"О Аллах, прошу у Тебя прощения и благополучия в этом мире и в мире вечном. О Аллах, прошу у Тебя прощения и благополучия в моей религии, в моих мирских делах, для моей семьи и моего имущества. О Аллах, прикрой то, что я хочу скрыть, и успокой мои страхи. О Аллах, храни меня спереди и сзади, справа и слева и сверху, и прибегаю к Твоему величию от того, чтобы быть поглощённым снизу.","transliteration":"Аллахумма, инни ас'алюка-ль-'афва ва-ль-'афията фи-д-дунья ва-ль-ахира. Аллахумма, инни ас'алюка-ль-'афва ва-ль-'афията фи дини ва дуньяйа ва ахли ва мали. Аллахумма-стур 'аурати ва амин рау'ати. Аллахумма-хфазни мин байни йадаййа, ва мин хальфи, ва 'ан ямини, ва 'ан шимали, ва мин фауки, ва а'узу би-'азаматика ан угталя мин тахти.","repetitions":1,"source":{"kind":"hadith","collection":"Сунан Абу Дауда"},"sourceDetails":"Передаётся также у Ибн Маджи и ан-Насаи.","tags":["защита","благополучие","семья","утро","вечер","утро"],"verified":false},{"id":"morning-17-alima-l-ghayb","category":"morning","order":17,"title":"О Знающий сокровенное и явное","arabic":"اللَّهُمَّ عَالِمَ الْغَيْبِ وَالشَّهَادَةِ، فَاطِرَ السَّمَاوَاتِ وَالْأَرْضِ، رَبَّ كُلِّ شَيْءٍ وَمَلِيكَهُ، أَشْهَدُ أَنْ لَا إِلَهَ إِلَّا أَنْتَ، أَعُوذُ بِكَ مِنْ شَرِّ نَفْسِي، وَمِنْ شَرِّ الشَّيْطَانِ وَشِرْكِهِ، وَأَنْ أَقْتَرِفَ عَلَى نَفْسِي سُوءًا أَوْ أَجُرَّهُ إِلَى مُسْلِمٍ","translation":"О Аллах, Знающий сокровенное и явное, Творец небес и земли, Господь и Владыка всякой вещи! Свидетельствую, что нет божества, кроме Тебя. Прибегаю к Тебе от зла моей души, от зла шайтана и от придаваемых им сотоварищей, от того, чтобы навредить себе или причинить зло мусульманину.","transliteration":"Аллахумма, 'Алима-ль-гайби ва-ш-шахада, Фатыра-с-самавати ва-ль-ард, Рабба кулли шайин ва маликах. Ашхаду ан ля иляха илля Ант. А'узу бика мин шарри нафси, ва мин шарри-ш-шайтани ва ширких, ва ан актарифа 'аля нафси су'ан ау аджурраху иля муслим.","repetitions":1,"source":{"kind":"hadith","collection":"Сунан ат-Тирмизи"},"sourceDetails":"Передаётся также у Абу Дауда.","tags":["защита","шайтан","искренность","утро","вечер","утро"],"verified":false},{"id":"morning-18-subhanallahi-wa-bihamdihi","category":"morning","order":18,"title":"Пречист Аллах и хвала Ему","arabic":"سُبْحَانَ اللَّهِ وَبِحَمْدِهِ","translation":"Пречист Аллах, и хвала Ему.","transliteration":"Субхана-Ллахи ва би-хамдих.","repetitions":100,"source":{"kind":"hadith","collection":"Сахих аль-Бухари и Сахих Муслим"},"sourceDetails":"Приводится в обоих «Сахихах» в разделах о поминании Аллаха.","tags":["тасбих","восхваление","утро","вечер","утро"],"verified":false},{"id":"morning-19-la-ilaha-illallah-wahdahu","category":"morning","order":19,"title":"Нет божества, кроме одного лишь Аллаха","arabic":"لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ","translation":"Нет божества, кроме одного лишь Аллаха, у Которого нет сотоварища. Ему принадлежит власть, Ему хвала, и Он всё может.","transliteration":"Ля иляха илля-Ллаху вахдаху ля шарика лях, ляху-ль-мульку ва ляху-ль-хамд, ва Хуа 'аля кулли шайин кадир.","repetitions":10,"source":{"kind":"hadith","collection":"Сахих аль-Бухари и Сахих Муслим"},"sourceDetails":"В разных преданиях приводится чтение 10 или 100 раз. Здесь выбран вариант в 10 раз.","tags":["единобожие","тахлиль","утро","вечер","утро"],"verified":false},{"id":"morning-20-adada-khalqihi","category":"morning","order":20,"title":"Пречист Аллах числом Его творений","arabic":"سُبْحَانَ اللَّهِ وَبِحَمْدِهِ، عَدَدَ خَلْقِهِ، وَرِضَا نَفْسِهِ، وَزِنَةَ عَرْشِهِ، وَمِدَادَ كَلِمَاتِهِ","translation":"Пречист Аллах и хвала Ему — числом Его творений, в меру Его довольства, весом Его Трона и подобно чернилам, которыми записаны Его слова.","transliteration":"Субхана-Ллахи ва би-хамдихи, 'адада хальких, ва рида нафсих, ва зината 'аршихи, ва мидада калиматих.","repetitions":3,"source":{"kind":"hadith","collection":"Сахих Муслим"},"sourceDetails":"Передаётся от Джувайрии, да будет доволен ею Аллах.","tags":["тасбих","восхваление","утро"],"verified":false},{"id":"morning-21-ilman-nafian","category":"morning","order":21,"title":"Прошу у Тебя полезного знания","arabic":"اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا، وَرِزْقًا طَيِّبًا، وَعَمَلًا مُتَقَبَّلًا","translation":"О Аллах, прошу у Тебя полезного знания, благого удела и принятого дела.","transliteration":"Аллахумма, инни ас'алюка 'ильман нафи'ан, ва ризкан таййибан, ва 'амалян мутакаббаля.","repetitions":1,"source":{"kind":"hadith","collection":"Сунан Ибн Маджи"},"tags":["знание","удел","дела","утро"],"verified":false},{"id":"morning-23-astaghfirullah","category":"morning","order":22,"title":"Прошу прощения у Аллаха и приношу Ему покаяние","arabic":"أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ","translation":"Прошу прощения у Аллаха и приношу Ему покаяние.","transliteration":"Астагфиру-Ллаха ва атубу илейх.","repetitions":100,"source":{"kind":"hadith","collection":"Сахих аль-Бухари и Сахих Муслим"},"tags":["прощение","покаяние","истигфар","утро"],"verified":false},{"id":"morning-24-salawat","category":"morning","order":23,"title":"Мольба о благословении для Пророка ﷺ","arabic":"اللَّهُمَّ صَلِّ وَسَلِّمْ عَلَى نَبِيِّنَا مُحَمَّدٍ","translation":"О Аллах, благослови нашего пророка Мухаммада и приветствуй его миром.","transliteration":"Аллахумма, салли ва саллим аля набиййина Мухаммад.","repetitions":10,"source":{"kind":"unknown","collection":"Источник требует уточнения"},"sourceDetails":"Достоинство утреннего и вечернего саляавата передаётся в ряде преданий; конкретный источник требует уточнения.","tags":["салават","пророк","утро"],"verified":false}],"evening":[{"id":"evening-01-ayat-al-kursi","category":"evening","order":1,"title":"Аят аль-Курси","arabic":"اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَّهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ ۗ مَن ذَا الَّذِي يَشْفَعُ عِندَهُ إِلَّا بِإِذْنِهِ ۚ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَيْءٍ مِّنْ عِلْمِهِ إِلَّا بِمَا شَاءَ ۚ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ ۖ وَلَا يَئُودُهُ حِفْظُهُمَا ۚ وَهُوَ الْعَلِيُّ الْعَظِيمُ","translation":"Аллах — нет божества, кроме Него, Живого, Вечносущего. Не овладевают Им ни дремота, ни сон. Ему принадлежит то, что на небесах, и то, что на земле. Кто заступится перед Ним без Его дозволения? Он знает их прошлое и их будущее, а они постигают из Его знания лишь то, что Он пожелает. Престол Его объемлет небеса и землю, и не тяготит Его оберегание их. Он — Возвышенный, Великий.","transliteration":"Аллаху ля иляха илля Хуа-ль-Хаййу-ль-Каййум. Ля та'хузуху синатун ва ля наум. Ляху ма фи-с-самавати ва ма фи-ль-ард. Ман заллязи яшфа'у 'индаху илля би-изних. Я'ляму ма байна айдихим ва ма хальфахум, ва ля юхитуна би-шайин мин 'ильмихи илля бима ша'а. Васи'а курсиййуху-с-самавати ва-ль-ард, ва ля я'удуху хифзухума, ва Хуа-ль-'Алиййу-ль-'Азым.","repetitions":1,"source":{"kind":"quran","collection":"Коран","reference":"2:255"},"sourceDetails":"Сура «аль-Бакара», аят 255.","tags":["защита","коран","величие Аллаха","вечер"],"verified":true},{"id":"evening-02-al-ikhlas","category":"evening","order":2,"title":"Сура «аль-Ихляс»","arabic":"قُلْ هُوَ اللَّهُ أَحَدٌ ۝ اللَّهُ الصَّمَدُ ۝ لَمْ يَلِدْ وَلَمْ يُولَدْ ۝ وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ","translation":"Скажи: «Он — Аллах, Единый. Аллах Самодостаточный. Он не родил и не был рождён, и нет никого, равного Ему».","transliteration":"Куль Хуа-Ллаху Ахад. Аллаху-с-Самад. Лям ялид ва лям юляд. Ва лям якуль-ляху куфуван ахад.","repetitions":3,"source":{"kind":"quran","collection":"Коран","reference":"112:1–4"},"sourceDetails":"Сура «аль-Ихляс» полностью.","tags":["коран","единобожие","защита","вечер"],"verified":true},{"id":"evening-03-al-falaq","category":"evening","order":3,"title":"Сура «аль-Фаляк»","arabic":"قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ ۝ مِن شَرِّ مَا خَلَقَ ۝ وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ ۝ وَمِن شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ ۝ وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ","translation":"Скажи: «Прибегаю к защите Господа рассвета от зла того, что Он сотворил, от зла мрака, когда он наступает, от зла дующих на узлы и от зла завистника, когда он завидует».","transliteration":"Куль а'узу би-Рабби-ль-фаляк. Мин шарри ма халяк. Ва мин шарри гасикын иза вакаб. Ва мин шарри-н-наффасати фи-ль-'укад. Ва мин шарри хасидин иза хасад.","repetitions":3,"source":{"kind":"quran","collection":"Коран","reference":"113:1–5"},"sourceDetails":"Сура «аль-Фаляк» полностью.","tags":["коран","защита","сглаз","зависть","вечер"],"verified":true},{"id":"evening-04-an-nas","category":"evening","order":4,"title":"Сура «ан-Нас»","arabic":"قُلْ أَعُوذُ بِرَبِّ النَّاسِ ۝ مَلِكِ النَّاسِ ۝ إِلَٰهِ النَّاسِ ۝ مِن شَرِّ الْوَسْوَاسِ الْخَنَّاسِ ۝ الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ ۝ مِنَ الْجِنَّةِ وَالنَّاسِ","translation":"Скажи: «Прибегаю к защите Господа людей, Царя людей, Бога людей, от зла наущающего, отступающего при поминании Аллаха, который наущает в груди людей, — из джиннов и людей».","transliteration":"Куль а'узу би-Рабби-н-нас. Малики-н-нас. Иляхи-н-нас. Мин шарри-ль-васваси-ль-ханнас. Аллязи ювасвису фи судури-н-нас. Мина-ль-джиннати ва-н-нас.","repetitions":3,"source":{"kind":"quran","collection":"Коран","reference":"114:1–6"},"sourceDetails":"Сура «ан-Нас» полностью.","tags":["коран","защита","наущения","шайтан","вечер"],"verified":true},{"id":"evening-05-asbahna-wa-asbaha-l-mulk","category":"evening","order":5,"title":"Мы встретили вечер, и власть принадлежит Аллаху","arabic":"أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ، لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ. رَبِّ أَسْأَلُكَ خَيْرَ مَا فِي هَذِهِ اللَّيْلَةِ وَخَيْرَ مَا بَعْدَهَا، وَأَعُوذُ بِكَ مِنْ شَرِّ مَا فِي هَذِهِ اللَّيْلَةِ وَشَرِّ مَا بَعْدَهَا، رَبِّ أَعُوذُ بِكَ مِنَ الْكَسَلِ وَسُوءِ الْكِبَرِ، رَبِّ أَعُوذُ بِكَ مِنْ عَذَابٍ فِي النَّارِ وَعَذَابٍ فِي الْقَبْرِ","translation":"Мы встретили вечер, и вместе с нами вечер встретила власть, принадлежащая Аллаху. Хвала Аллаху! Нет божества, кроме одного лишь Аллаха, у Которого нет сотоварища. Ему принадлежит власть, Ему хвала, и Он всё может. Господь мой, прошу Тебя о благе этой ночи и о благе того, что за ней, и прибегаю к Тебе от зла этой ночи и зла того, что за ней. Господь мой, прибегаю к Тебе от лени и тягот старости. Господь мой, прибегаю к Тебе от мучений в Огне и мучений в могиле.","transliteration":"Амсайна ва амса-ль-мульку ли-Лляh, ва-ль-хамду ли-Лляh, ля иляха илля-Ллаху вахдаху ля шарика ляh, ляху-ль-мульку ва ляху-ль-хамду ва Хуа 'аля кулли шайин кадир. Рабби, ас'алюка хайра ма фи хазихи-ль-лейля ва хайра ма ба'даха, ва а'узу бика мин шарри ма фи хазихи-ль-лейля ва шарри ма ба'даха. Рабби, а'узу бика мина-ль-кясали ва суи-ль-кибар. Рабби, а'узу бика мин 'азабин фи-н-нари ва 'азабин фи-ль-кабр.","repetitions":1,"source":{"kind":"hadith","collection":"Сахих Муслим"},"sourceDetails":"Приводится у Муслима в разделе поминаний Аллаха.","tags":["утро","вечер","защита","восхваление","вечер"],"verified":false},{"id":"evening-06-allahumma-bika-asbahna","category":"evening","order":6,"title":"О Аллах, с Тобой мы встретили вечер","arabic":"اللَّهُمَّ بِكَ أَمْسَيْنَا، وَبِكَ أَصْبَحْنَا، وَبِكَ نَحْيَا، وَبِكَ نَمُوتُ، وَإِلَيْكَ الْمَصِيرُ","translation":"О Аллах, с Тобой мы встретили вечер и с Тобой встречаем утро, с Тобой живём и с Тобой умираем, и к Тебе возвращение.","transliteration":"Аллахумма, бика амсайна, ва бика асбахна, ва бика нахйа, ва бика намуту, ва илейка-ль-масыр.","repetitions":1,"source":{"kind":"hadith","collection":"Сунан ат-Тирмизи"},"sourceDetails":"Передаётся также у Абу Дауда и ан-Насаи.","tags":["утро","вечер","упование","вечер"],"verified":false},{"id":"evening-07-sayyid-al-istighfar","category":"evening","order":7,"title":"Господин мольб о прощении","arabic":"اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَهَ إِلَّا أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ، وَأَنَا عَلَى عَهْدِكَ وَوَعْدِكَ مَا اسْتَطَعْتُ، أَعُوذُ بِكَ مِنْ شَرِّ مَا صَنَعْتُ، أَبُوءُ لَكَ بِنِعْمَتِكَ عَلَيَّ، وَأَبُوءُ بِذَنْبِي فَاغْفِرْ لِي، فَإِنَّهُ لَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ","translation":"О Аллах, Ты — Господь мой, нет божества, кроме Тебя. Ты создал меня, и я — Твой раб. Я буду верен обещанию, данному Тебе, насколько хватит сил. Прибегаю к Тебе от зла того, что я совершил. Признаю милость, оказанную Тобой мне, и признаю грех свой — прости же меня, ведь никто не прощает грехи, кроме Тебя.","transliteration":"Аллахумма, Анта Рабби, ля иляха илля Ант. Халяктани ва ана 'абдук, ва ана 'аля 'ахдика ва ва'дика ма-стата'т. А'узу бика мин шарри ма сана'т. Абу'у ляка би-ни'матика 'аляййа, ва абу'у би-занби, фа-гфир ли, фа-иннаху ля ягфиру-з-зунуба илля Ант.","repetitions":1,"source":{"kind":"hadith","collection":"Сахих аль-Бухари"},"sourceDetails":"Известно как «саййид аль-истигфар» — лучшая форма мольбы о прощении.","tags":["прощение","покаяние","утро","вечер","вечер"],"verified":false},{"id":"evening-08-ushhiduka","category":"evening","order":8,"title":"Вечером призываю Тебя в свидетели","arabic":"اللَّهُمَّ إِنِّي أَمْسَيْتُ أُشْهِدُكَ، وَأُشْهِدُ حَمَلَةَ عَرْشِكَ، وَمَلَائِكَتَكَ وَجَمِيعَ خَلْقِكَ، أَنَّكَ أَنْتَ اللَّهُ لَا إِلَهَ إِلَّا أَنْتَ وَحْدَكَ لَا شَرِيكَ لَكَ، وَأَنَّ مُحَمَّدًا عَبْدُكَ وَرَسُولُكَ","translation":"О Аллах, я встретил вечер, призывая в свидетели Тебя, носителей Твоего Трона, Твоих ангелов и всё Твоё творение, что Ты — Аллах, нет божества, кроме Тебя одного, у Тебя нет сотоварища, и что Мухаммад — Твой раб и Твой посланник.","transliteration":"Аллахумма, инни амсайту ушхидука, ва ушхиду хамаляте 'аршика, ва маляикатака ва джами'а халькика, аннака Анта-Ллаху ля иляха илля Анта вахдака ля шарика лак, ва анна Мухаммадан 'абдука ва расулюк.","repetitions":4,"source":{"kind":"hadith","collection":"Сунан Абу Дауда"},"tags":["свидетельство","единобожие","утро","вечер","вечер"],"verified":false},{"id":"evening-09-ma-asbaha-bi-min-nimah","category":"evening","order":9,"title":"Всякая милость этим вечером — от Тебя","arabic":"اللَّهُمَّ مَا أَمْسَى بِي مِنْ نِعْمَةٍ أَوْ بِأَحَدٍ مِنْ خَلْقِكَ، فَمِنْكَ وَحْدَكَ لَا شَرِيكَ لَكَ، فَلَكَ الْحَمْدُ وَلَكَ الشُّكْرُ","translation":"О Аллах, всё, чем Ты одарил меня этим вечером или кого-либо из Твоих созданий, — от Тебя одного, у Тебя нет сотоварища. Тебе хвала и Тебе благодарность.","transliteration":"Аллахумма, ма амса би мин ни'матин ау би-ахадин мин халькик, фа-минка вахдака ля шарика лак, фа-ляка-ль-хамду ва ляка-ш-шукр.","repetitions":1,"source":{"kind":"hadith","collection":"Сунан Абу Дауда"},"tags":["благодарность","милость","утро","вечер","вечер"],"verified":false},{"id":"evening-10-hasbiyallahu","category":"evening","order":10,"title":"Достаточно мне Аллаха","arabic":"حَسْبِيَ اللَّهُ لَا إِلَهَ إِلَّا هُوَ، عَلَيْهِ تَوَكَّلْتُ، وَهُوَ رَبُّ الْعَرْشِ الْعَظِيمِ","translation":"Достаточно мне Аллаха, нет божества, кроме Него. На Него я уповаю, и Он — Господь великого Трона.","transliteration":"Хасбия-Ллаху ля иляха илля Хуа, 'алейхи таваккальту, ва Хуа Рабби-ль-'арши-ль-'азым.","repetitions":7,"source":{"kind":"quran","collection":"Коран","reference":"9:129"},"sourceDetails":"Текст — часть аята 129 суры «ат-Тауба». Практика семикратного чтения утром и вечером передаётся отдельным преданием.","tags":["упование","защита","коран","трудности","вечер"],"verified":false},{"id":"evening-11-bismillahi-lladhi-la-yadurru","category":"evening","order":11,"title":"С именем Аллаха, с именем Которого ничто не причинит вреда","arabic":"بِسْمِ اللَّهِ الَّذِي لَا يَضُرُّ مَعَ اسْمِهِ شَيْءٌ فِي الْأَرْضِ وَلَا فِي السَّمَاءِ، وَهُوَ السَّمِيعُ الْعَلِيمُ","translation":"С именем Аллаха, с именем Которого ничто не причинит вреда ни на земле, ни на небе, и Он — Слышащий, Знающий.","transliteration":"Бисми-Лляхи-ллязи ля ядурру ма'а-смихи шайун фи-ль-арди ва ля фи-с-сама, ва Хуа-с-Сами'у-ль-'Алим.","repetitions":3,"source":{"kind":"hadith","collection":"Сунан ат-Тирмизи"},"sourceDetails":"Передаётся также у Абу Дауда и Ибн Маджи.","tags":["защита","от вреда","утро","вечер","вечер"],"verified":false},{"id":"evening-12-radeetu-billahi","category":"evening","order":12,"title":"Я доволен Аллахом как Господом","arabic":"رَضِيتُ بِاللَّهِ رَبًّا، وَبِالْإِسْلَامِ دِينًا، وَبِمُحَمَّدٍ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ نَبِيًّا","translation":"Я доволен Аллахом как Господом, исламом — как религией и Мухаммадом, мир ему и благословение Аллаха, — как пророком.","transliteration":"Радыту би-Лляхи Раббан, ва би-ль-Ислями динан, ва би-Мухаммадин салля-Ллаху алейхи ва саллям набийян.","repetitions":3,"source":{"kind":"hadith","collection":"Сунан Абу Дауда"},"sourceDetails":"Передаётся также у ат-Тирмизи и Ахмада.","tags":["довольство","вера","утро","вечер","вечер"],"verified":false},{"id":"evening-13-ya-hayyu-ya-qayyum","category":"evening","order":13,"title":"О Живой, о Вечносущий","arabic":"يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ، أَصْلِحْ لِي شَأْنِي كُلَّهُ، وَلَا تَكِلْنِي إِلَى نَفْسِي طَرْفَةَ عَيْنٍ","translation":"О Живой, о Вечносущий! К Твоей милости взываю о помощи. Приведи в порядок все мои дела и не оставляй меня наедине с самим собой даже на мгновение ока.","transliteration":"Йа Хаййу, йа Каййум, би-рахматика астагис. Аслих ли шани куллях, ва ля такильни иля нафси тарфата айн.","repetitions":1,"source":{"kind":"hadith","collection":"Сунан ан-Насаи («ас-Сунан аль-кубра»)"},"sourceDetails":"Приводится также у аль-Хакима.","tags":["помощь","упование","трудности","утро","вечер","вечер"],"verified":false},{"id":"evening-14-fitrat-al-islam","category":"evening","order":14,"title":"Мы встретили вечер в естестве ислама","arabic":"أَمْسَيْنَا عَلَى فِطْرَةِ الْإِسْلَامِ، وَعَلَى كَلِمَةِ الْإِخْلَاصِ، وَعَلَى دِينِ نَبِيِّنَا مُحَمَّدٍ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ، وَعَلَى مِلَّةِ أَبِينَا إِبْرَاهِيمَ حَنِيفًا مُسْلِمًا وَمَا كَانَ مِنَ الْمُشْرِكِينَ","translation":"Мы встретили вечер в естестве ислама, со словом искренности, в религии нашего пророка Мухаммада, мир ему и благословение Аллаха, и в вере отца нашего Ибрахима, который был единобожником, предавшимся Аллаху, и не был из числа многобожников.","transliteration":"Амсайна аля фитрати-ль-Ислям, ва аля калимати-ль-ихляс, ва аля дини набиййина Мухаммадин салля-Ллаху алейхи ва саллям, ва аля миллети абина Ибрахима ханифан муслиман ва ма кяна мина-ль-мушрикин.","repetitions":1,"source":{"kind":"hadith","collection":"Муснад Ахмада"},"tags":["вера","единобожие","утро","вечер","вечер"],"verified":false},{"id":"evening-15-afini-fi-badani","category":"evening","order":15,"title":"О Аллах, даруй мне благополучие","arabic":"اللَّهُمَّ عَافِنِي فِي بَدَنِي، اللَّهُمَّ عَافِنِي فِي سَمْعِي، اللَّهُمَّ عَافِنِي فِي بَصَرِي، لَا إِلَهَ إِلَّا أَنْتَ. اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْكُفْرِ وَالْفَقْرِ، وَأَعُوذُ بِكَ مِنْ عَذَابِ الْقَبْرِ، لَا إِلَهَ إِلَّا أَنْتَ","translation":"О Аллах, даруй здоровье моему телу. О Аллах, даруй здоровье моему слуху. О Аллах, даруй здоровье моему зрению. Нет божества, кроме Тебя. О Аллах, прибегаю к Тебе от неверия и нищеты и прибегаю к Тебе от мучений в могиле. Нет божества, кроме Тебя.","transliteration":"Аллахумма, 'афини фи бадани. Аллахумма, 'афини фи сам'и. Аллахумма, 'афини фи басари. Ля иляха илля Ант. Аллахумма, инни а'узу бика мина-ль-куфри ва-ль-факр, ва а'узу бика мин 'азаби-ль-кабр. Ля иляха илля Ант.","repetitions":3,"source":{"kind":"hadith","collection":"Сунан Абу Дауда"},"tags":["здоровье","благополучие","защита","утро","вечер","вечер"],"verified":false},{"id":"evening-16-al-afwa-wal-afiyah","category":"evening","order":16,"title":"Прошу у Тебя прощения и благополучия","arabic":"اللَّهُمَّ إِنِّي أَسْأَلُكَ الْعَفْوَ وَالْعَافِيَةَ فِي الدُّنْيَا وَالْآخِرَةِ. اللَّهُمَّ إِنِّي أَسْأَلُكَ الْعَفْوَ وَالْعَافِيَةَ فِي دِينِي وَدُنْيَايَ وَأَهْلِي وَمَالِي. اللَّهُمَّ اسْتُرْ عَوْرَاتِي، وَآمِنْ رَوْعَاتِي. اللَّهُمَّ احْفَظْنِي مِنْ بَيْنِ يَدَيَّ، وَمِنْ خَلْفِي، وَعَنْ يَمِينِي، وَعَنْ شِمَالِي، وَمِنْ فَوْقِي، وَأَعُوذُ بِعَظَمَتِكَ أَنْ أُغْتَالَ مِنْ تَحْتِي","translation":"О Аллах, прошу у Тебя прощения и благополучия в этом мире и в мире вечном. О Аллах, прошу у Тебя прощения и благополучия в моей религии, в моих мирских делах, для моей семьи и моего имущества. О Аллах, прикрой то, что я хочу скрыть, и успокой мои страхи. О Аллах, храни меня спереди и сзади, справа и слева и сверху, и прибегаю к Твоему величию от того, чтобы быть поглощённым снизу.","transliteration":"Аллахумма, инни ас'алюка-ль-'афва ва-ль-'афията фи-д-дунья ва-ль-ахира. Аллахумма, инни ас'алюка-ль-'афва ва-ль-'афията фи дини ва дуньяйа ва ахли ва мали. Аллахумма-стур 'аурати ва амин рау'ати. Аллахумма-хфазни мин байни йадаййа, ва мин хальфи, ва 'ан ямини, ва 'ан шимали, ва мин фауки, ва а'узу би-'азаматика ан угталя мин тахти.","repetitions":1,"source":{"kind":"hadith","collection":"Сунан Абу Дауда"},"sourceDetails":"Передаётся также у Ибн Маджи и ан-Насаи.","tags":["защита","благополучие","семья","утро","вечер","вечер"],"verified":false},{"id":"evening-17-alima-l-ghayb","category":"evening","order":17,"title":"О Знающий сокровенное и явное","arabic":"اللَّهُمَّ عَالِمَ الْغَيْبِ وَالشَّهَادَةِ، فَاطِرَ السَّمَاوَاتِ وَالْأَرْضِ، رَبَّ كُلِّ شَيْءٍ وَمَلِيكَهُ، أَشْهَدُ أَنْ لَا إِلَهَ إِلَّا أَنْتَ، أَعُوذُ بِكَ مِنْ شَرِّ نَفْسِي، وَمِنْ شَرِّ الشَّيْطَانِ وَشِرْكِهِ، وَأَنْ أَقْتَرِفَ عَلَى نَفْسِي سُوءًا أَوْ أَجُرَّهُ إِلَى مُسْلِمٍ","translation":"О Аллах, Знающий сокровенное и явное, Творец небес и земли, Господь и Владыка всякой вещи! Свидетельствую, что нет божества, кроме Тебя. Прибегаю к Тебе от зла моей души, от зла шайтана и от придаваемых им сотоварищей, от того, чтобы навредить себе или причинить зло мусульманину.","transliteration":"Аллахумма, 'Алима-ль-гайби ва-ш-шахада, Фатыра-с-самавати ва-ль-ард, Рабба кулли шайин ва маликах. Ашхаду ан ля иляха илля Ант. А'узу бика мин шарри нафси, ва мин шарри-ш-шайтани ва ширких, ва ан актарифа 'аля нафси су'ан ау аджурраху иля муслим.","repetitions":1,"source":{"kind":"hadith","collection":"Сунан ат-Тирмизи"},"sourceDetails":"Передаётся также у Абу Дауда.","tags":["защита","шайтан","искренность","утро","вечер","вечер"],"verified":false},{"id":"evening-18-subhanallahi-wa-bihamdihi","category":"evening","order":18,"title":"Пречист Аллах и хвала Ему","arabic":"سُبْحَانَ اللَّهِ وَبِحَمْدِهِ","translation":"Пречист Аллах, и хвала Ему.","transliteration":"Субхана-Ллахи ва би-хамдих.","repetitions":100,"source":{"kind":"hadith","collection":"Сахих аль-Бухари и Сахих Муслим"},"sourceDetails":"Приводится в обоих «Сахихах» в разделах о поминании Аллаха.","tags":["тасбих","восхваление","утро","вечер","вечер"],"verified":false},{"id":"evening-19-la-ilaha-illallah-wahdahu","category":"evening","order":19,"title":"Нет божества, кроме одного лишь Аллаха","arabic":"لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ","translation":"Нет божества, кроме одного лишь Аллаха, у Которого нет сотоварища. Ему принадлежит власть, Ему хвала, и Он всё может.","transliteration":"Ля иляха илля-Ллаху вахдаху ля шарика лях, ляху-ль-мульку ва ляху-ль-хамд, ва Хуа 'аля кулли шайин кадир.","repetitions":10,"source":{"kind":"hadith","collection":"Сахих аль-Бухари и Сахих Муслим"},"sourceDetails":"В разных преданиях приводится чтение 10 или 100 раз. Здесь выбран вариант в 10 раз.","tags":["единобожие","тахлиль","утро","вечер","вечер"],"verified":false},{"id":"evening-22-kalimat-allah-at-tammat","category":"evening","order":20,"title":"Прибегаю к совершенным словам Аллаха","arabic":"أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ","translation":"Прибегаю к совершенным словам Аллаха от зла того, что Он сотворил.","transliteration":"А'узу би-калимати-Лляхи-т-таммати мин шарри ма халяк.","repetitions":3,"source":{"kind":"hadith","collection":"Сахих Муслим"},"sourceDetails":"Передаётся как вечернее поминание.","tags":["защита","от вреда","вечер"],"verified":false},{"id":"evening-23-astaghfirullah","category":"evening","order":21,"title":"Прошу прощения у Аллаха и приношу Ему покаяние","arabic":"أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ","translation":"Прошу прощения у Аллаха и приношу Ему покаяние.","transliteration":"Астагфиру-Ллаха ва атубу илейх.","repetitions":100,"source":{"kind":"hadith","collection":"Сахих аль-Бухари и Сахих Муслим"},"tags":["прощение","покаяние","истигфар","вечер"],"verified":false},{"id":"evening-24-salawat","category":"evening","order":22,"title":"Мольба о благословении для Пророка ﷺ","arabic":"اللَّهُمَّ صَلِّ وَسَلِّمْ عَلَى نَبِيِّنَا مُحَمَّدٍ","translation":"О Аллах, благослови нашего пророка Мухаммада и приветствуй его миром.","transliteration":"Аллахумма, салли ва саллим аля набиййина Мухаммад.","repetitions":10,"source":{"kind":"unknown","collection":"Источник требует уточнения"},"sourceDetails":"Достоинство утреннего и вечернего саляавата передаётся в ряде преданий; конкретный источник требует уточнения.","tags":["салават","пророк","вечер"],"verified":false}],"after-prayer":[{"id":"after-prayer-01-astaghfirullah","category":"after-prayer","order":1,"title":"Прошу прощения у Аллаха","arabic":"أَسْتَغْفِرُ اللَّهَ","translation":"Прошу прощения у Аллаха.","transliteration":"Астагфиру-Ллах.","repetitions":3,"source":{"kind":"hadith","collection":"Сахих Муслим"},"sourceDetails":"Читается сразу после завершения намаза.","tags":["прощение","после намаза","истигфар"],"verified":false},{"id":"after-prayer-02-anta-s-salam","category":"after-prayer","order":2,"title":"О Аллах, Ты — Мир","arabic":"اللَّهُمَّ أَنْتَ السَّلَامُ، وَمِنْكَ السَّلَامُ، تَبَارَكْتَ يَا ذَا الْجَلَالِ وَالْإِكْرَامِ","translation":"О Аллах, Ты — Мир, и от Тебя мир. Благословен Ты, о Обладатель величия и щедрости.","transliteration":"Аллахумма, Анта-с-Салям, ва минка-с-салям, табаракта йа За-ль-Джаляли ва-ль-Икрам.","repetitions":1,"source":{"kind":"hadith","collection":"Сахих Муслим"},"tags":["после намаза","восхваление"],"verified":false},{"id":"after-prayer-03-la-mania-lima-atayta","category":"after-prayer","order":3,"title":"Никто не удержит того, что Ты даровал","arabic":"لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ. اللَّهُمَّ لَا مَانِعَ لِمَا أَعْطَيْتَ، وَلَا مُعْطِيَ لِمَا مَنَعْتَ، وَلَا يَنْفَعُ ذَا الْجَدِّ مِنْكَ الْجَدُّ","translation":"Нет божества, кроме одного лишь Аллаха, у Которого нет сотоварища. Ему принадлежит власть, Ему хвала, и Он всё может. О Аллах, никто не удержит того, что Ты даровал, и никто не дарует того, что Ты удержал, и не принесёт пользы обладателю богатства его богатство перед Тобой.","transliteration":"Ля иляха илля-Ллаху вахдаху ля шарика лях, ляху-ль-мульку ва ляху-ль-хамд, ва Хуа 'аля кулли шайин кадир. Аллахумма, ля мани'а лима а'тайт, ва ля му'тыя лима мана'т, ва ля янфа'у за-ль-джадди минка-ль-джадд.","repetitions":1,"source":{"kind":"hadith","collection":"Сахих аль-Бухари и Сахих Муслим"},"tags":["после намаза","единобожие","удел"],"verified":false},{"id":"after-prayer-04-la-hawla-wa-la-quwwata","category":"after-prayer","order":4,"title":"Нет силы и мощи ни у кого, кроме Аллаха","arabic":"لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ. لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ، لَا إِلَهَ إِلَّا اللَّهُ، وَلَا نَعْبُدُ إِلَّا إِيَّاهُ، لَهُ النِّعْمَةُ وَلَهُ الْفَضْلُ وَلَهُ الثَّنَاءُ الْحَسَنُ، لَا إِلَهَ إِلَّا اللَّهُ مُخْلِصِينَ لَهُ الدِّينَ وَلَوْ كَرِهَ الْكَافِرُونَ","translation":"Нет божества, кроме одного лишь Аллаха, у Которого нет сотоварища. Ему принадлежит власть, Ему хвала, и Он всё может. Нет силы и мощи ни у кого, кроме Аллаха. Нет божества, кроме Аллаха, и мы не поклоняемся никому, кроме Него. Ему принадлежат милость, щедрость и прекрасная хвала. Нет божества, кроме Аллаха, и мы искренни перед Ним в религии, даже если это ненавистно неверующим.","transliteration":"Ля иляха илля-Ллаху вахдаху ля шарика лях, ляху-ль-мульку ва ляху-ль-хамд, ва Хуа 'аля кулли шайин кадир. Ля хауля ва ля куввата илля би-Лляh. Ля иляха илля-Ллах, ва ля на'буду илля иййаh. Ляху-н-ни'мату ва ляху-ль-фадлу ва ляху-с-санау-ль-хасан. Ля иляха илля-Ллаху мухлисына ляху-д-дина ва ляу кариха-ль-кяфирун.","repetitions":1,"source":{"kind":"hadith","collection":"Сахих Муслим"},"tags":["после намаза","единобожие","искренность"],"verified":false},{"id":"after-prayer-05-tasbih","category":"after-prayer","order":5,"title":"Пречист Аллах","arabic":"سُبْحَانَ اللَّهِ","translation":"Пречист Аллах.","transliteration":"Субхана-Ллах.","repetitions":33,"source":{"kind":"hadith","collection":"Сахих аль-Бухари и Сахих Муслим"},"sourceDetails":"Часть поминания после намаза: 33 + 33 + 33 и завершающая формула.","tags":["после намаза","тасбих"],"verified":false},{"id":"after-prayer-06-tahmid","category":"after-prayer","order":6,"title":"Хвала Аллаху","arabic":"الْحَمْدُ لِلَّهِ","translation":"Хвала Аллаху.","transliteration":"Аль-хамду ли-Лляh.","repetitions":33,"source":{"kind":"hadith","collection":"Сахих аль-Бухари и Сахих Муслим"},"tags":["после намаза","хвала"],"verified":false},{"id":"after-prayer-07-takbir","category":"after-prayer","order":7,"title":"Аллах велик","arabic":"اللَّهُ أَكْبَرُ","translation":"Аллах велик.","transliteration":"Аллаху акбар.","repetitions":33,"source":{"kind":"hadith","collection":"Сахих аль-Бухари и Сахих Муслим"},"tags":["после намаза","такбир"],"verified":false},{"id":"after-prayer-08-tamam-al-mia","category":"after-prayer","order":8,"title":"Завершение сотни","arabic":"لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ","translation":"Нет божества, кроме одного лишь Аллаха, у Которого нет сотоварища. Ему принадлежит власть, Ему хвала, и Он всё может.","transliteration":"Ля иляха илля-Ллаху вахдаху ля шарика лях, ляху-ль-мульку ва ляху-ль-хамд, ва Хуа 'аля кулли шайин кадир.","repetitions":1,"source":{"kind":"hadith","collection":"Сахих Муслим"},"sourceDetails":"Читается сотым после трёх наборов по 33 раза.","tags":["после намаза","единобожие"],"verified":false},{"id":"after-prayer-09-ayat-al-kursi","category":"after-prayer","order":9,"title":"Аят аль-Курси","arabic":"اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَّهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ ۗ مَن ذَا الَّذِي يَشْفَعُ عِندَهُ إِلَّا بِإِذْنِهِ ۚ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَيْءٍ مِّنْ عِلْمِهِ إِلَّا بِمَا شَاءَ ۚ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ ۖ وَلَا يَئُودُهُ حِفْظُهُمَا ۚ وَهُوَ الْعَلِيُّ الْعَظِيمُ","translation":"Аллах — нет божества, кроме Него, Живого, Вечносущего. Не овладевают Им ни дремота, ни сон. Ему принадлежит то, что на небесах, и то, что на земле. Кто заступится перед Ним без Его дозволения? Он знает их прошлое и их будущее, а они постигают из Его знания лишь то, что Он пожелает. Престол Его объемлет небеса и землю, и не тяготит Его оберегание их. Он — Возвышенный, Великий.","transliteration":"Аллаху ля иляха илля Хуа-ль-Хаййу-ль-Каййум. Ля та'хузуху синатун ва ля наум. Ляху ма фи-с-самавати ва ма фи-ль-ард. Ман заллязи яшфа'у 'индаху илля би-изних. Я'ляму ма байна айдихим ва ма хальфахум, ва ля юхитуна би-шайин мин 'ильмихи илля бима ша'а. Васи'а курсиййуху-с-самавати ва-ль-ард, ва ля я'удуху хифзухума, ва Хуа-ль-'Алиййу-ль-'Азым.","repetitions":1,"source":{"kind":"quran","collection":"Коран","reference":"2:255"},"sourceDetails":"Сура «аль-Бакара», аят 255.","tags":["после намаза","защита","коран"],"verified":true},{"id":"after-prayer-10-al-ikhlas","category":"after-prayer","order":10,"title":"Сура «аль-Ихляс»","arabic":"قُلْ هُوَ اللَّهُ أَحَدٌ ۝ اللَّهُ الصَّمَدُ ۝ لَمْ يَلِدْ وَلَمْ يُولَدْ ۝ وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ","translation":"Скажи: «Он — Аллах, Единый. Аллах Самодостаточный. Он не родил и не был рождён, и нет никого, равного Ему».","transliteration":"Куль Хуа-Ллаху Ахад. Аллаху-с-Самад. Лям ялид ва лям юляд. Ва лям якуль-ляху куфуван ахад.","repetitions":1,"source":{"kind":"quran","collection":"Коран","reference":"112:1–4"},"sourceDetails":"Сура «аль-Ихляс» полностью.","tags":["после намаза","коран","защита"],"verified":true},{"id":"after-prayer-11-al-falaq","category":"after-prayer","order":11,"title":"Сура «аль-Фаляк»","arabic":"قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ ۝ مِن شَرِّ مَا خَلَقَ ۝ وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ ۝ وَمِن شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ ۝ وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ","translation":"Скажи: «Прибегаю к защите Господа рассвета от зла того, что Он сотворил, от зла мрака, когда он наступает, от зла дующих на узлы и от зла завистника, когда он завидует».","transliteration":"Куль а'узу би-Рабби-ль-фаляк. Мин шарри ма халяк. Ва мин шарри гасикын иза вакаб. Ва мин шарри-н-наффасати фи-ль-'укад. Ва мин шарри хасидин иза хасад.","repetitions":1,"source":{"kind":"quran","collection":"Коран","reference":"113:1–5"},"sourceDetails":"Сура «аль-Фаляк» полностью.","tags":["после намаза","коран","защита"],"verified":true},{"id":"after-prayer-12-an-nas","category":"after-prayer","order":12,"title":"Сура «ан-Нас»","arabic":"قُلْ أَعُوذُ بِرَبِّ النَّاسِ ۝ مَلِكِ النَّاسِ ۝ إِلَٰهِ النَّاسِ ۝ مِن شَرِّ الْوَسْوَاسِ الْخَنَّاسِ ۝ الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ ۝ مِنَ الْجِنَّةِ وَالنَّاسِ","translation":"Скажи: «Прибегаю к защите Господа людей, Царя людей, Бога людей, от зла наущающего, отступающего при поминании Аллаха, который наущает в груди людей, — из джиннов и людей».","transliteration":"Куль а'узу би-Рабби-н-нас. Малики-н-нас. Иляхи-н-нас. Мин шарри-ль-васваси-ль-ханнас. Аллязи ювасвису фи судури-н-нас. Мина-ль-джиннати ва-н-нас.","repetitions":1,"source":{"kind":"quran","collection":"Коран","reference":"114:1–6"},"sourceDetails":"Сура «ан-Нас» полностью.","tags":["после намаза","коран","защита"],"verified":true},{"id":"after-prayer-13-ainni-ala-dhikrika","category":"after-prayer","order":13,"title":"Помоги мне поминать Тебя","arabic":"اللَّهُمَّ أَعِنِّي عَلَى ذِكْرِكَ، وَشُكْرِكَ، وَحُسْنِ عِبَادَتِكَ","translation":"О Аллах, помоги мне поминать Тебя, благодарить Тебя и поклоняться Тебе наилучшим образом.","transliteration":"Аллахумма, а'инни 'аля зикрика, ва шукрика, ва хусни 'ибадатик.","repetitions":1,"source":{"kind":"hadith","collection":"Сунан Абу Дауда"},"sourceDetails":"Пророк ﷺ советовал не оставлять эту мольбу после каждого намаза.","tags":["после намаза","поминание","благодарность"],"verified":false}],"sleep":[{"id":"sleep-01-bismika-amutu-wa-ahya","category":"sleep","order":1,"title":"С именем Твоим я умираю и оживаю","arabic":"بِاسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا","translation":"С именем Твоим, о Аллах, я умираю и оживаю.","transliteration":"Бисмика-Ллахумма амуту ва ахйа.","repetitions":1,"source":{"kind":"hadith","collection":"Сахих аль-Бухари"},"tags":["сон","перед сном"],"verified":false},{"id":"sleep-02-wadatu-janbi","category":"sleep","order":2,"title":"С именем Твоим, Господь мой, я лёг на бок","arabic":"بِاسْمِكَ رَبِّي وَضَعْتُ جَنْبِي، وَبِكَ أَرْفَعُهُ، فَإِنْ أَمْسَكْتَ نَفْسِي فَارْحَمْهَا، وَإِنْ أَرْسَلْتَهَا فَاحْفَظْهَا بِمَا تَحْفَظُ بِهِ عِبَادَكَ الصَّالِحِينَ","translation":"С именем Твоим, Господь мой, я лёг на бок и с Твоей помощью поднимусь. Если Ты заберёшь мою душу — помилуй её, а если отпустишь — храни её так, как хранишь Своих праведных рабов.","transliteration":"Бисмика, Рабби, вада'ту джанби, ва бика арфа'ух. Фа-ин амсакта нафси фа-рхамха, ва ин арсальтаха фа-хфазха бима тахфазу бихи 'ибадака-с-салихин.","repetitions":1,"source":{"kind":"hadith","collection":"Сахих аль-Бухари и Сахих Муслим"},"tags":["сон","перед сном","защита"],"verified":false},{"id":"sleep-03-aslamtu-nafsi","category":"sleep","order":3,"title":"Я предал себя Тебе","arabic":"اللَّهُمَّ أَسْلَمْتُ نَفْسِي إِلَيْكَ، وَفَوَّضْتُ أَمْرِي إِلَيْكَ، وَوَجَّهْتُ وَجْهِي إِلَيْكَ، وَأَلْجَأْتُ ظَهْرِي إِلَيْكَ، رَغْبَةً وَرَهْبَةً إِلَيْكَ، لَا مَلْجَأَ وَلَا مَنْجَا مِنْكَ إِلَّا إِلَيْكَ، آمَنْتُ بِكِتَابِكَ الَّذِي أَنْزَلْتَ، وَبِنَبِيِّكَ الَّذِي أَرْسَلْتَ","translation":"О Аллах, я предал себя Тебе, вверил Тебе своё дело, обратил к Тебе своё лицо и на Тебя положился — со стремлением к Тебе и страхом перед Тобой. Нет убежища и спасения от Тебя, кроме как у Тебя. Я уверовал в Твоё Писание, которое Ты ниспослал, и в Твоего пророка, которого Ты отправил.","transliteration":"Аллахумма, аслямту нафси илейк, ва фаввадту амри илейк, ва ваджжахту ваджхи илейк, ва альджа'ту захри илейк, рагбатан ва рахбатан илейк. Ля мальджа'а ва ля манджа минка илля илейк. Аманту би-китабика-ллязи анзальт, ва би-набиййика-ллязи арсальт.","repetitions":1,"source":{"kind":"hadith","collection":"Сахих аль-Бухари и Сахих Муслим"},"sourceDetails":"Пророк ﷺ велел произносить это последними словами перед сном.","tags":["сон","упование","вера"],"verified":false},{"id":"sleep-04-ayat-al-kursi","category":"sleep","order":4,"title":"Аят аль-Курси","arabic":"اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَّهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ ۗ مَن ذَا الَّذِي يَشْفَعُ عِندَهُ إِلَّا بِإِذْنِهِ ۚ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَيْءٍ مِّنْ عِلْمِهِ إِلَّا بِمَا شَاءَ ۚ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ ۖ وَلَا يَئُودُهُ حِفْظُهُمَا ۚ وَهُوَ الْعَلِيُّ الْعَظِيمُ","translation":"Аллах — нет божества, кроме Него, Живого, Вечносущего. Не овладевают Им ни дремота, ни сон. Ему принадлежит то, что на небесах, и то, что на земле. Кто заступится перед Ним без Его дозволения? Он знает их прошлое и их будущее, а они постигают из Его знания лишь то, что Он пожелает. Престол Его объемлет небеса и землю, и не тяготит Его оберегание их. Он — Возвышенный, Великий.","transliteration":"Аллаху ля иляха илля Хуа-ль-Хаййу-ль-Каййум. Ля та'хузуху синатун ва ля наум. Ляху ма фи-с-самавати ва ма фи-ль-ард. Ман заллязи яшфа'у 'индаху илля би-изних. Я'ляму ма байна айдихим ва ма хальфахум, ва ля юхитуна би-шайин мин 'ильмихи илля бима ша'а. Васи'а курсиййуху-с-самавати ва-ль-ард, ва ля я'удуху хифзухума, ва Хуа-ль-'Алиййу-ль-'Азым.","repetitions":1,"source":{"kind":"quran","collection":"Коран","reference":"2:255"},"sourceDetails":"Сура «аль-Бакара», аят 255.","tags":["сон","защита","коран"],"verified":true},{"id":"sleep-05-al-ikhlas","category":"sleep","order":5,"title":"Сура «аль-Ихляс»","arabic":"قُلْ هُوَ اللَّهُ أَحَدٌ ۝ اللَّهُ الصَّمَدُ ۝ لَمْ يَلِدْ وَلَمْ يُولَدْ ۝ وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ","translation":"Скажи: «Он — Аллах, Единый. Аллах Самодостаточный. Он не родил и не был рождён, и нет никого, равного Ему».","transliteration":"Куль Хуа-Ллаху Ахад. Аллаху-с-Самад. Лям ялид ва лям юляд. Ва лям якуль-ляху куфуван ахад.","repetitions":3,"source":{"kind":"quran","collection":"Коран","reference":"112:1–4"},"sourceDetails":"Сура «аль-Ихляс» полностью.","tags":["сон","защита","коран"],"verified":true},{"id":"sleep-06-al-falaq","category":"sleep","order":6,"title":"Сура «аль-Фаляк»","arabic":"قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ ۝ مِن شَرِّ مَا خَلَقَ ۝ وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ ۝ وَمِن شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ ۝ وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ","translation":"Скажи: «Прибегаю к защите Господа рассвета от зла того, что Он сотворил, от зла мрака, когда он наступает, от зла дующих на узлы и от зла завистника, когда он завидует».","transliteration":"Куль а'узу би-Рабби-ль-фаляк. Мин шарри ма халяк. Ва мин шарри гасикын иза вакаб. Ва мин шарри-н-наффасати фи-ль-'укад. Ва мин шарри хасидин иза хасад.","repetitions":3,"source":{"kind":"quran","collection":"Коран","reference":"113:1–5"},"sourceDetails":"Сура «аль-Фаляк» полностью.","tags":["сон","защита","коран"],"verified":true},{"id":"sleep-07-an-nas","category":"sleep","order":7,"title":"Сура «ан-Нас»","arabic":"قُلْ أَعُوذُ بِرَبِّ النَّاسِ ۝ مَلِكِ النَّاسِ ۝ إِلَٰهِ النَّاسِ ۝ مِن شَرِّ الْوَسْوَاسِ الْخَنَّاسِ ۝ الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ ۝ مِنَ الْجِنَّةِ وَالنَّاسِ","translation":"Скажи: «Прибегаю к защите Господа людей, Царя людей, Бога людей, от зла наущающего, отступающего при поминании Аллаха, который наущает в груди людей, — из джиннов и людей».","transliteration":"Куль а'узу би-Рабби-н-нас. Малики-н-нас. Иляхи-н-нас. Мин шарри-ль-васваси-ль-ханнас. Аллязи ювасвису фи судури-н-нас. Мина-ль-джиннати ва-н-нас.","repetitions":3,"source":{"kind":"quran","collection":"Коран","reference":"114:1–6"},"sourceDetails":"Сура «ан-Нас» полностью.","tags":["сон","защита","коран"],"verified":true},{"id":"sleep-08-baqarah-last-two","category":"sleep","order":8,"title":"Последние два аята суры «аль-Бакара»","arabic":"آمَنَ الرَّسُولُ بِمَا أُنزِلَ إِلَيْهِ مِن رَّبِّهِ وَالْمُؤْمِنُونَ ۚ كُلٌّ آمَنَ بِاللَّهِ وَمَلَائِكَتِهِ وَكُتُبِهِ وَرُسُلِهِ لَا نُفَرِّقُ بَيْنَ أَحَدٍ مِّن رُّسُلِهِ ۚ وَقَالُوا سَمِعْنَا وَأَطَعْنَا ۖ غُفْرَانَكَ رَبَّنَا وَإِلَيْكَ الْمَصِيرُ ۝ لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا ۚ لَهَا مَا كَسَبَتْ وَعَلَيْهَا مَا اكْتَسَبَتْ ۗ رَبَّنَا لَا تُؤَاخِذْنَا إِن نَّسِينَا أَوْ أَخْطَأْنَا ۚ رَبَّنَا وَلَا تَحْمِلْ عَلَيْنَا إِصْرًا كَمَا حَمَلْتَهُ عَلَى الَّذِينَ مِن قَبْلِنَا ۚ رَبَّنَا وَلَا تُحَمِّلْنَا مَا لَا طَاقَةَ لَنَا بِهِ ۖ وَاعْفُ عَنَّا وَاغْفِرْ لَنَا وَارْحَمْنَا ۚ أَنتَ مَوْلَانَا فَانصُرْنَا عَلَى الْقَوْمِ الْكَافِرِينَ","translation":"Уверовал Посланник в то, что ниспослано ему от Господа его, и уверовали верующие. Все они уверовали в Аллаха, Его ангелов, Его Писания и Его посланников: «Мы не различаем между Его посланниками». И сказали они: «Мы услышали и повинуемся. Прощения Твоего просим, Господь наш, и к Тебе возвращение». Аллах не возлагает на душу ничего сверх её возможностей: ей достанется то, что она приобрела, и против неё будет то, что она совершила. Господь наш, не взыщи с нас, если мы забыли или ошиблись. Господь наш, не возлагай на нас бремя, которое Ты возложил на наших предшественников. Господь наш, не возлагай на нас того, что нам не под силу. Избавь нас, прости нам и помилуй нас. Ты — наш Покровитель, помоги же нам против неверующих.","transliteration":"Амана-р-расулю бима унзиля иляйхи мин Раббихи ва-ль-му'минун. Куллюн амана би-Лляхи ва маляикатихи ва кутубихи ва русулих. Ля нуфаррику байна ахадин мин русулих. Ва калю: сами'на ва ата'на, гуфранака Раббана ва илейка-ль-масыр. Ля юкаллифу-Ллаху нафсан илля вус'аха. Ляха ма касабат ва 'алейха ма-ктасабат. Раббана ля туахизна ин насина ау ахта'на. Раббана ва ля тахмиль 'алейна исран кама хамальтаху 'аля-ллязина мин каблина. Раббана ва ля тухаммильна ма ля таката ляна бих. Ва'фу 'анна ва-гфир ляна ва-рхамна. Анта Мауляна фа-нсурна 'аля-ль-кауми-ль-кяфирин.","repetitions":1,"source":{"kind":"quran","collection":"Коран","reference":"2:285–286"},"sourceDetails":"Сура «аль-Бакара», аяты 285–286.","tags":["сон","защита","коран"],"verified":true},{"id":"sleep-09-tasbih","category":"sleep","order":9,"title":"Пречист Аллах","arabic":"سُبْحَانَ اللَّهِ","translation":"Пречист Аллах.","transliteration":"Субхана-Ллах.","repetitions":33,"source":{"kind":"hadith","collection":"Сахих аль-Бухари и Сахих Муслим"},"sourceDetails":"Из хадиса о наставлении Фатиме, да будет доволен ею Аллах: 33 + 33 + 34 перед сном.","tags":["сон","тасбих"],"verified":false},{"id":"sleep-10-tahmid","category":"sleep","order":10,"title":"Хвала Аллаху","arabic":"الْحَمْدُ لِلَّهِ","translation":"Хвала Аллаху.","transliteration":"Аль-хамду ли-Лляh.","repetitions":33,"source":{"kind":"hadith","collection":"Сахих аль-Бухари и Сахих Муслим"},"tags":["сон","хвала"],"verified":false},{"id":"sleep-11-takbir","category":"sleep","order":11,"title":"Аллах велик","arabic":"اللَّهُ أَكْبَرُ","translation":"Аллах велик.","transliteration":"Аллаху акбар.","repetitions":34,"source":{"kind":"hadith","collection":"Сахих аль-Бухари и Сахих Муслим"},"tags":["сон","такбир"],"verified":false},{"id":"sleep-12-qini-adhabaka","category":"sleep","order":12,"title":"Защити меня от Твоего наказания","arabic":"اللَّهُمَّ قِنِي عَذَابَكَ يَوْمَ تَبْعَثُ عِبَادَكَ","translation":"О Аллах, защити меня от Твоего наказания в День, когда Ты воскресишь Своих рабов.","transliteration":"Аллахумма, кыни 'азабака йаума таб'асу 'ибадак.","repetitions":3,"source":{"kind":"hadith","collection":"Сунан Абу Дауда"},"sourceDetails":"Передаётся также у ат-Тирмизи.","tags":["сон","защита","судный день"],"verified":false}],"waking":[{"id":"waking-01-alhamdulillah-ahyana","category":"waking","order":1,"title":"Хвала Аллаху, Который оживил нас","arabic":"الْحَمْدُ لِلَّهِ الَّذِي أَحْيَانَا بَعْدَ مَا أَمَاتَنَا وَإِلَيْهِ النُّشُورُ","translation":"Хвала Аллаху, Который оживил нас после того, как умертвил, и к Нему воскрешение.","transliteration":"Аль-хамду ли-Лляхи-ллязи ахйана ба'да ма аматана ва илейхи-н-нушур.","repetitions":1,"source":{"kind":"hadith","collection":"Сахих аль-Бухари"},"tags":["пробуждение","хвала"],"verified":false},{"id":"waking-02-radda-alayya-ruhi","category":"waking","order":2,"title":"Хвала Аллаху, вернувшему мне душу","arabic":"الْحَمْدُ لِلَّهِ الَّذِي عَافَانِي فِي جَسَدِي، وَرَدَّ عَلَيَّ رُوحِي، وَأَذِنَ لِي بِذِكْرِهِ","translation":"Хвала Аллаху, Который даровал здоровье моему телу, вернул мне душу и позволил мне поминать Его.","transliteration":"Аль-хамду ли-Лляхи-ллязи 'афани фи джасади, ва радда 'аляййа рухи, ва азина ли би-зикрих.","repetitions":1,"source":{"kind":"hadith","collection":"Сунан ат-Тирмизи"},"tags":["пробуждение","благодарность","здоровье"],"verified":false},{"id":"waking-03-tahlil-pri-probuzhdenii","category":"waking","order":3,"title":"Поминание при пробуждении ночью","arabic":"لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ. الْحَمْدُ لِلَّهِ، وَسُبْحَانَ اللَّهِ، وَلَا إِلَهَ إِلَّا اللَّهُ، وَاللَّهُ أَكْبَرُ، وَلَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ الْعَلِيِّ الْعَظِيمِ. رَبِّ اغْفِرْ لِي","translation":"Нет божества, кроме одного лишь Аллаха, у Которого нет сотоварища. Ему принадлежит власть, Ему хвала, и Он всё может. Хвала Аллаху, пречист Аллах, нет божества, кроме Аллаха, Аллах велик, и нет силы и мощи ни у кого, кроме Аллаха, Возвышенного, Великого. Господь мой, прости меня.","transliteration":"Ля иляха илля-Ллаху вахдаху ля шарика лях, ляху-ль-мульку ва ляху-ль-хамд, ва Хуа 'аля кулли шайин кадир. Аль-хамду ли-Лляh, ва субхана-Ллаh, ва ля иляха илля-Ллаh, ва-Ллаху акбар, ва ля хауля ва ля куввата илля би-Лляхи-ль-'Алиййи-ль-'Азым. Рабби-гфир ли.","repetitions":1,"source":{"kind":"hadith","collection":"Сахих аль-Бухари"},"sourceDetails":"Передаётся о том, кто проснулся ночью.","tags":["пробуждение","ночь","единобожие"],"verified":false},{"id":"waking-04-al-imran-190","category":"waking","order":4,"title":"Аяты из суры «Али Имран»","arabic":"إِنَّ فِي خَلْقِ السَّمَاوَاتِ وَالْأَرْضِ وَاخْتِلَافِ اللَّيْلِ وَالنَّهَارِ لَآيَاتٍ لِّأُولِي الْأَلْبَابِ ۝ الَّذِينَ يَذْكُرُونَ اللَّهَ قِيَامًا وَقُعُودًا وَعَلَىٰ جُنُوبِهِمْ وَيَتَفَكَّرُونَ فِي خَلْقِ السَّمَاوَاتِ وَالْأَرْضِ رَبَّنَا مَا خَلَقْتَ هَٰذَا بَاطِلًا سُبْحَانَكَ فَقِنَا عَذَابَ النَّارِ","translation":"Воистину, в сотворении небес и земли и в смене ночи и дня — знамения для обладающих разумом, которые поминают Аллаха стоя, сидя и на боку и размышляют о сотворении небес и земли: «Господь наш! Ты сотворил это не напрасно. Пречист Ты! Защити же нас от мучений в Огне».","transliteration":"Инна фи хальки-с-самавати ва-ль-арди ва-хтиляфи-л-лейли ва-н-нахари ля-аятин ли-ули-ль-альбаб. Аллязина йазкуруна-Ллаха кыяман ва ку'удан ва 'аля джунубихим ва ятафаккаруна фи хальки-с-самавати ва-ль-ард: Раббана, ма халякта хаза батыля, субханака, факына 'азаба-н-нар.","repetitions":1,"source":{"kind":"quran","collection":"Коран","reference":"3:190–191"},"sourceDetails":"Сура «Али Имран», аяты 190–191. Текст сверен по Корану; отдельно уточните предание о чтении при пробуждении.","tags":["пробуждение","коран","размышление"],"verified":false}],"protection":[{"id":"protection-01-kalimat-at-tammat","category":"protection","order":1,"title":"Прибегаю к совершенным словам Аллаха","arabic":"أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ","translation":"Прибегаю к совершенным словам Аллаха от зла того, что Он сотворил.","transliteration":"А'узу би-калимати-Лляхи-т-таммати мин шарри ма халяк.","repetitions":3,"source":{"kind":"hadith","collection":"Сахих Муслим"},"sourceDetails":"Читается вечером, а также при остановке в незнакомом месте.","tags":["защита","от вреда","путешествие"],"verified":false},{"id":"protection-02-la-yadurru","category":"protection","order":2,"title":"С именем Аллаха, с именем Которого ничто не навредит","arabic":"بِسْمِ اللَّهِ الَّذِي لَا يَضُرُّ مَعَ اسْمِهِ شَيْءٌ فِي الْأَرْضِ وَلَا فِي السَّمَاءِ، وَهُوَ السَّمِيعُ الْعَلِيمُ","translation":"С именем Аллаха, с именем Которого ничто не причинит вреда ни на земле, ни на небе, и Он — Слышащий, Знающий.","transliteration":"Бисми-Лляхи-ллязи ля ядурру ма'а-смихи шайун фи-ль-арди ва ля фи-с-сама, ва Хуа-с-Сами'у-ль-'Алим.","repetitions":3,"source":{"kind":"hadith","collection":"Сунан ат-Тирмизи"},"tags":["защита","от вреда","утро","вечер"],"verified":false},{"id":"protection-03-hasbunallah","category":"protection","order":3,"title":"Достаточно нам Аллаха","arabic":"حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ","translation":"Достаточно нам Аллаха, и как прекрасен этот Попечитель!","transliteration":"Хасбуна-Ллаху ва ни'ма-ль-вакиль.","repetitions":3,"source":{"kind":"quran","collection":"Коран","reference":"3:173"},"sourceDetails":"Часть аята 173 суры «Али Имран».","tags":["защита","упование","страх","коран"],"verified":true},{"id":"protection-04-najaluka-fi-nuhurihim","category":"protection","order":4,"title":"Мольба против вражды","arabic":"اللَّهُمَّ إِنَّا نَجْعَلُكَ فِي نُحُورِهِمْ، وَنَعُوذُ بِكَ مِنْ شُرُورِهِمْ","translation":"О Аллах, мы делаем Тебя защитой от них и прибегаем к Тебе от их зла.","transliteration":"Аллахумма, инна надж'алюка фи нухурихим, ва на'узу бика мин шурурихим.","repetitions":1,"source":{"kind":"hadith","collection":"Сунан Абу Дауда"},"sourceDetails":"Пророк ﷺ произносил это, опасаясь вреда от людей.","tags":["защита","враги","страх"],"verified":false},{"id":"protection-05-hamazat-ash-shayatin","category":"protection","order":5,"title":"От наущений шайтанов","arabic":"رَّبِّ أَعُوذُ بِكَ مِنْ هَمَزَاتِ الشَّيَاطِينِ ۝ وَأَعُوذُ بِكَ رَبِّ أَن يَحْضُرُونِ","translation":"Господь мой, прибегаю к Тебе от наущений дьяволов, и прибегаю к Тебе, Господь мой, от того, чтобы они приближались ко мне.","transliteration":"Рабби, а'узу бика мин хамазати-ш-шаятын. Ва а'узу бика, Рабби, ан яхдурун.","repetitions":1,"source":{"kind":"quran","collection":"Коран","reference":"23:97–98"},"sourceDetails":"Сура «аль-Муминун», аяты 97–98.","tags":["защита","шайтан","наущения","коран"],"verified":true},{"id":"protection-06-uidhukuma","category":"protection","order":6,"title":"Защита для детей","arabic":"أُعِيذُكُمَا بِكَلِمَاتِ اللَّهِ التَّامَّةِ، مِنْ كُلِّ شَيْطَانٍ وَهَامَّةٍ، وَمِنْ كُلِّ عَيْنٍ لَامَّةٍ","translation":"Отдаю вас под защиту совершенных слов Аллаха от всякого шайтана, от всякого ядовитого существа и от всякого дурного глаза.","transliteration":"У'изукума би-калимати-Лляхи-т-тамма, мин кулли шайтанин ва хамма, ва мин кулли 'айнин лямма.","repetitions":1,"source":{"kind":"hadith","collection":"Сахих аль-Бухари"},"sourceDetails":"Пророк ﷺ читал это для аль-Хасана и аль-Хусейна. Для одного ребёнка окончания слов меняются — уточните форму у знающего человека.","tags":["защита","дети","сглаз"],"verified":false},{"id":"protection-07-ayat-al-kursi","category":"protection","order":7,"title":"Аят аль-Курси","arabic":"اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَّهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ ۗ مَن ذَا الَّذِي يَشْفَعُ عِندَهُ إِلَّا بِإِذْنِهِ ۚ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَيْءٍ مِّنْ عِلْمِهِ إِلَّا بِمَا شَاءَ ۚ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ ۖ وَلَا يَئُودُهُ حِفْظُهُمَا ۚ وَهُوَ الْعَلِيُّ الْعَظِيمُ","translation":"Аллах — нет божества, кроме Него, Живого, Вечносущего. Не овладевают Им ни дремота, ни сон. Ему принадлежит то, что на небесах, и то, что на земле. Кто заступится перед Ним без Его дозволения? Он знает их прошлое и их будущее, а они постигают из Его знания лишь то, что Он пожелает. Престол Его объемлет небеса и землю, и не тяготит Его оберегание их. Он — Возвышенный, Великий.","transliteration":"Аллаху ля иляха илля Хуа-ль-Хаййу-ль-Каййум. Ля та'хузуху синатун ва ля наум. Ляху ма фи-с-самавати ва ма фи-ль-ард. Ман заллязи яшфа'у 'индаху илля би-изних. Я'ляму ма байна айдихим ва ма хальфахум, ва ля юхитуна би-шайин мин 'ильмихи илля бима ша'а. Васи'а курсиййуху-с-самавати ва-ль-ард, ва ля я'удуху хифзухума, ва Хуа-ль-'Алиййу-ль-'Азым.","repetitions":1,"source":{"kind":"quran","collection":"Коран","reference":"2:255"},"sourceDetails":"Сура «аль-Бакара», аят 255.","tags":["защита","коран","дом"],"verified":true},{"id":"protection-08-al-falaq","category":"protection","order":8,"title":"Сура «аль-Фаляк»","arabic":"قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ ۝ مِن شَرِّ مَا خَلَقَ ۝ وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ ۝ وَمِن شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ ۝ وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ","translation":"Скажи: «Прибегаю к защите Господа рассвета от зла того, что Он сотворил, от зла мрака, когда он наступает, от зла дующих на узлы и от зла завистника, когда он завидует».","transliteration":"Куль а'узу би-Рабби-ль-фаляк. Мин шарри ма халяк. Ва мин шарри гасикын иза вакаб. Ва мин шарри-н-наффасати фи-ль-'укад. Ва мин шарри хасидин иза хасад.","repetitions":3,"source":{"kind":"quran","collection":"Коран","reference":"113:1–5"},"sourceDetails":"Сура «аль-Фаляк» полностью.","tags":["защита","коран","сглаз","зависть"],"verified":true},{"id":"protection-09-an-nas","category":"protection","order":9,"title":"Сура «ан-Нас»","arabic":"قُلْ أَعُوذُ بِرَبِّ النَّاسِ ۝ مَلِكِ النَّاسِ ۝ إِلَٰهِ النَّاسِ ۝ مِن شَرِّ الْوَسْوَاسِ الْخَنَّاسِ ۝ الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ ۝ مِنَ الْجِنَّةِ وَالنَّاسِ","translation":"Скажи: «Прибегаю к защите Господа людей, Царя людей, Бога людей, от зла наущающего, отступающего при поминании Аллаха, который наущает в груди людей, — из джиннов и людей».","transliteration":"Куль а'узу би-Рабби-н-нас. Малики-н-нас. Иляхи-н-нас. Мин шарри-ль-васваси-ль-ханнас. Аллязи ювасвису фи судури-н-нас. Мина-ль-джиннати ва-н-нас.","repetitions":3,"source":{"kind":"quran","collection":"Коран","reference":"114:1–6"},"sourceDetails":"Сура «ан-Нас» полностью.","tags":["защита","коран","наущения"],"verified":true}],"quran-duas":[{"id":"quran-duas-01-hasanatan-fid-dunya","category":"quran-duas","order":1,"title":"Господь наш, даруй нам благо в обоих мирах","arabic":"رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ","translation":"Господь наш! Даруй нам благо в этом мире и благо в мире вечном и защити нас от мучений в Огне.","transliteration":"Раббана, атина фи-д-дунья хасанатан ва фи-ль-ахырати хасанатан ва кына 'азаба-н-нар.","repetitions":1,"source":{"kind":"quran","collection":"Коран","reference":"2:201"},"sourceDetails":"Сура «аль-Бакара», аят 201.","tags":["коран","благо","универсальная дуа"],"verified":true},{"id":"quran-duas-02-la-tuakhidhna","category":"quran-duas","order":2,"title":"Не взыщи с нас, если мы забыли","arabic":"رَبَّنَا لَا تُؤَاخِذْنَا إِن نَّسِينَا أَوْ أَخْطَأْنَا ۚ رَبَّنَا وَلَا تَحْمِلْ عَلَيْنَا إِصْرًا كَمَا حَمَلْتَهُ عَلَى الَّذِينَ مِن قَبْلِنَا ۚ رَبَّنَا وَلَا تُحَمِّلْنَا مَا لَا طَاقَةَ لَنَا بِهِ ۖ وَاعْفُ عَنَّا وَاغْفِرْ لَنَا وَارْحَمْنَا ۚ أَنتَ مَوْلَانَا فَانصُرْنَا عَلَى الْقَوْمِ الْكَافِرِينَ","translation":"Господь наш! Не взыщи с нас, если мы забыли или ошиблись. Господь наш! Не возлагай на нас бремя, которое Ты возложил на наших предшественников. Господь наш! Не возлагай на нас того, что нам не под силу. Избавь нас, прости нам и помилуй нас. Ты — наш Покровитель, помоги же нам против неверующих.","transliteration":"Раббана, ля туахизна ин насина ау ахта'на. Раббана, ва ля тахмиль 'алейна исран кама хамальтаху 'аля-ллязина мин каблина. Раббана, ва ля тухаммильна ма ля таката ляна бих. Ва'фу 'анна ва-гфир ляна ва-рхамна. Анта Мауляна фа-нсурна 'аля-ль-кауми-ль-кяфирин.","repetitions":1,"source":{"kind":"quran","collection":"Коран","reference":"2:286"},"sourceDetails":"Сура «аль-Бакара», аят 286.","tags":["коран","прощение","трудности"],"verified":true},{"id":"quran-duas-03-la-tuzigh-qulubana","category":"quran-duas","order":3,"title":"Не отклоняй наши сердца","arabic":"رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِن لَّدُنكَ رَحْمَةً ۚ إِنَّكَ أَنتَ الْوَهَّابُ","translation":"Господь наш! Не отклоняй наши сердца после того, как Ты наставил нас на прямой путь, и даруй нам от Себя милость. Воистину, Ты — Дарующий.","transliteration":"Раббана, ля тузиг кулюбана ба'да из хадайтана, ва хаб ляна мин лядунка рахма. Иннака Анта-ль-Ваххаб.","repetitions":1,"source":{"kind":"quran","collection":"Коран","reference":"3:8"},"sourceDetails":"Сура «Али Имран», аят 8.","tags":["коран","стойкость","вера","сердце"],"verified":true},{"id":"quran-duas-04-ighfir-lana-dhunubana","category":"quran-duas","order":4,"title":"Прости нам наши грехи","arabic":"رَبَّنَا اغْفِرْ لَنَا ذُنُوبَنَا وَإِسْرَافَنَا فِي أَمْرِنَا وَثَبِّتْ أَقْدَامَنَا وَانصُرْنَا عَلَى الْقَوْمِ الْكَافِرِينَ","translation":"Господь наш! Прости нам наши грехи и излишества, которые мы допустили в нашем деле, утверди наши стопы и помоги нам против неверующих.","transliteration":"Раббана-гфир ляна зунубана ва исрафана фи амрина, ва саббит акдамана, ва-нсурна 'аля-ль-кауми-ль-кяфирин.","repetitions":1,"source":{"kind":"quran","collection":"Коран","reference":"3:147"},"sourceDetails":"Сура «Али Имран», аят 147.","tags":["коран","прощение","стойкость"],"verified":true},{"id":"quran-duas-05-zalamna-anfusana","category":"quran-duas","order":5,"title":"Мы поступили несправедливо с собой","arabic":"رَبَّنَا ظَلَمْنَا أَنفُسَنَا وَإِن لَّمْ تَغْفِرْ لَنَا وَتَرْحَمْنَا لَنَكُونَنَّ مِنَ الْخَاسِرِينَ","translation":"Господь наш! Мы поступили несправедливо с собой, и если Ты не простишь нас и не помилуешь, то мы непременно окажемся в числе потерпевших урон.","transliteration":"Раббана, залямна анфусана, ва ин лям тагфир ляна ва тархамна ля-накунанна мина-ль-хасирин.","repetitions":1,"source":{"kind":"quran","collection":"Коран","reference":"7:23"},"sourceDetails":"Сура «аль-Араф», аят 23 — мольба Адама, мир ему.","tags":["коран","покаяние","прощение"],"verified":true},{"id":"quran-duas-06-ishrah-li-sadri","category":"quran-duas","order":6,"title":"Раскрой мою грудь","arabic":"رَبِّ اشْرَحْ لِي صَدْرِي ۝ وَيَسِّرْ لِي أَمْرِي ۝ وَاحْلُلْ عُقْدَةً مِّن لِّسَانِي ۝ يَفْقَهُوا قَوْلِي","translation":"Господь мой! Раскрой для меня мою грудь, облегчи мою задачу, развяжи узел на моём языке, чтобы они могли понять мою речь.","transliteration":"Рабби-шрах ли садри, ва яссир ли амри, ва-хлюль укдатан мин лисани, яфкаху каули.","repetitions":1,"source":{"kind":"quran","collection":"Коран","reference":"20:25–28"},"sourceDetails":"Сура «Та Ха», аяты 25–28 — мольба Мусы, мир ему.","tags":["коран","трудности","речь","работа","экзамен"],"verified":true},{"id":"quran-duas-07-dua-yunus","category":"quran-duas","order":7,"title":"Мольба Юнуса, мир ему","arabic":"لَّا إِلَٰهَ إِلَّا أَنتَ سُبْحَانَكَ إِنِّي كُنتُ مِنَ الظَّالِمِينَ","translation":"Нет божества, кроме Тебя! Пречист Ты! Воистину, я был одним из беззаконников.","transliteration":"Ля иляха илля Анта, субханака, инни кунту мина-з-залимин.","repetitions":1,"source":{"kind":"quran","collection":"Коран","reference":"21:87"},"sourceDetails":"Сура «аль-Анбия», аят 87.","tags":["коран","беда","покаяние","трудности"],"verified":true},{"id":"quran-duas-08-awzini-an-ashkura","category":"quran-duas","order":8,"title":"Внуши мне благодарность","arabic":"رَبِّ أَوْزِعْنِي أَنْ أَشْكُرَ نِعْمَتَكَ الَّتِي أَنْعَمْتَ عَلَيَّ وَعَلَىٰ وَالِدَيَّ وَأَنْ أَعْمَلَ صَالِحًا تَرْضَاهُ وَأَدْخِلْنِي بِرَحْمَتِكَ فِي عِبَادِكَ الصَّالِحِينَ","translation":"Господь мой! Внуши мне благодарность за милость, которой Ты облагодетельствовал меня и моих родителей, и побуди меня совершать праведные дела, которыми Ты доволен. Введи меня по Твоей милости в число Твоих праведных рабов.","transliteration":"Рабби, аузи'ни ан ашкура ни'матака-ллети ан'амта 'аляййа ва 'аля валидаййа, ва ан а'маля салихан тардах, ва адхыльни би-рахматика фи 'ибадика-с-салихин.","repetitions":1,"source":{"kind":"quran","collection":"Коран","reference":"27:19"},"sourceDetails":"Сура «ан-Намль», аят 19 — мольба Сулеймана, мир ему.","tags":["коран","благодарность","родители"],"verified":true},{"id":"quran-duas-09-qurrata-ayun","category":"quran-duas","order":9,"title":"Отрада для наших глаз","arabic":"رَبَّنَا هَبْ لَنَا مِنْ أَزْوَاجِنَا وَذُرِّيَّاتِنَا قُرَّةَ أَعْيُنٍ وَاجْعَلْنَا لِلْمُتَّقِينَ إِمَامًا","translation":"Господь наш! Даруй нам в наших жёнах и потомках отраду глаз и сделай нас образцом для богобоязненных.","transliteration":"Раббана, хаб ляна мин азваджина ва зурриййатина куррата а'юн, ва-дж'альна ли-ль-муттакына имама.","repetitions":1,"source":{"kind":"quran","collection":"Коран","reference":"25:74"},"sourceDetails":"Сура «аль-Фуркан», аят 74.","tags":["коран","семья","дети","брак"],"verified":true},{"id":"quran-duas-10-hab-li-mina-s-salihin","category":"quran-duas","order":10,"title":"Даруй мне праведного потомка","arabic":"رَبِّ هَبْ لِي مِنَ الصَّالِحِينَ","translation":"Господь мой! Даруй мне потомка из числа праведников.","transliteration":"Рабби, хаб ли мина-с-салихин.","repetitions":1,"source":{"kind":"quran","collection":"Коран","reference":"37:100"},"sourceDetails":"Сура «ас-Саффат», аят 100 — мольба Ибрахима, мир ему.","tags":["коран","дети","потомство"],"verified":true},{"id":"quran-duas-11-zidni-ilman","category":"quran-duas","order":11,"title":"Господь мой, прибавь мне знания","arabic":"رَّبِّ زِدْنِي عِلْمًا","translation":"Господь мой! Прибавь мне знания.","transliteration":"Рабби, зидни 'ильма.","repetitions":1,"source":{"kind":"quran","collection":"Коран","reference":"20:114"},"sourceDetails":"Часть аята 114 суры «Та Ха».","tags":["коран","знание","учёба","экзамен"],"verified":true},{"id":"quran-duas-12-afrigh-alayna-sabran","category":"quran-duas","order":12,"title":"Пролей на нас терпение","arabic":"رَبَّنَا أَفْرِغْ عَلَيْنَا صَبْرًا وَثَبِّتْ أَقْدَامَنَا وَانصُرْنَا عَلَى الْقَوْمِ الْكَافِرِينَ","translation":"Господь наш! Пролей на нас терпение, утверди наши стопы и помоги нам против неверующих.","transliteration":"Раббана, африг 'алейна сабран, ва саббит акдамана, ва-нсурна 'аля-ль-кауми-ль-кяфирин.","repetitions":1,"source":{"kind":"quran","collection":"Коран","reference":"2:250"},"sourceDetails":"Сура «аль-Бакара», аят 250.","tags":["коран","терпение","стойкость","трудности"],"verified":true},{"id":"quran-duas-13-muqima-s-salah","category":"quran-duas","order":13,"title":"Сделай меня совершающим намаз","arabic":"رَبِّ اجْعَلْنِي مُقِيمَ الصَّلَاةِ وَمِن ذُرِّيَّتِي ۚ رَبَّنَا وَتَقَبَّلْ دُعَاءِ","translation":"Господь мой! Сделай меня и часть моего потомства совершающими намаз. Господь наш! Прими мою мольбу.","transliteration":"Рабби-дж'альни мукыма-с-саляти ва мин зурриййати. Раббана, ва такаббаль ду'а.","repetitions":1,"source":{"kind":"quran","collection":"Коран","reference":"14:40"},"sourceDetails":"Сура «Ибрахим», аят 40.","tags":["коран","намаз","дети","потомство"],"verified":true},{"id":"quran-duas-14-rabbana-taqabbal-minna","category":"quran-duas","order":14,"title":"Господь наш, прими от нас","arabic":"رَبَّنَا تَقَبَّلْ مِنَّا ۖ إِنَّكَ أَنتَ السَّمِيعُ الْعَلِيمُ","translation":"Господь наш! Прими от нас. Воистину, Ты — Слышащий, Знающий.","transliteration":"Раббана, такаббаль минна. Иннака Анта-с-Сами'у-ль-'Алим.","repetitions":1,"source":{"kind":"quran","collection":"Коран","reference":"2:127"},"sourceDetails":"Часть аята 127 суры «аль-Бакара».","tags":["коран","принятие дел","поклонение"],"verified":true}],"prophet-duas":[{"id":"prophet-duas-01-al-huda-wat-tuqa","category":"prophet-duas","order":1,"title":"Прошу у Тебя прямого пути и богобоязненности","arabic":"اللَّهُمَّ إِنِّي أَسْأَلُكَ الْهُدَى، وَالتُّقَى، وَالْعَفَافَ، وَالْغِنَى","translation":"О Аллах, прошу у Тебя прямого пути, богобоязненности, целомудрия и независимости от людей.","transliteration":"Аллахумма, инни ас'алюка-ль-худа, ва-т-тука, ва-ль-'афафа, ва-ль-гына.","repetitions":1,"source":{"kind":"hadith","collection":"Сахих Муслим"},"tags":["прямой путь","богобоязненность","удел"],"verified":false},{"id":"prophet-duas-02-aslih-li-dini","category":"prophet-duas","order":2,"title":"Приведи в порядок мою религию","arabic":"اللَّهُمَّ أَصْلِحْ لِي دِينِي الَّذِي هُوَ عِصْمَةُ أَمْرِي، وَأَصْلِحْ لِي دُنْيَايَ الَّتِي فِيهَا مَعَاشِي، وَأَصْلِحْ لِي آخِرَتِي الَّتِي فِيهَا مَعَادِي، وَاجْعَلِ الْحَيَاةَ زِيَادَةً لِي فِي كُلِّ خَيْرٍ، وَاجْعَلِ الْمَوْتَ رَاحَةً لِي مِنْ كُلِّ شَرٍّ","translation":"О Аллах, приведи в порядок мою религию, которая есть защита моего дела; приведи в порядок мою земную жизнь, в которой моё существование; приведи в порядок мою вечную жизнь, к которой я вернусь. Сделай жизнь для меня умножением всякого блага, а смерть — покоем от всякого зла.","transliteration":"Аллахумма, аслих ли дини-ллязи хува 'исмату амри, ва аслих ли дуньяйа-ллети фиха ма'аши, ва аслих ли ахырати-ллети фиха ма'ади, ва-дж'али-ль-хаята зиядатан ли фи кулли хайр, ва-дж'али-ль-маута рахатан ли мин кулли шарр.","repetitions":1,"source":{"kind":"hadith","collection":"Сахих Муслим"},"tags":["религия","жизнь","смерть","универсальная дуа"],"verified":false},{"id":"prophet-duas-03-al-hammi-wal-hazan","category":"prophet-duas","order":3,"title":"От тревоги и печали","arabic":"اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْهَمِّ وَالْحَزَنِ، وَالْعَجْزِ وَالْكَسَلِ، وَالْبُخْلِ وَالْجُبْنِ، وَضَلَعِ الدَّيْنِ وَغَلَبَةِ الرِّجَالِ","translation":"О Аллах, прибегаю к Тебе от тревоги и печали, от бессилия и лени, от скупости и трусости, от бремени долга и притеснения людей.","transliteration":"Аллахумма, инни а'узу бика мина-ль-хамми ва-ль-хазан, ва-ль-'аджзи ва-ль-кясаль, ва-ль-бухли ва-ль-джубн, ва дала'и-д-дайни ва галябати-р-риджаль.","repetitions":1,"source":{"kind":"hadith","collection":"Сахих аль-Бухари"},"tags":["тревога","печаль","долг","депрессия"],"verified":false},{"id":"prophet-duas-04-ya-muqallibal-qulub","category":"prophet-duas","order":4,"title":"О Обращающий сердца","arabic":"يَا مُقَلِّبَ الْقُلُوبِ ثَبِّتْ قَلْبِي عَلَى دِينِكَ","translation":"О Обращающий сердца, утверди моё сердце в Твоей религии.","transliteration":"Йа Мукаллиба-ль-кулюб, саббит кальби аля диник.","repetitions":1,"source":{"kind":"hadith","collection":"Сунан ат-Тирмизи"},"tags":["сердце","стойкость","вера"],"verified":false},{"id":"prophet-duas-05-zawali-nimatik","category":"prophet-duas","order":5,"title":"От исчезновения Твоей милости","arabic":"اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنْ زَوَالِ نِعْمَتِكَ، وَتَحَوُّلِ عَافِيَتِكَ، وَفُجَاءَةِ نِقْمَتِكَ، وَجَمِيعِ سَخَطِكَ","translation":"О Аллах, прибегаю к Тебе от исчезновения Твоей милости, от перемены дарованного Тобой благополучия, от внезапности Твоего наказания и от всего, что вызывает Твой гнев.","transliteration":"Аллахумма, инни а'узу бика мин заваали ни'матик, ва тахаввули 'афиятик, ва фуджа'ати никматик, ва джами'и сахатык.","repetitions":1,"source":{"kind":"hadith","collection":"Сахих Муслим"},"tags":["милость","благополучие","защита"],"verified":false},{"id":"prophet-duas-06-rabbighfir-li-wa-tub-alayya","category":"prophet-duas","order":6,"title":"Прости меня и прими моё покаяние","arabic":"رَبِّ اغْفِرْ لِي وَتُبْ عَلَيَّ، إِنَّكَ أَنْتَ التَّوَّابُ الرَّحِيمُ","translation":"Господь мой, прости меня и прими моё покаяние. Воистину, Ты — Принимающий покаяние, Милосердный.","transliteration":"Рабби-гфир ли ва туб 'аляййа, иннака Анта-т-Таввабу-р-Рахим.","repetitions":1,"source":{"kind":"hadith","collection":"Сунан Абу Дауда"},"sourceDetails":"Передаётся также у ат-Тирмизи и Ибн Маджи.","tags":["прощение","покаяние","истигфар"],"verified":false},{"id":"prophet-duas-07-hubbaka-wa-hubba-man-yuhibbuk","category":"prophet-duas","order":7,"title":"Прошу у Тебя любви к Тебе","arabic":"اللَّهُمَّ إِنِّي أَسْأَلُكَ حُبَّكَ، وَحُبَّ مَنْ يُحِبُّكَ، وَالْعَمَلَ الَّذِي يُبَلِّغُنِي حُبَّكَ","translation":"О Аллах, прошу у Тебя любви к Тебе, любви к тем, кто любит Тебя, и дела, которое приблизит меня к Твоей любви.","transliteration":"Аллахумма, инни ас'алюка хуббак, ва хубба ман юхиббук, ва-ль-'амаля-ллязи юбаллигуни хуббак.","repetitions":1,"source":{"kind":"hadith","collection":"Сунан ат-Тирмизи"},"tags":["любовь","дела","сердце"],"verified":false},{"id":"prophet-duas-08-ilmin-la-yanfa","category":"prophet-duas","order":8,"title":"От бесполезного знания","arabic":"اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنْ عِلْمٍ لَا يَنْفَعُ، وَمِنْ قَلْبٍ لَا يَخْشَعُ، وَمِنْ نَفْسٍ لَا تَشْبَعُ، وَمِنْ دَعْوَةٍ لَا يُسْتَجَابُ لَهَا","translation":"О Аллах, прибегаю к Тебе от знания, которое не приносит пользы, от сердца, которое не смиряется, от души, которая не насыщается, и от мольбы, на которую нет ответа.","transliteration":"Аллахумма, инни а'узу бика мин 'ильмин ля янфа', ва мин кальбин ля яхша', ва мин нафсин ля ташба', ва мин да'ватин ля юстаджабу ляха.","repetitions":1,"source":{"kind":"hadith","collection":"Сахих Муслим"},"tags":["знание","сердце","искренность"],"verified":false},{"id":"prophet-duas-09-ighfir-li-dhanbi-kullah","category":"prophet-duas","order":9,"title":"Прости мне все мои грехи","arabic":"اللَّهُمَّ اغْفِرْ لِي ذَنْبِي كُلَّهُ، دِقَّهُ وَجِلَّهُ، وَأَوَّلَهُ وَآخِرَهُ، وَعَلَانِيَتَهُ وَسِرَّهُ","translation":"О Аллах, прости мне все мои грехи — малые и большие, первые и последние, явные и тайные.","transliteration":"Аллахумма-гфир ли занби куллях, диккаху ва джиллях, ва аввалаху ва ахырах, ва алянийятаху ва сиррах.","repetitions":1,"source":{"kind":"hadith","collection":"Сахих Муслим"},"tags":["прощение","грехи","покаяние"],"verified":false},{"id":"prophet-duas-10-al-jannah-wan-nar","category":"prophet-duas","order":10,"title":"Прошу у Тебя Рая и защиты от Огня","arabic":"اللَّهُمَّ إِنِّي أَسْأَلُكَ الْجَنَّةَ، وَأَعُوذُ بِكَ مِنَ النَّارِ","translation":"О Аллах, прошу у Тебя Рая и прибегаю к Тебе от Огня.","transliteration":"Аллахумма, инни ас'алюка-ль-джанна, ва а'узу бика мина-н-нар.","repetitions":1,"source":{"kind":"hadith","collection":"Сунан Абу Дауда"},"sourceDetails":"Пророк ﷺ учил произносить это после ташаххуда в намазе.","tags":["рай","огонь","намаз"],"verified":false}],"situations":[{"id":"situations-01-pered-edoy","category":"situations","order":1,"title":"Перед едой","arabic":"بِسْمِ اللَّهِ","translation":"С именем Аллаха. (Если забыли в начале, говорят: «С именем Аллаха в начале и в конце».)","transliteration":"Бисми-Лляh.","repetitions":1,"source":{"kind":"hadith","collection":"Сунан Абу Дауда"},"sourceDetails":"Полная форма при забывчивости: بِسْمِ اللَّهِ أَوَّلَهُ وَآخِرَهُ — «Бисми-Лляхи аввеляху ва ахырах».","tags":["еда","дом","быт"],"verified":false},{"id":"situations-02-posle-edy","category":"situations","order":2,"title":"После еды","arabic":"الْحَمْدُ لِلَّهِ الَّذِي أَطْعَمَنِي هَذَا وَرَزَقَنِيهِ مِنْ غَيْرِ حَوْلٍ مِنِّي وَلَا قُوَّةٍ","translation":"Хвала Аллаху, Который накормил меня этим и наделил меня этим без всякой силы и мощи с моей стороны.","transliteration":"Аль-хамду ли-Лляхи-ллязи ат'амани хаза ва разаканихи мин гайри хаулин минни ва ля кувва.","repetitions":1,"source":{"kind":"hadith","collection":"Сунан Абу Дауда"},"sourceDetails":"Передаётся также у ат-Тирмизи и Ибн Маджи.","tags":["еда","благодарность","быт"],"verified":false},{"id":"situations-03-vyhod-iz-doma","category":"situations","order":3,"title":"При выходе из дома","arabic":"بِسْمِ اللَّهِ، تَوَكَّلْتُ عَلَى اللَّهِ، وَلَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ","translation":"С именем Аллаха. Я уповаю на Аллаха, и нет силы и мощи ни у кого, кроме Аллаха.","transliteration":"Бисми-Лляh, таваккальту 'аля-Лляh, ва ля хауля ва ля куввата илля би-Лляh.","repetitions":1,"source":{"kind":"hadith","collection":"Сунан Абу Дауда"},"sourceDetails":"Передаётся также у ат-Тирмизи.","tags":["дом","дорога","защита","быт"],"verified":false},{"id":"situations-04-vhod-v-dom","category":"situations","order":4,"title":"При входе в дом","arabic":"بِسْمِ اللَّهِ وَلَجْنَا، وَبِسْمِ اللَّهِ خَرَجْنَا، وَعَلَى اللَّهِ رَبِّنَا تَوَكَّلْنَا","translation":"С именем Аллаха мы вошли, с именем Аллаха мы вышли и на Аллаха, Господа нашего, мы положились.","transliteration":"Бисми-Лляхи валяджна, ва бисми-Лляхи хараджна, ва 'аля-Лляхи Раббина таваккальна.","repetitions":1,"source":{"kind":"hadith","collection":"Сунан Абу Дауда"},"tags":["дом","быт","защита"],"verified":false},{"id":"situations-05-vhod-v-tualet","category":"situations","order":5,"title":"При входе в уборную","arabic":"اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْخُبُثِ وَالْخَبَائِثِ","translation":"О Аллах, прибегаю к Тебе от нечистых мужского и женского рода.","transliteration":"Аллахумма, инни а'узу бика мина-ль-хубуси ва-ль-хабаис.","repetitions":1,"source":{"kind":"hadith","collection":"Сахих аль-Бухари и Сахих Муслим"},"tags":["быт","защита"],"verified":false},{"id":"situations-06-vyhod-iz-tualeta","category":"situations","order":6,"title":"При выходе из уборной","arabic":"غُفْرَانَكَ","translation":"Прошу Твоего прощения.","transliteration":"Гуфранак.","repetitions":1,"source":{"kind":"hadith","collection":"Сунан Абу Дауда"},"sourceDetails":"Передаётся также у ат-Тирмизи и Ибн Маджи.","tags":["быт","прощение"],"verified":false},{"id":"situations-07-nadevanie-odezhdy","category":"situations","order":7,"title":"При надевании одежды","arabic":"الْحَمْدُ لِلَّهِ الَّذِي كَسَانِي هَذَا الثَّوْبَ وَرَزَقَنِيهِ مِنْ غَيْرِ حَوْلٍ مِنِّي وَلَا قُوَّةٍ","translation":"Хвала Аллаху, Который одел меня в эту одежду и наделил меня ею без всякой силы и мощи с моей стороны.","transliteration":"Аль-хамду ли-Лляхи-ллязи касани хаза-с-сауба ва разаканихи мин гайри хаулин минни ва ля кувва.","repetitions":1,"source":{"kind":"hadith","collection":"Сунан Абу Дауда"},"tags":["быт","одежда","благодарность"],"verified":false},{"id":"situations-08-v-doroge","category":"situations","order":8,"title":"В дороге","arabic":"سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ ۝ وَإِنَّا إِلَىٰ رَبِّنَا لَمُنقَلِبُونَ","translation":"Пречист Тот, Кто подчинил нам это, ведь сами мы на это не были способны. И, воистину, мы вернёмся к нашему Господу.","transliteration":"Субхана-ллязи саххара ляна хаза ва ма кунна ляху мукринин. Ва инна иля Раббина ля-мункалибун.","repetitions":1,"source":{"kind":"quran","collection":"Коран","reference":"43:13–14"},"sourceDetails":"Сура «аз-Зухруф», аяты 13–14. Текст аятов выверен; предание о чтении в дороге уточните отдельно.","tags":["дорога","путешествие","коран"],"verified":false},{"id":"situations-09-pri-dozhde","category":"situations","order":9,"title":"Во время дождя","arabic":"اللَّهُمَّ صَيِّبًا نَافِعًا","translation":"О Аллах, сделай этот дождь обильным и полезным.","transliteration":"Аллахумма, саййибан нафи'а.","repetitions":1,"source":{"kind":"hadith","collection":"Сахих аль-Бухари"},"tags":["погода","дождь","быт"],"verified":false},{"id":"situations-10-pri-bede","category":"situations","order":10,"title":"При постигшей беде","arabic":"إِنَّا لِلَّهِ وَإِنَّا إِلَيْهِ رَاجِعُونَ. اللَّهُمَّ أْجُرْنِي فِي مُصِيبَتِي، وَأَخْلِفْ لِي خَيْرًا مِنْهَا","translation":"Воистину, мы принадлежим Аллаху и к Нему вернёмся. О Аллах, вознагради меня за мою беду и замени её лучшим.","transliteration":"Инна ли-Лляхи ва инна илейхи раджи'ун. Аллахумма, аджурни фи мусыбати, ва ахлиф ли хайран минха.","repetitions":1,"source":{"kind":"hadith","collection":"Сахих Муслим"},"sourceDetails":"Первая часть — аят 156 суры «аль-Бакара».","tags":["беда","терпение","утрата","трудности"],"verified":false},{"id":"situations-11-pri-gneve","category":"situations","order":11,"title":"При гневе","arabic":"أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ","translation":"Прибегаю к защите Аллаха от побиваемого камнями шайтана.","transliteration":"А'узу би-Лляхи мина-ш-шайтани-р-раджим.","repetitions":1,"source":{"kind":"hadith","collection":"Сахих аль-Бухари и Сахих Муслим"},"sourceDetails":"Пророк ﷺ указал на эти слова как на средство от гнева.","tags":["гнев","эмоции","защита","шайтан"],"verified":false},{"id":"situations-12-pri-dolge","category":"situations","order":12,"title":"При долге и нужде","arabic":"اللَّهُمَّ اكْفِنِي بِحَلَالِكَ عَنْ حَرَامِكَ، وَأَغْنِنِي بِفَضْلِكَ عَمَّنْ سِوَاكَ","translation":"О Аллах, сделай дозволенное Тобой достаточным для меня, чтобы я не нуждался в запретном, и обогати меня Твоей милостью, чтобы я не нуждался ни в ком, кроме Тебя.","transliteration":"Аллахумма-кфини би-халялика ан харамик, ва агнини би-фадлика амман сивак.","repetitions":1,"source":{"kind":"hadith","collection":"Сунан ат-Тирмизи"},"tags":["долг","удел","деньги","трудности"],"verified":false},{"id":"situations-13-posesheniye-bolnogo","category":"situations","order":13,"title":"При посещении больного","arabic":"أَسْأَلُ اللَّهَ الْعَظِيمَ، رَبَّ الْعَرْشِ الْعَظِيمِ، أَنْ يَشْفِيَكَ","translation":"Прошу Великого Аллаха, Господа великого Трона, исцелить тебя.","transliteration":"Ас'алю-Ллаха-ль-'Азым, Рабба-ль-'арши-ль-'азым, ан яшфияк.","repetitions":7,"source":{"kind":"hadith","collection":"Сунан Абу Дауда"},"sourceDetails":"Передаётся также у ат-Тирмизи. Читается семь раз у больного.","tags":["болезнь","исцеление","больной"],"verified":false},{"id":"situations-14-pri-trevoge","category":"situations","order":14,"title":"При сильной тревоге","arabic":"لَا إِلَهَ إِلَّا اللَّهُ الْعَظِيمُ الْحَلِيمُ، لَا إِلَهَ إِلَّا اللَّهُ رَبُّ الْعَرْشِ الْعَظِيمِ، لَا إِلَهَ إِلَّا اللَّهُ رَبُّ السَّمَاوَاتِ وَرَبُّ الْأَرْضِ وَرَبُّ الْعَرْشِ الْكَرِيمِ","translation":"Нет божества, кроме Аллаха, Великого, Кроткого. Нет божества, кроме Аллаха, Господа великого Трона. Нет божества, кроме Аллаха, Господа небес, Господа земли и Господа благородного Трона.","transliteration":"Ля иляха илля-Ллаху-ль-'Азыму-ль-Халим. Ля иляха илля-Ллаху Рабби-ль-'арши-ль-'азым. Ля иляха илля-Ллаху Рабби-с-самавати ва Рабби-ль-арди ва Рабби-ль-'арши-ль-карим.","repetitions":1,"source":{"kind":"hadith","collection":"Сахих аль-Бухари и Сахих Муслим"},"sourceDetails":"Известно как «дуа аль-карб» — мольба при большом горе.","tags":["тревога","горе","трудности","страх"],"verified":false},{"id":"situations-15-pri-novolunii-dela","category":"situations","order":15,"title":"При начале любого дела","arabic":"بِسْمِ اللَّهِ، تَوَكَّلْتُ عَلَى اللَّهِ","translation":"С именем Аллаха, я уповаю на Аллаха.","transliteration":"Бисми-Лляh, таваккальту 'аля-Лляh.","repetitions":1,"source":{"kind":"unknown","collection":"Источник требует уточнения"},"sourceDetails":"Короткая общеупотребительная формула. Конкретное предание для этой ситуации не указано — требуется проверка.","tags":["дела","работа","упование"],"verified":false}]},"stats":{"total":122,"verified":36,"needsReview":86}};
+
+  var CATS = DATA.categories;
+  var BY_ID = {};
+  var ALL = [];
+  CATS.forEach(function (c) {
+    (DATA.azkar[c.id] || []).forEach(function (a) {
+      BY_ID[a.id] = a;
+      ALL.push(a);
+    });
+  });
+  var CAT_BY_ID = {};
+  var CAT_BY_SLUG = {};
+  CATS.forEach(function (c) { CAT_BY_ID[c.id] = c; CAT_BY_SLUG[c.slug] = c; });
+
+  /* ================= УТИЛИТЫ ================= */
+  var ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+  function esc(value) { return String(value).replace(/[&<>"']/g, function (c) { return ESC[c]; }); }
+
+  function plural(n, forms) {
+    var abs = Math.abs(n) % 100;
+    var d = abs % 10;
+    if (abs > 10 && abs < 20) return forms[2];
+    if (d > 1 && d < 5) return forms[1];
+    if (d === 1) return forms[0];
+    return forms[2];
+  }
+
+  function todayKey(date) {
+    var d = date || new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function daysBetween(a, b) {
+    return Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 86400000);
+  }
+
+  /* localStorage может бросать в приватном режиме — каждый доступ обёрнут. */
+  var KEY = { s: 'azkar-demo:settings', p: 'azkar-demo:progress', f: 'azkar-demo:favorites', h: 'azkar-demo:history' };
+  function load(key, fallback) {
+    try { var raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch (e) { return fallback; }
+  }
+  function save(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* хранилище недоступно */ }
+  }
+
+  /* ================= СОСТОЯНИЕ ================= */
+  var DEFAULTS = {
+    theme: 'auto', ar: 0, tr: 0,
+    showTranslation: true, showTranslit: true,
+    vibration: true, autoAdvance: true, mode: 'list'
+  };
+  var settings = Object.assign({}, DEFAULTS, load(KEY.s, {}));
+  var progress = load(KEY.p, {}) || {};
+  var favorites = load(KEY.f, []) || [];
+  var history = load(KEY.h, []) || [];
+
+  var AR_SIZE = { '-2': '1.625rem', '-1': '1.8125rem', '0': '2rem', '1': '2.25rem', '2': '2.5rem', '3': '2.75rem' };
+  var AR_LH = { '-2': '2.05', '-1': '2.1', '0': '2.15', '1': '2.15', '2': '2.2', '3': '2.2' };
+  var TR_SIZE = { '-2': '1rem', '-1': '1.0625rem', '0': '1.1875rem', '1': '1.3125rem', '2': '1.4375rem', '3': '1.5625rem' };
+
+  function applySettings() {
+    var root = document.documentElement;
+    root.style.setProperty('--ar-size', AR_SIZE[settings.ar]);
+    root.style.setProperty('--ar-lh', AR_LH[settings.ar]);
+    root.style.setProperty('--tr-size', TR_SIZE[settings.tr]);
+    // 'auto' = снимаем атрибут, дальше решает prefers-color-scheme.
+    if (settings.theme === 'auto') root.removeAttribute('data-theme');
+    else root.setAttribute('data-theme', settings.theme);
+  }
+
+  function setSetting(key, value) {
+    settings[key] = value;
+    save(KEY.s, settings);
+    applySettings();
+  }
+
+  /* ================= ПРОГРЕСС ================= */
+  function catProgress(categoryId) {
+    var stored = progress[categoryId];
+    // Прогресс живёт один день: вчерашние азкары не считаются сегодняшними.
+    if (!stored || stored.date !== todayKey()) return { date: todayKey(), counters: {}, last: null };
+    return stored;
+  }
+
+  function counterFor(categoryId, azkarId) {
+    return catProgress(categoryId).counters[azkarId] || { count: 0, done: false };
+  }
+
+  function summary(categoryId) {
+    var list = DATA.azkar[categoryId] || [];
+    var p = catProgress(categoryId);
+    var completed = 0;
+    var firstUnfinished = -1;
+    list.forEach(function (a, i) {
+      var c = p.counters[a.id];
+      if (c && c.done) completed += 1;
+      else if (firstUnfinished < 0) firstUnfinished = i;
+    });
+    return {
+      completed: completed,
+      total: list.length,
+      ratio: list.length ? completed / list.length : 0,
+      isComplete: list.length > 0 && completed === list.length,
+      resumeIndex: firstUnfinished < 0 ? 0 : firstUnfinished
+    };
+  }
+
+  function writeProgress(categoryId, mutate) {
+    var p = catProgress(categoryId);
+    var next = { date: todayKey(), counters: Object.assign({}, p.counters), last: p.last };
+    mutate(next);
+    progress[categoryId] = next;
+    save(KEY.p, progress);
+    return next;
+  }
+
+  function recordCompletion(categoryId) {
+    var key = todayKey();
+    var entry = null;
+    for (var i = 0; i < history.length; i += 1) if (history[i].date === key) entry = history[i];
+    if (!entry) { entry = { date: key, completed: [] }; history.push(entry); }
+    if (entry.completed.indexOf(categoryId) < 0) entry.completed.push(categoryId);
+    history = history.slice(-400);
+    save(KEY.h, history);
+  }
+
+  function streak() {
+    var days = [];
+    history.forEach(function (e) {
+      if (e.completed && e.completed.length && days.indexOf(e.date) < 0) days.push(e.date);
+    });
+    days.sort();
+    if (!days.length) return 0;
+    var last = days[days.length - 1];
+    var gap = daysBetween(last, todayKey());
+    if (gap !== 0 && gap !== 1) return 0;
+    var run = 1;
+    for (var i = days.length - 1; i > 0; i -= 1) {
+      if (daysBetween(days[i - 1], days[i]) !== 1) break;
+      run += 1;
+    }
+    return run;
+  }
+
+  function isFav(id) { return favorites.indexOf(id) >= 0; }
+  function toggleFav(id) {
+    var at = favorites.indexOf(id);
+    if (at < 0) favorites.push(id); else favorites.splice(at, 1);
+    save(KEY.f, favorites);
+  }
+
+  function vibrate(pattern) {
+    if (!settings.vibration || !navigator.vibrate) return;
+    try { navigator.vibrate(pattern); } catch (e) { /* без вибрации — не беда */ }
+  }
+
+  var toastTimer = null;
+  function toast(message) {
+    var host = document.getElementById('toast');
+    host.querySelector('span').textContent = message;
+    host.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { host.hidden = true; }, 2400);
+  }
+
+  /* ================= ИКОНКИ ================= */
+  function svg(body, size) {
+    return '<svg viewBox="0 0 24 24" width="' + (size || 22) + '" height="' + (size || 22) +
+      '" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + body + '</svg>';
+  }
+  var I = {
+    home: function (s) { return svg('<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.8V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.8"/>', s); },
+    beads: function (s) { return svg('<circle cx="12" cy="4.5" r="2"/><circle cx="18" cy="7.5" r="2"/><circle cx="20" cy="14" r="2"/><circle cx="16" cy="19.5" r="2"/><circle cx="8" cy="19.5" r="2"/><circle cx="4" cy="14" r="2"/><circle cx="6" cy="7.5" r="2"/>', s); },
+    heart: function (s, filled) { return '<svg viewBox="0 0 24 24" width="' + (s || 22) + '" height="' + (s || 22) + '" fill="' + (filled ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.3 4.6 13a4.7 4.7 0 0 1 0-6.7 4.7 4.7 0 0 1 6.7 0l.7.7.7-.7a4.7 4.7 0 0 1 6.7 0 4.7 4.7 0 0 1 0 6.7Z"/></svg>'; },
+    gear: function (s) { return svg('<circle cx="12" cy="12" r="3"/><path d="M19.4 14.5a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5v.2a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1h.2a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z"/>', s); },
+    search: function (s) { return svg('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>', s); },
+    check: function (s) { return '<svg viewBox="0 0 24 24" width="' + (s || 16) + '" height="' + (s || 16) + '" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4.5 12.5 5 5 10-11"/></svg>'; },
+    right: function (s) { return svg('<path d="M4 12h15"/><path d="m13 6 6 6-6 6"/>', s); },
+    left: function (s) { return svg('<path d="M20 12H5"/><path d="m11 6-6 6 6 6"/>', s); },
+    down: function (s) { return svg('<path d="m6 9 6 6 6-6"/>', s); },
+    close: function (s) { return svg('<path d="M6 6 18 18"/><path d="M18 6 6 18"/>', s); },
+    refresh: function (s) { return svg('<path d="M20 11a8 8 0 1 0-.9 4.6"/><path d="M20 5v6h-6"/>', s); },
+    share: function (s) { return svg('<path d="M12 3v12"/><path d="m8 7 4-4 4 4"/><path d="M6 12H5a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7a1 1 0 0 0-1-1h-1"/>', s); },
+    book: function (s) { return svg('<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19v15H6.5A2.5 2.5 0 0 0 4 20.5Z"/><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H19v3H6.5A2.5 2.5 0 0 1 4 20.5Z"/>', s); },
+    speaker: function (s) { return svg('<path d="M11 5 6.5 8.7H3.5v6.6h3L11 19Z"/><path d="M15.2 9.2a4 4 0 0 1 0 5.6"/>', s); },
+    flame: function (s) { return svg('<path d="M12 3s5 4.2 5 8.6a5 5 0 0 1-10 0C7 9.4 9 7.6 9 7.6s.5 1.8 1.7 2.4C10.5 7.8 12 3 12 3Z"/>', s); },
+    alert: function (s) { return svg('<path d="M12 4.5 2.8 20h18.4Z"/><path d="M12 10v4"/><path d="M12 17h.01"/>', s); },
+    back: function (s) { return svg('<path d="M20 12H5"/><path d="m11 6-6 6 6 6"/>', s); }
+  };
+
+  function chipStyle(accent) {
+    return 'style="--chip-fg:var(--c-' + accent + ');--chip-bg:var(--c-' + accent + '-soft)"';
+  }
+
+  /* ================= РОУТЕР ================= */
+  var route = { name: 'home', slug: null };
+  var view = { index: 0, resumeDismissed: false, openTranslit: {} };
+
+  function parseHash() {
+    var raw = (location.hash || '#/').replace(/^#/, '');
+    var parts = raw.split('/').filter(Boolean);
+    if (!parts.length) return { name: 'home', slug: null };
+    if (parts[0] === 'c' && parts[1] && CAT_BY_SLUG[parts[1]]) return { name: 'category', slug: parts[1] };
+    if (parts[0] === 'favorites' || parts[0] === 'search' || parts[0] === 'about') return { name: parts[0], slug: null };
+    return { name: 'notfound', slug: null };
+  }
+
+  function go(hash) { location.hash = hash; }
+
+  /* ================= ОБЩИЕ КУСКИ РАЗМЕТКИ ================= */
+  function badge(verified) {
+    return verified
+      ? '<span class="badge ok">' + I.check(14) + 'Источник проверен</span>'
+      : '<span class="badge review">' + I.alert(14) + 'Требует проверки</span>';
+  }
+
+  function progressBar(ratio, label) {
+    var pct = Math.round(Math.max(0, Math.min(1, ratio)) * 100);
+    return '<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct +
+      '" aria-label="' + esc(label) + '"><i style="width:' + pct + '%"></i></div>';
+  }
+
+  function counterInner(azkar, state) {
+    if (state.done) {
+      return '<span class="lbl">' + I.check(24) + '<span>' + azkar.repetitions + ' / ' + azkar.repetitions + '</span></span>';
+    }
+    var fill = azkar.repetitions > 1
+      ? '<span class="fill" style="width:' + (state.count / azkar.repetitions) * 100 + '%"></span>'
+      : '';
+    return fill + '<span class="lbl"><span class="pop">' + state.count + ' / ' + azkar.repetitions + '</span></span>';
+  }
+
+  function cardHtml(azkar, number, total, categorySlug, opts) {
+    var state = counterFor(azkar.category, azkar.id);
+    var open = view.openTranslit[azkar.id];
+    var parts = [];
+
+    parts.push('<article class="card' + (state.done ? ' done' : '') + '" id="a-' + esc(azkar.id) + '" data-card="' + esc(azkar.id) + '" aria-label="Азкар ' + number + ' из ' + total + ': ' + esc(azkar.title) + '">');
+
+    parts.push('<div class="card-head"><div style="min-width:0;flex:1">');
+    parts.push('<p class="card-meta">№ ' + number + '<span class="dot">·</span><span class="reps">' + azkar.repetitions + ' ' + plural(azkar.repetitions, ['раз', 'раза', 'раз']) + '</span></p>');
+    parts.push('<h3>' + esc(azkar.title) + '</h3></div>');
+    parts.push('<div class="card-actions">');
+    parts.push('<button class="iconbtn" data-act="share" data-id="' + esc(azkar.id) + '" aria-label="Поделиться: ' + esc(azkar.title) + '">' + I.share(20) + '</button>');
+    parts.push('<button class="iconbtn' + (isFav(azkar.id) ? ' fav-on' : '') + '" data-act="fav" data-id="' + esc(azkar.id) + '" aria-pressed="' + isFav(azkar.id) + '" aria-label="' + (isFav(azkar.id) ? 'Убрать из избранного' : 'Добавить в избранное') + '">' + I.heart(21, isFav(azkar.id)) + '</button>');
+    parts.push('</div></div>');
+
+    parts.push('<p class="arabic" dir="rtl" lang="ar">' + esc(azkar.arabic) + '</p>');
+
+    if (settings.showTranslation) parts.push('<p class="translation">' + esc(azkar.translation) + '</p>');
+
+    if (settings.showTranslit) {
+      parts.push('<button class="translit-toggle" data-act="translit" data-id="' + esc(azkar.id) + '" aria-expanded="' + (open ? 'true' : 'false') + '">' +
+        (open ? 'Скрыть транскрипцию' : 'Показать транскрипцию') + '<span class="caret">' + I.down(16) + '</span></button>');
+      if (open) parts.push('<p class="translit">' + esc(azkar.transliteration) + '</p>');
+    }
+
+    parts.push('<div class="source"><div class="source-head"><span class="eyebrow" style="display:inline-flex;align-items:center;gap:.375rem">' + I.book(16) + 'Источник</span>' + badge(azkar.verified) + '</div>');
+    parts.push('<p class="source-name">' + esc(azkar.source.collection) + (azkar.source.reference ? '<i>, ' + esc(azkar.source.reference) + '</i>' : '') + '</p>');
+    if (azkar.sourceDetails) parts.push('<p class="source-note">' + esc(azkar.sourceDetails) + '</p>');
+    if (!azkar.verified) parts.push('<p class="source-warn">Текст приведён, но точная ссылка ещё не выверена редактором. Не полагайтесь на неё как на подтверждённую.</p>');
+    parts.push('</div>');
+
+    if (opts && opts.single) {
+      parts.push('<p class="audio-note">' + I.speaker(16) + 'Аудио для этой записи пока не добавлено</p>');
+    }
+
+    parts.push('<div class="counter-row">');
+    parts.push('<button class="counter" data-act="count" data-id="' + esc(azkar.id) + '" data-pos="' + (number - 1) + '"' + (state.done ? ' disabled' : '') + ' aria-label="Счётчик повторов: ' + esc(azkar.title) + '">' + counterInner(azkar, state) + '</button>');
+    if (state.count > 0) {
+      parts.push('<button class="counter-reset" data-act="uncount" data-id="' + esc(azkar.id) + '" aria-label="Сбросить счётчик этого азкара">' + I.refresh(20) + '</button>');
+    }
+    parts.push('</div>');
+    parts.push('<span class="sr" role="status" aria-live="polite">Выполнено ' + state.count + ' из ' + azkar.repetitions + '</span>');
+    parts.push('</article>');
+    return parts.join('');
+  }
+
+  function miniHtml(azkar) {
+    var cat = CAT_BY_ID[azkar.category];
+    return '<article class="mini">' +
+      '<div class="mini-head"><div style="min-width:0;flex:1">' +
+      '<a class="mini-cat" href="#/c/' + cat.slug + '"><span class="chip xs" ' + chipStyle(cat.accent) + '>' + cat.emoji + '</span>' + esc(cat.shortTitle) + '</a>' +
+      '<h3>' + esc(azkar.title) + '</h3></div>' +
+      '<button class="iconbtn' + (isFav(azkar.id) ? ' fav-on' : '') + '" data-act="fav" data-id="' + esc(azkar.id) + '" aria-pressed="' + isFav(azkar.id) + '" aria-label="' + (isFav(azkar.id) ? 'Убрать из избранного' : 'Добавить в избранное') + '">' + I.heart(21, isFav(azkar.id)) + '</button>' +
+      '</div>' +
+      '<p class="arabic" dir="rtl" lang="ar">' + esc(azkar.arabic) + '</p>' +
+      '<p class="excerpt">' + esc(azkar.translation) + '</p>' +
+      '<div class="mini-foot"><span class="src">' + esc(azkar.source.collection) + (azkar.source.reference ? ', ' + esc(azkar.source.reference) : '') + '</span>' + badge(azkar.verified) + '</div>' +
+      '<a class="go" href="#/c/' + cat.slug + '" style="display:inline-flex;align-items:center;gap:.375rem;margin-top:.75rem;color:var(--accent);font-weight:800;font-size:.9375rem;min-height:2.75rem">Открыть в разделе ' + I.right(16) + '</a>' +
+      '</article>';
+  }
+
+  /* ================= ЭКРАНЫ ================= */
+  function greeting() {
+    var h = new Date().getHours();
+    if (h >= 4 && h < 11) return 'Доброе утро';
+    if (h >= 11 && h < 16) return 'Добрый день';
+    if (h >= 16 && h < 22) return 'Добрый вечер';
+    return 'Доброй ночи';
+  }
+
+  function suggestedFirst() {
+    var h = new Date().getHours();
+    return h >= 16 || h < 4 ? 'evening' : 'morning';
+  }
+
+  function heroHtml(cat) {
+    var s = summary(cat.id);
+    var started = s.completed > 0;
+    var label = s.isComplete ? 'Прочитано' : started ? 'Продолжить' : 'Начать';
+    var body = '<a class="hero" href="#/c/' + cat.slug + '">' +
+      '<div class="hero-top"><span class="chip lg" ' + chipStyle(cat.accent) + ' aria-hidden="true">' + cat.emoji + '</span>' +
+      '<div style="min-width:0;flex:1"><h3>' + esc(cat.title) + '</h3>' +
+      '<p class="count">' + cat.count + ' ' + plural(cat.count, ['азкар', 'азкара', 'азкаров']) + '</p></div>' +
+      (s.isComplete ? '<span class="done-mark" style="width:2rem;height:2rem" aria-hidden="true">' + I.check(16) + '</span>' : '') +
+      '</div>';
+    if (started) {
+      body += '<div style="margin-top:1rem"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.375rem">' +
+        '<span style="font-size:.8125rem;font-weight:700;color:var(--muted)">' + s.completed + ' из ' + s.total + '</span>' +
+        '<span style="font-size:.8125rem;font-weight:700;color:var(--accent)">' + Math.round(s.ratio * 100) + '%</span></div>' +
+        progressBar(s.ratio, 'Прогресс: ' + cat.title) + '</div>';
+    }
+    body += '<span class="go">' + label + I.right(16) + '</span></a>';
+    return body;
+  }
+
+  function tileHtml(cat) {
+    var s = summary(cat.id);
+    return '<a class="tile" href="#/c/' + cat.slug + '">' +
+      '<div style="display:flex;justify-content:space-between;gap:.5rem;align-items:flex-start">' +
+      '<span class="chip sm" ' + chipStyle(cat.accent) + ' aria-hidden="true">' + cat.emoji + '</span>' +
+      (s.isComplete ? '<span class="done-mark" aria-hidden="true">' + I.check(14) + '</span>' : '') +
+      '</div><div style="margin-top:.75rem"><h3>' + esc(cat.shortTitle) + '</h3>' +
+      '<p class="count">' + (s.completed > 0 && !s.isComplete ? s.completed + ' из ' + s.total : cat.count + ' ' + plural(cat.count, ['азкар', 'азкара', 'азкаров'])) + '</p>' +
+      '</div></a>';
+  }
+
+  function renderHome() {
+    var firstId = suggestedFirst();
+    var heroIds = firstId === 'evening' ? ['evening', 'morning'] : ['morning', 'evening'];
+    var heroes = heroIds.map(function (id) { return CAT_BY_ID[id]; });
+    var rest = CATS.filter(function (c) { return heroIds.indexOf(c.id) < 0; });
+    var run = streak();
+
+    var html = '<div class="wrap" style="padding-block:.25rem 1.5rem">';
+    html += '<p class="hello-ar" dir="rtl" lang="ar">السلام عليكم</p>';
+    html += '<h1 class="hello-ru">Ассаляму алейкум</h1>';
+    html += '<p class="hello-sub">' + greeting() + '</p>';
+
+    html += '<a class="searchlink" href="#/search">' + I.search(18) + 'Найти дуа — например, «защита»</a>';
+
+    html += '<section class="today" aria-label="Сводка за сегодня"><div class="today-head"><h2 class="eyebrow">Сегодня</h2>';
+    if (run > 0) html += '<span class="streak">' + I.flame(14) + run + ' ' + plural(run, ['день', 'дня', 'дней']) + ' подряд</span>';
+    html += '</div><ul class="today-list">';
+    heroes.forEach(function (c) {
+      var s = summary(c.id);
+      html += '<li class="today-item"><span aria-hidden="true">' + c.emoji + '</span><span>' + esc(c.shortTitle) + '</span>' +
+        (s.isComplete ? '<span style="color:var(--accent)" aria-label="выполнено">✅</span>' : '<span class="num">' + s.completed + '/' + s.total + '</span>') + '</li>';
+    });
+    html += '</ul></section>';
+
+    html += '<div class="heroes">' + heroes.map(heroHtml).join('') + '</div>';
+
+    html += '<h2 class="eyebrow" style="display:block;margin-top:1.75rem">Остальные разделы</h2>';
+    html += '<div class="grid">' + rest.map(tileHtml).join('');
+    html += '<a class="tile dashed" href="#/favorites">' +
+      '<span class="chip sm" style="--chip-fg:var(--danger);--chip-bg:var(--danger-soft)" aria-hidden="true">❤️</span>' +
+      '<div style="margin-top:.75rem"><h3>Избранное</h3><p class="count">Ваши закладки</p></div></a>';
+    html += '</div>';
+
+    html += '<p style="margin-top:2rem;font-size:.8125rem;line-height:1.6;font-weight:500;color:var(--subtle)">' +
+      'Прогресс сохраняется в этом браузере и обнуляется каждый день. ' +
+      '<a href="#/about" style="color:var(--accent);font-weight:700;text-decoration:underline;text-underline-offset:2px">О достоверности текстов</a></p>';
+
+    html += '</div>';
+    return html;
+  }
+
+  function renderCategory(slug) {
+    var cat = CAT_BY_SLUG[slug];
+    var list = DATA.azkar[cat.id] || [];
+    var s = summary(cat.id);
+    var single = settings.mode === 'single';
+    if (view.index > list.length - 1) view.index = Math.max(0, list.length - 1);
+
+    var html = '<div class="prog"><div class="wrap prog-in">' +
+      '<div class="prog-row"><h2 class="prog-title"><span aria-hidden="true">' + cat.emoji + '</span><span>' + esc(cat.title) + '</span></h2>' +
+      '<p class="prog-num" id="prog-num">' + s.completed + ' <i>из</i> ' + s.total + '</p></div>' +
+      '<div id="prog-bar">' + progressBar(s.ratio, 'Прогресс раздела «' + cat.title + '»') + '</div>' +
+      '</div></div>';
+
+    html += '<div class="wrap" style="padding-block:1rem 1.5rem">';
+    html += '<h1 class="sr">' + esc(cat.title) + ' — читать с переводом и транскрипцией</h1>';
+
+    html += '<div class="seg" role="radiogroup" aria-label="Режим чтения">' +
+      '<button role="radio" aria-checked="' + (!single) + '" data-act="mode" data-mode="list">Список</button>' +
+      '<button role="radio" aria-checked="' + single + '" data-act="mode" data-mode="single">По одному</button></div>';
+
+    if (!view.resumeDismissed && s.completed > 0 && !s.isComplete && s.resumeIndex > 0) {
+      html += '<div class="banner fade-up"><p>Продолжить с ' + (s.resumeIndex + 1) + '-го азкара?</p>' +
+        '<div style="display:flex;gap:.5rem;flex:none">' +
+        '<button class="btn ghost" data-act="resume-no">Не сейчас</button>' +
+        '<button class="btn primary" data-act="resume" data-index="' + s.resumeIndex + '">Продолжить ' + I.right(16) + '</button></div></div>';
+    }
+
+    if (s.isComplete) {
+      html += '<div class="banner fade-up"><p style="display:flex;align-items:center;gap:.5rem">' + I.check(20) + 'Раздел прочитан полностью</p>' +
+        '<button class="btn secondary" data-act="reset-cat">' + I.refresh(16) + 'Начать заново</button></div>';
+    }
+
+    if (single) {
+      var current = list[view.index];
+      html += '<div class="cards" id="cards">' + cardHtml(current, view.index + 1, list.length, cat.slug, { single: true }) + '</div>';
+      html += '<nav class="pager" aria-label="Навигация по азкарам">' +
+        '<button class="btn secondary" data-act="prev"' + (view.index === 0 ? ' disabled' : '') + ' aria-label="Предыдущий азкар">' + I.left(20) + 'Назад</button>' +
+        '<span class="pos">' + (view.index + 1) + ' / ' + list.length + '</span>' +
+        '<button class="btn secondary" data-act="next"' + (view.index >= list.length - 1 ? ' disabled' : '') + ' aria-label="Следующий азкар">Далее' + I.right(20) + '</button>' +
+        '</nav>';
+    } else {
+      html += '<div class="cards" id="cards">';
+      list.forEach(function (a, i) { html += cardHtml(a, i + 1, list.length, cat.slug, null); });
+      html += '</div>';
+      html += '<div style="display:flex;justify-content:center;margin-top:1rem"><button class="btn ghost" data-act="reset-cat">' + I.refresh(16) + 'Начать раздел заново</button></div>';
+    }
+
+    html += '</div>';
+    return html;
+  }
+
+  function renderFavorites() {
+    var items = favorites.slice().reverse().map(function (id) { return BY_ID[id]; }).filter(Boolean);
+    var html = '<div class="wrap" style="padding-block:.5rem 1.5rem"><h1 style="font-size:1.75rem;line-height:1.2">Избранное</h1>';
+    if (!items.length) {
+      html += '<div class="empty"><p class="big" aria-hidden="true">❤️</p><h2>Здесь пока пусто</h2>' +
+        '<p>Нажмите на сердечко у любого азкара — и он появится здесь, чтобы всегда быть под рукой.</p>' +
+        '<a class="btn primary" href="#/" style="margin-top:1.25rem">Выбрать раздел</a></div>';
+    } else {
+      html += '<p style="margin-top:.5rem;color:var(--muted);font-weight:500">' + items.length + ' ' + plural(items.length, ['запись', 'записи', 'записей']) + '</p>';
+      html += '<div class="cards">' + items.map(miniHtml).join('') + '</div>';
+    }
+    return html + '</div>';
+  }
+
+  var SUGGESTIONS = ['защита', 'тревога', 'прощение', 'сон', 'дорога', 'дети', 'болезнь', 'коран'];
+  var searchQuery = '';
+
+  function normalize(value) {
+    return String(value).toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ').trim();
+  }
+
+  var INDEX = ALL.map(function (a) {
+    var cat = CAT_BY_ID[a.category];
+    return {
+      azkar: a,
+      fields: [
+        { text: normalize(a.title), w: 12 },
+        { text: normalize(a.tags.join(' ')), w: 9 },
+        { text: normalize(cat.title + ' ' + cat.shortTitle), w: 7 },
+        { text: normalize(a.translation), w: 5 },
+        { text: normalize(a.source.collection + ' ' + (a.source.reference || '') + ' ' + (a.sourceDetails || '')), w: 4 },
+        { text: normalize(a.transliteration), w: 3 }
+      ]
+    };
+  });
+
+  function runSearch(raw) {
+    var q = normalize(raw);
+    if (q.length < 2) return [];
+    var words = q.split(' ').filter(Boolean);
+    var out = [];
+    INDEX.forEach(function (entry) {
+      var score = 0;
+      var matched = 0;
+      words.forEach(function (word) {
+        var hit = false;
+        entry.fields.forEach(function (field) {
+          var at = field.text.indexOf(word);
+          if (at < 0) return;
+          hit = true;
+          score += field.w * (at === 0 || field.text[at - 1] === ' ' ? 1.5 : 1);
+        });
+        if (hit) matched += 1;
+      });
+      if (matched !== words.length) return;
+      if (entry.azkar.verified) score += 1;
+      out.push({ azkar: entry.azkar, score: score });
+    });
+    out.sort(function (a, b) { return b.score - a.score || a.azkar.id.localeCompare(b.azkar.id); });
+    return out;
+  }
+
+  function renderSearch() {
+    var html = '<div class="wrap" style="padding-block:.5rem 1.5rem"><h1 style="font-size:1.75rem;line-height:1.2">Поиск</h1>';
+    html += '<div class="search-field"><span class="lead" style="position:absolute;top:50%;inset-inline-start:1rem;transform:translateY(-50%);color:var(--subtle);pointer-events:none">' + I.search(20) + '</span>' +
+      '<input id="q" type="search" autocomplete="off" enterkeyhint="search" aria-label="Поиск по азкарам" placeholder="Например: защита, тревога, Муслим" value="' + esc(searchQuery) + '"></div>';
+
+    if (normalize(searchQuery).length < 2) {
+      html += '<p class="eyebrow" style="display:block;margin-top:1.5rem">Попробуйте</p><div class="chips">';
+      SUGGESTIONS.forEach(function (s) { html += '<button data-act="suggest" data-q="' + esc(s) + '">' + esc(s) + '</button>'; });
+      html += '</div>';
+    } else {
+      var results = runSearch(searchQuery);
+      html += '<p aria-live="polite" style="margin-top:1rem;color:var(--muted);font-weight:600;font-size:.875rem">' +
+        (results.length ? results.length + ' ' + plural(results.length, ['результат', 'результата', 'результатов']) : 'Ничего не найдено') + '</p>';
+      if (!results.length) {
+        html += '<p style="margin-top:.5rem;color:var(--subtle);font-weight:500;line-height:1.6">Попробуйте другое слово — например, «защита», «прощение» или название сборника.</p>';
+      } else {
+        html += '<div class="cards">' + results.map(function (r) { return miniHtml(r.azkar); }).join('') + '</div>';
+      }
+    }
+    return html + '</div>';
+  }
+
+  function renderAbout() {
+    var byCat = {};
+    ALL.forEach(function (a) { if (!a.verified) byCat[a.category] = (byCat[a.category] || 0) + 1; });
+
+    var html = '<div class="wrap" style="padding-block:.5rem 1.5rem"><h1 style="font-size:1.75rem;line-height:1.2">О проекте</h1>';
+    html += '<p class="prose">AZKAR — приложение для ежедневного чтения азкаров: арабский текст, русский перевод, транскрипция, счётчик повторов и сохранение прогресса. Это демонстрационная веб-версия; основное приложение на Next.js дополнительно умеет работать офлайн и устанавливаться на главный экран.</p>';
+
+    html += '<h2 style="margin-top:2rem;font-size:1.25rem">Откуда тексты</h2>';
+    html += '<p class="prose">Коранические аяты приводятся с точной ссылкой «сура: аят» — такие записи помечены как проверенные. Переводы на русский сделаны для этого проекта и являются смысловыми: они не заменяют тафсир и не копируют чужие издания.</p>';
+
+    html += '<h2 style="margin-top:2rem;font-size:1.25rem">Что означают пометки</h2><div class="stack">';
+    html += '<div class="mini">' + badge(true) + '<p class="prose" style="margin-top:.5rem">Текст и ссылка выверены. Сейчас это ' + DATA.stats.verified + ' из ' + DATA.stats.total + ' записей — в основном аяты Корана, где ссылка однозначна.</p></div>';
+    html += '<div class="mini">' + badge(false) + '<p class="prose" style="margin-top:.5rem">Текст приведён и название сборника указано, но точный номер хадиса намеренно не проставлен: выдуманная ссылка хуже отсутствующей. Таких записей ' + DATA.stats.needsReview + '. Перед тем как опираться на них, сверьтесь с печатным изданием или спросите знающего человека.</p></div>';
+    html += '</div>';
+
+    html += '<h2 style="margin-top:2rem;font-size:1.25rem">Что требует проверки</h2><ul class="stack" style="gap:.375rem">';
+    CATS.forEach(function (c) {
+      if (!byCat[c.id]) return;
+      html += '<li style="display:flex;justify-content:space-between;gap:.75rem;align-items:center;padding:.625rem 1rem;border-radius:.75rem;background:var(--inset)">' +
+        '<a href="#/c/' + c.slug + '" style="font-weight:700;font-size:.9375rem">' + c.emoji + ' ' + esc(c.title) + '</a>' +
+        '<span style="flex:none;font-weight:700;font-size:.875rem;color:var(--warn);font-variant-numeric:tabular-nums">' + byCat[c.id] + '</span></li>';
+    });
+    html += '</ul>';
+
+    return html + '</div>';
+  }
+
+  function renderNotFound() {
+    return '<div class="wrap" style="padding-block:3rem;text-align:center">' +
+      '<p aria-hidden="true" style="font-size:3.5rem;line-height:1;font-weight:800;color:var(--accent-soft-2)">404</p>' +
+      '<h1 style="margin-top:.75rem;font-size:1.5rem">Такой страницы нет</h1>' +
+      '<p style="margin:.5rem auto 0;max-width:22rem;color:var(--muted);font-weight:500;line-height:1.6">Возможно, ссылка устарела.</p>' +
+      '<a class="btn primary" href="#/" style="margin-top:1.5rem">На главную</a></div>';
+  }
+
+  /* ================= НАСТРОЙКИ ================= */
+  function toggleRow(key, label, note, disabled) {
+    return '<button class="row" role="switch" aria-checked="' + settings[key] + '" data-act="toggle" data-key="' + key + '"' + (disabled ? ' disabled' : '') + '>' +
+      '<span class="lbl"><b>' + esc(label) + '</b>' + (note ? '<small>' + esc(note) + '</small>' : '') + '</span>' +
+      '<span class="switch" aria-hidden="true"><i></i></span></button>';
+  }
+
+  function stepperRow(key, label, preview, previewStyle) {
+    var value = settings[key];
+    return '<div class="row" style="display:block"><div style="display:flex;align-items:center;justify-content:space-between;gap:1rem">' +
+      '<span style="font-size:.9375rem;font-weight:600">' + esc(label) + '</span>' +
+      '<span class="stepper"><button data-act="step" data-key="' + key + '" data-delta="-1"' + (value <= -2 ? ' disabled' : '') + ' aria-label="Уменьшить: ' + esc(label) + '">A−</button>' +
+      '<span class="val" aria-live="polite">' + (value > 0 ? '+' + value : value) + '</span>' +
+      '<button data-act="step" data-key="' + key + '" data-delta="1"' + (value >= 3 ? ' disabled' : '') + ' aria-label="Увеличить: ' + esc(label) + '" style="font-size:1.125rem">A+</button></span>' +
+      '</div><p class="preview" style="' + previewStyle + '">' + preview + '</p></div>';
+  }
+
+  var confirmReset = false;
+
+  function sheetHtml() {
+    var html = '<div class="sheet-root" data-act="sheet-bg-wrap"><div class="sheet-bg" data-act="close-sheet"></div>' +
+      '<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">' +
+      '<div class="sheet-head"><div style="flex:1;min-width:0"><div class="sheet-grab" aria-hidden="true"></div>' +
+      '<h2 id="sheet-title">Настройки</h2><p>Сохраняются в этом браузере</p></div>' +
+      '<button class="iconbtn" data-act="close-sheet" aria-label="Закрыть" style="background:var(--surface-2);margin-top:.75rem">' + I.close(20) + '</button></div>' +
+      '<div class="sheet-body">';
+
+    html += '<span class="eyebrow">Оформление</span>';
+    html += '<div class="row" style="display:block"><p style="font-size:.9375rem;font-weight:600;margin-bottom:.5rem">Тема оформления</p>' +
+      '<div class="seg" role="radiogroup" aria-label="Тема оформления">' +
+      ['auto', 'light', 'dark'].map(function (t, i) {
+        var names = ['Авто', 'Светлая', 'Тёмная'];
+        return '<button role="radio" aria-checked="' + (settings.theme === t) + '" data-act="theme" data-theme="' + t + '">' + names[i] + '</button>';
+      }).join('') + '</div></div>';
+
+    html += '<span class="eyebrow">Размер текста</span>';
+    html += stepperRow('ar', 'Арабский текст', 'بِسْمِ اللَّهِ',
+      "font-family:'Noto Naskh Arabic',serif;direction:rtl;text-align:right;line-height:1.9;font-size:" + AR_SIZE[settings.ar]);
+    html += stepperRow('tr', 'Русский перевод', 'Хвала Аллаху, Господу миров.',
+      'font-weight:600;line-height:1.6;font-size:' + TR_SIZE[settings.tr]);
+
+    html += '<span class="eyebrow">Что показывать</span>';
+    html += toggleRow('showTranslation', 'Перевод', 'Русский текст под арабским', false);
+    html += toggleRow('showTranslit', 'Транскрипция', 'Кириллическое чтение арабского текста', false);
+
+    html += '<span class="eyebrow">Чтение</span>';
+    html += toggleRow('vibration', 'Вибрация', 'Короткий отклик при нажатии счётчика', false);
+    html += toggleRow('autoAdvance', 'Автопереход', 'Переходить к следующему азкару после последнего повтора', false);
+
+    html += '<span class="eyebrow">Данные</span><div style="display:flex;flex-direction:column;gap:.5rem;padding:.25rem 1rem 1rem">';
+    html += '<button class="btn secondary full" data-act="clear-fav">Очистить избранное</button>';
+    if (confirmReset) {
+      html += '<div style="padding:.75rem;border:1px solid var(--line);border-radius:1rem;background:var(--inset)">' +
+        '<p style="font-size:.875rem;font-weight:600;line-height:1.4;margin-bottom:.625rem">Сбросить весь прогресс и серию дней? Это действие нельзя отменить.</p>' +
+        '<div style="display:flex;gap:.5rem"><button class="btn secondary full" data-act="reset-no">Отмена</button>' +
+        '<button class="btn danger full" data-act="reset-yes">Сбросить</button></div></div>';
+    } else {
+      html += '<button class="btn secondary full" data-act="reset-ask">Сбросить весь прогресс</button>';
+    }
+    html += '<button class="btn ghost full" data-act="reset-settings">Вернуть настройки по умолчанию</button>';
+    html += '</div>';
+
+    html += '</div></div></div>';
+    return html;
+  }
+
+  var sheetOpen = false;
+  var lastFocused = null;
+
+  function renderSheet() {
+    var host = document.getElementById('sheet-host');
+    host.innerHTML = sheetOpen ? sheetHtml() : '';
+    if (sheetOpen) {
+      var first = host.querySelector('button');
+      if (first) first.focus();
+    }
+    renderChrome();
+  }
+
+  function openSheet() {
+    lastFocused = document.activeElement;
+    sheetOpen = true;
+    confirmReset = false;
+    document.body.style.overflow = 'hidden';
+    renderSheet();
+  }
+
+  function closeSheet() {
+    sheetOpen = false;
+    document.body.style.overflow = '';
+    renderSheet();
+    if (lastFocused && lastFocused.focus) lastFocused.focus();
+  }
+
+  /* ================= КАРКАС ================= */
+  function renderChrome() {
+    var top = document.getElementById('topbar');
+    top.innerHTML = route.name === 'home'
+      ? '<a class="brand" href="#/">AZKAR</a>' +
+        '<span class="spacer"></span>' +
+        '<a class="iconbtn" href="#/search" aria-label="Поиск по азкарам">' + I.search(20) + '</a>' +
+        '<button class="iconbtn" data-act="open-sheet" aria-haspopup="dialog" aria-expanded="' + sheetOpen + '" aria-label="Настройки">' + I.gear(20) + '</button>'
+      : '<button class="iconbtn" data-act="back" aria-label="Назад" style="margin-inline-start:-.5rem">' + I.back(20) + '</button>' +
+        '<span class="spacer"></span>' +
+        '<a class="iconbtn" href="#/search" aria-label="Поиск по азкарам">' + I.search(20) + '</a>' +
+        '<button class="iconbtn" data-act="open-sheet" aria-haspopup="dialog" aria-expanded="' + sheetOpen + '" aria-label="Настройки">' + I.gear(20) + '</button>';
+
+    var nav = document.getElementById('bottomnav');
+    var items = [
+      { href: '#/', label: 'Главная', icon: I.home(22), on: route.name === 'home' },
+      { href: '#/search', label: 'Азкары', icon: I.beads(22), on: route.name === 'category' || route.name === 'search' },
+      { href: '#/favorites', label: 'Избранное', icon: null, on: route.name === 'favorites' }
+    ];
+    nav.innerHTML = items.map(function (it) {
+      var icon = it.icon || I.heart(22, it.on);
+      return '<li><a href="' + it.href + '"' + (it.on ? ' aria-current="page"' : '') + '>' + icon + it.label + '</a></li>';
+    }).join('') +
+      '<li><button data-act="open-sheet" class="' + (sheetOpen ? 'active' : '') + '" aria-haspopup="dialog" aria-expanded="' + sheetOpen + '">' + I.gear(22) + 'Настройки</button></li>';
+  }
+
+  function render(keepScroll) {
+    var y = window.scrollY;
+    var host = document.getElementById('view');
+    if (route.name === 'home') host.innerHTML = renderHome();
+    else if (route.name === 'category') host.innerHTML = renderCategory(route.slug);
+    else if (route.name === 'favorites') host.innerHTML = renderFavorites();
+    else if (route.name === 'search') host.innerHTML = renderSearch();
+    else if (route.name === 'about') host.innerHTML = renderAbout();
+    else host.innerHTML = renderNotFound();
+    renderChrome();
+    if (keepScroll) window.scrollTo(0, y);
+  }
+
+  function onRouteChange() {
+    var next = parseHash();
+    var changedCategory = next.name !== route.name || next.slug !== route.slug;
+    route = next;
+    if (changedCategory) {
+      view = { index: 0, resumeDismissed: false, openTranslit: {} };
+      searchQuery = '';
+    }
+    render(false);
+    window.scrollTo(0, 0);
+    if (route.name === 'search') {
+      var input = document.getElementById('q');
+      if (input) input.focus();
+    }
+  }
+
+  /* ================= СЧЁТЧИК ================= */
+  var COOLDOWN = 220;
+  var lastTap = 0;
+
+  function refreshProgressHeader() {
+    if (route.name !== 'category') return;
+    var s = summary(CAT_BY_SLUG[route.slug].id);
+    var num = document.getElementById('prog-num');
+    var bar = document.getElementById('prog-bar');
+    if (num) num.innerHTML = s.completed + ' <i>из</i> ' + s.total;
+    if (bar) bar.innerHTML = progressBar(s.ratio, 'Прогресс раздела');
+  }
+
+  function handleCount(id, position) {
+    var now = Date.now();
+    // Защита от случайного двойного тапа: слишком быстрый повтор игнорируется.
+    if (now - lastTap < COOLDOWN) return;
+    lastTap = now;
+
+    var azkar = BY_ID[id];
+    var target = Math.max(1, azkar.repetitions);
+    var state;
+
+    writeProgress(azkar.category, function (next) {
+      var current = next.counters[id] || { count: 0, done: false };
+      var count = Math.min(current.count + 1, target);
+      state = { count: count, done: count >= target };
+      next.counters[id] = state;
+      next.last = id;
+    });
+
+    if (state.done) {
+      var list = DATA.azkar[azkar.category] || [];
+      var p = catProgress(azkar.category);
+      var all = list.every(function (a) { return p.counters[a.id] && p.counters[a.id].done; });
+      if (all) recordCompletion(azkar.category);
+      vibrate([18, 40, 24]);
+    } else {
+      vibrate(12);
+    }
+
+    // Точечное обновление вместо полной перерисовки — иначе теряется позиция скролла.
+    var card = document.querySelector('[data-card="' + id + '"]');
+    if (card) {
+      var button = card.querySelector('[data-act="count"]');
+      button.innerHTML = counterInner(azkar, state);
+      if (state.done) {
+        button.setAttribute('disabled', '');
+        card.classList.add('done');
+      }
+      var row = card.querySelector('.counter-row');
+      if (state.count > 0 && !row.querySelector('[data-act="uncount"]')) {
+        var reset = document.createElement('button');
+        reset.className = 'counter-reset';
+        reset.setAttribute('data-act', 'uncount');
+        reset.setAttribute('data-id', id);
+        reset.setAttribute('aria-label', 'Сбросить счётчик этого азкара');
+        reset.innerHTML = I.refresh(20);
+        row.appendChild(reset);
+      }
+      var live = card.querySelector('[role="status"]');
+      if (live) live.textContent = 'Выполнено ' + state.count + ' из ' + target;
+    }
+
+    refreshProgressHeader();
+
+    if (state.done && settings.autoAdvance) {
+      var list2 = DATA.azkar[azkar.category] || [];
+      if (position + 1 < list2.length) {
+        setTimeout(function () {
+          if (settings.mode === 'single') {
+            view.index = position + 1;
+            render(false);
+            window.scrollTo(0, 0);
+          } else {
+            var nextCard = document.querySelector('[data-card="' + list2[position + 1].id + '"]');
+            if (nextCard) nextCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 480);
+      } else if (settings.mode === 'list') {
+        render(true);
+      }
+    } else if (state.done) {
+      render(true);
+    }
+  }
+
+  /* ================= СОБЫТИЯ ================= */
+  document.addEventListener('click', function (event) {
+    var el = event.target.closest('[data-act]');
+    if (!el) return;
+    var act = el.getAttribute('data-act');
+
+    if (act === 'count') { handleCount(el.getAttribute('data-id'), Number(el.getAttribute('data-pos'))); return; }
+
+    if (act === 'uncount') {
+      var uid = el.getAttribute('data-id');
+      writeProgress(BY_ID[uid].category, function (next) { next.counters[uid] = { count: 0, done: false }; });
+      render(true);
+      return;
+    }
+
+    if (act === 'fav') {
+      toggleFav(el.getAttribute('data-id'));
+      vibrate(12);
+      render(true);
+      return;
+    }
+
+    if (act === 'translit') {
+      var tid = el.getAttribute('data-id');
+      view.openTranslit[tid] = !view.openTranslit[tid];
+      render(true);
+      return;
+    }
+
+    if (act === 'share') {
+      var a = BY_ID[el.getAttribute('data-id')];
+      var text = a.title + '\n\n' + a.translation + '\n\nИсточник: ' + a.source.collection +
+        (a.source.reference ? ', ' + a.source.reference : '') + (a.verified ? '' : '\n(запись требует проверки источника)');
+      if (navigator.share) {
+        navigator.share({ title: a.title + ' — AZKAR', text: text }).catch(function () {});
+      } else if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(function () { toast('Текст скопирован'); }, function () { toast('Не удалось скопировать'); });
+      } else {
+        toast('Копирование недоступно');
+      }
+      return;
+    }
+
+    if (act === 'mode') { setSetting('mode', el.getAttribute('data-mode')); render(false); window.scrollTo(0, 0); return; }
+    if (act === 'resume') { view.resumeDismissed = true; view.index = Number(el.getAttribute('data-index')); render(false); return; }
+    if (act === 'resume-no') { view.resumeDismissed = true; render(true); return; }
+    if (act === 'reset-cat') {
+      var cid = CAT_BY_SLUG[route.slug].id;
+      delete progress[cid];
+      save(KEY.p, progress);
+      view.index = 0;
+      view.resumeDismissed = true;
+      render(false);
+      window.scrollTo(0, 0);
+      return;
+    }
+    if (act === 'prev') { view.index = Math.max(0, view.index - 1); render(false); window.scrollTo(0, 0); return; }
+    if (act === 'next') {
+      var total = (DATA.azkar[CAT_BY_SLUG[route.slug].id] || []).length;
+      view.index = Math.min(total - 1, view.index + 1);
+      render(false);
+      window.scrollTo(0, 0);
+      return;
+    }
+
+    if (act === 'suggest') { searchQuery = el.getAttribute('data-q'); render(false); return; }
+    // window.history, а не наша переменная history с историей дней.
+    if (act === 'back') { if (window.history.length > 1) window.history.back(); else go('#/'); return; }
+
+    if (act === 'open-sheet') { openSheet(); return; }
+    if (act === 'close-sheet') { closeSheet(); return; }
+    if (act === 'theme') { setSetting('theme', el.getAttribute('data-theme')); renderSheet(); render(true); return; }
+    if (act === 'toggle') { var k = el.getAttribute('data-key'); setSetting(k, !settings[k]); renderSheet(); render(true); return; }
+    if (act === 'step') {
+      var sk = el.getAttribute('data-key');
+      var delta = Number(el.getAttribute('data-delta'));
+      setSetting(sk, Math.max(-2, Math.min(3, settings[sk] + delta)));
+      renderSheet();
+      render(true);
+      return;
+    }
+    if (act === 'clear-fav') { favorites = []; save(KEY.f, favorites); toast('Избранное очищено'); render(true); return; }
+    if (act === 'reset-ask') { confirmReset = true; renderSheet(); return; }
+    if (act === 'reset-no') { confirmReset = false; renderSheet(); return; }
+    if (act === 'reset-yes') {
+      progress = {}; history = [];
+      save(KEY.p, progress); save(KEY.h, history);
+      confirmReset = false;
+      renderSheet();
+      render(true);
+      toast('Прогресс сброшен');
+      return;
+    }
+    if (act === 'reset-settings') {
+      settings = Object.assign({}, DEFAULTS);
+      save(KEY.s, settings);
+      applySettings();
+      renderSheet();
+      render(true);
+      return;
+    }
+  });
+
+  document.addEventListener('input', function (event) {
+    if (event.target && event.target.id === 'q') {
+      searchQuery = event.target.value;
+      var at = event.target.selectionStart;
+      render(true);
+      var again = document.getElementById('q');
+      if (again) { again.focus(); try { again.setSelectionRange(at, at); } catch (e) {} }
+    }
+  });
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && sheetOpen) { event.preventDefault(); closeSheet(); return; }
+    if (event.key !== 'Tab' || !sheetOpen) return;
+    // Ловушка фокуса: из открытой шторки нельзя уйти табом на страницу под ней.
+    var focusable = document.querySelectorAll('.sheet button:not([disabled]), .sheet a[href], .sheet input');
+    if (!focusable.length) return;
+    var first = focusable[0];
+    var last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  });
+
+  window.addEventListener('hashchange', onRouteChange);
+
+  /* ================= СТАРТ ================= */
+  applySettings();
+  route = parseHash();
+  render(false);
+})();
+</script>

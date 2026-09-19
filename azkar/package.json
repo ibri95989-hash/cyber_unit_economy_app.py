@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm run lint && npm run build",
-    "content:audit": "tsx scripts/content-audit.ts"
+    "content:audit": "tsx scripts/content-audit.ts",
+    "demo:build": "tsx scripts/build-demo.ts"
   },
   "dependencies": {
     "next": "16.3.5",

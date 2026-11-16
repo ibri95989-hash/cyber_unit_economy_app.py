@@ -162,3 +162,7 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
+# Telegram-бот: история диалогов и локальные секреты
+bot_state.json
+bot_state.tmp
+.env

@@ -1,0 +1,22 @@
+# Образ Telegram-бота для общения с DeepSeek.
+#   docker build -f Dockerfile.bot -t deepseek-bot .
+#   docker run -d --restart unless-stopped --name deepseek-bot \
+#     -e TELEGRAM_BOT_TOKEN=... -e DEEPSEEK_API_KEY=... -e ALLOWED_USER_IDS=... \
+#     -v deepseek-bot-data:/data deepseek-bot
+
+FROM python:3.11-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    STATE_FILE=/data/bot_state.json
+
+WORKDIR /app
+RUN pip install --no-cache-dir "requests[socks]>=2.31"
+COPY telegram_bot ./telegram_bot
+
+# История диалогов хранится в /data — подключите том, чтобы она переживала перезапуск.
+RUN useradd --create-home --uid 10001 app && mkdir /data && chown app:app /data
+USER app
+VOLUME /data
+
+CMD ["python", "-m", "telegram_bot.bot"]

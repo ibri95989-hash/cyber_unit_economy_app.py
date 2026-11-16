@@ -125,3 +125,67 @@ Google Trends, WB и Ozon (код возврата 1, если не ответи
 
 Ключи вводятся в боковой панели и нигде не сохраняются. Карточки с точными
 данными помечаются зелёным бейджем, оценки — жёлтым.
+
+## Telegram-бот для DeepSeek
+
+В каталоге `telegram_bot/` лежит бот, через который можно переписываться с
+DeepSeek прямо в Telegram. По умолчанию используется рассуждающая модель
+`deepseek-reasoner`. Бот помнит контекст диалога, режет длинные ответы на
+части и работает через long polling — домен и открытый порт не нужны.
+
+### Что понадобится
+
+1. **Токен бота** — напишите [@BotFather](https://t.me/BotFather) → `/newbot`.
+2. **Ключ DeepSeek** — [platform.deepseek.com](https://platform.deepseek.com) → API keys
+   (на балансе должны быть средства).
+3. **Ваш Telegram ID** — запустите бота без `ALLOWED_USER_IDS` и напишите ему:
+   он ответит вашим ID. Впишите его и перезапустите.
+
+### Запуск
+
+```bash
+export TELEGRAM_BOT_TOKEN=123456:ABC...
+export DEEPSEEK_API_KEY=sk-...
+export ALLOWED_USER_IDS=123456789
+pip install "requests[socks]"
+python -m telegram_bot.bot
+```
+
+Или в Docker (сам перезапускается, история хранится в томе):
+
+```bash
+docker build -f Dockerfile.bot -t deepseek-bot .
+docker run -d --restart unless-stopped --name deepseek-bot \
+  -e TELEGRAM_BOT_TOKEN=... -e DEEPSEEK_API_KEY=... -e ALLOWED_USER_IDS=... \
+  -v deepseek-bot-data:/data deepseek-bot
+```
+
+Боту нужна машина, которая работает постоянно (VPS, домашний сервер, любой
+хостинг контейнеров) и с которой открываются `api.telegram.org` и
+`api.deepseek.com`.
+
+### Команды в чате
+
+| Команда | Что делает |
+|---|---|
+| `/new` | начать новый диалог, забыть контекст |
+| `/model reasoner` / `/model chat` | переключить модель (рассуждающая / быстрая) |
+| `/think on` / `/think off` | показывать ли ход рассуждений перед ответом |
+| `/id` | показать ваш Telegram ID |
+| `/help` | справка |
+
+### Настройки (переменные окружения)
+
+| Переменная | По умолчанию | Назначение |
+|---|---|---|
+| `TELEGRAM_BOT_TOKEN` | — | токен от @BotFather (обязательно) |
+| `DEEPSEEK_API_KEY` | — | ключ DeepSeek (обязательно) |
+| `ALLOWED_USER_IDS` | пусто | ID через запятую, кому бот отвечает; `*` — всем |
+| `DEEPSEEK_MODEL` | `deepseek-reasoner` | модель по умолчанию |
+| `SYSTEM_PROMPT` | пусто | постоянная инструкция для модели |
+| `HISTORY_LIMIT` | `30` | сколько последних сообщений помнить |
+| `TELEGRAM_PROXY` | пусто | прокси для Telegram (`socks5://…`, `http://…`) |
+| `STATE_FILE` | `bot_state.json` | файл с историей диалогов |
+
+Пока `ALLOWED_USER_IDS` пуст, бот никому не отвечает по существу — так чужие
+люди не смогут тратить ваш баланс DeepSeek.
